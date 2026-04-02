@@ -497,10 +497,6 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
-    <div class="banner banner-info" style="margin-top:4px;">
-      <span class="banner-icon">&#128161;</span>
-      <div>Tap Check Out or Return Items below to get started.</div>
-    </div>
     <div class="spacer"></div>
   </div>
 
@@ -533,7 +529,7 @@ select option{background:var(--panel2);color:var(--text);}
               </svg>
             </button>
           </div>
-          <div style="text-align:right;margin-top:5px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:.06em;">&#128247; Tap the icon to scan a QR code</div>
+          <div style="text-align:right;margin-top:5px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:.06em;">Tap the icon to scan a QR code ^^^</div>
         </div>
         <div id="itemConfirmArea"></div>
       </div>
@@ -747,7 +743,7 @@ select option{background:var(--panel2);color:var(--text);}
 // ================================================================
 // CONFIG
 // ================================================================
-var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz21tQVQwLDgdoVjRRwXioSNgo1jMSOzA8kNlUteVub9fdCsvcqBKeyIVIqETpLyq0_Yg/exec';
+var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyu9m_M3S2XTWYFywRQfQnW4fmSJeA1NpdZPaoGgpJzNY1xYAMooZL7RWCypCk2Ojr0UQ/exec';
 
 // ================================================================
 // FIX 3: Date helpers -- never use a frozen TODAY constant.
@@ -1096,6 +1092,8 @@ function renderStatus() {
   if (member.return_pending.length > 0) {
     banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' item' + (member.return_pending.length > 1 ? 's' : '') + ' pending. Slots available.');
   }
+  // Persistent getting-started prompt -- always shown
+  banners += banner('info', '&#128161;', 'Tap Check Out or Return Items below to get started.');
   if (banners) {
     document.getElementById('statusNotifSection').innerHTML =
       '<div class="section-hdr" style="padding-top:8px;">NOTIFICATIONS<div class="section-hdr-line"></div></div>' + banners;
