@@ -517,7 +517,7 @@ select option{background:var(--panel2);color:var(--text);}
         <div class="field">
           <div class="scan-wrap">
             <input type="text" id="checkoutCodeInput"
-              placeholder="SFD-000"
+              placeholder="SFD-0000" value="SFD-"
               autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
               oninput="onCheckoutCodeInput(this)"
               style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;" />
@@ -716,7 +716,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <a class="mgmt-btn mgmt-change" id="accountChangLink" href="/cdn-cgi/l/email-protection#f380909a959a979c999cb3929c9fdd909c9ecc80869199969087cea0b5b7d3be969e919681809b9a83d3b09b929d9496">CHANGE PLAN</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="/cdn-cgi/l/email-protection#4635252f202f22292c290627292a6825292b793533242c2325327b150002660b232b242334352e2f366605272825232a">CANCEL MEMBERSHIP</a>
-    <p class="mgmt-note">Tap above to send us an email. We will confirm your request within 24 hours. Your membership continues until the end of your current billing period.</p>
+    <p class="mgmt-note">Tap above to send us an email. We will get back to you as soon as possible. Your membership continues until the end of your current billing period.</p>
     <div class="spacer"></div>
   </div>
 
@@ -1122,7 +1122,7 @@ function renderStatus() {
     statCard('Access',      statusText,  statusCls, member.tier) +
     statCard('Available',   st.slotsLeft + ' of ' + member.tier_limit, slotsCls, st.slotsUsed + ' checked out') +
     statCard('Return Bin',  String(member.return_pending.length), member.return_pending.length > 0 ? 'warning' : 'dim', 'awaiting processing') +
-    (member.vault_access ? statCardFull('Vault Access', vaultText, vaultCls, 'Premiere members only') : '');
+    (member.vault_access ? statCard('Vault Access', vaultText, vaultCls, 'Premiere members only') : '');
 
   // FIX 8: slot note -- visible whenever there are pending items
   document.getElementById('slotNote').style.display = member.return_pending.length > 0 ? '' : 'none';
@@ -1178,7 +1178,7 @@ function actionBtn(cls, icon, label, sub, enabled, onclick) {
 // ================================================================
 function goCheckout() {
   checkoutItems = [];
-  document.getElementById('checkoutCodeInput').value = '';
+  document.getElementById('checkoutCodeInput').value = 'SFD-';
   document.getElementById('itemConfirmArea').innerHTML = '';
   document.getElementById('checkoutAlert').innerHTML  = '';
   document.getElementById('checkoutQueue').innerHTML  = '';
@@ -1200,7 +1200,7 @@ function goCheckout() {
 function onCheckoutCodeInput(el) {
   el.value = el.value.toUpperCase();
   var code = el.value.trim();
-  if (code.length >= 5) lookupItem(code);
+  if (code.length >= 8) lookupItem(code);
   else document.getElementById('itemConfirmArea').innerHTML = '';
 }
 
@@ -1232,7 +1232,7 @@ function addToQueue(code) {
   if (slotsLeft <= 0) return;
 
   checkoutItems.push(item);
-  document.getElementById('checkoutCodeInput').value     = '';
+  document.getElementById('checkoutCodeInput').value     = 'SFD-';
   document.getElementById('itemConfirmArea').innerHTML   = '';
   renderCheckoutQueue();
   renderCheckoutPips();
@@ -1296,7 +1296,7 @@ function formatTags(item) {
   return fmtTag + colTag;
 }
 
-function submitCheckout() {
+async function submitCheckout() {
   var noteType = document.getElementById('noteTypeCheckout').value;
   var noteText = document.getElementById('noteTextCheckout').value.trim();
   var alertEl  = document.getElementById('checkoutAlert');
@@ -1307,9 +1307,9 @@ function submitCheckout() {
     return;
   }
 
-  // FIX 5 & 6: final backend validation gate before submit
-  var ids    = checkoutItems.map(function(i) { return i.item_id; });
-  var gate   = backendValidateCheckoutSubmit(member, ids, []);
+  // Client-side pre-validation
+  var ids  = checkoutItems.map(function(i) { return i.item_id; });
+  var gate = backendValidateCheckoutSubmit(member, ids, []);
   if (!gate.ok) {
     alertEl.innerHTML = banner('err', '&#9888;', gate.reason);
     return;
@@ -1318,9 +1318,9 @@ function submitCheckout() {
   var btn = document.getElementById('checkoutSubmitBtn');
   btn.disabled = true; btn.textContent = 'SUBMITTING...';
 
-  var txn     = 'CO-' + Date.now().toString().slice(-7);
-  var ts      = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-  var dueStr  = fmtDate(dueDateFromNow(member.loan_days));
+  var txn    = 'CO-' + Date.now().toString().slice(-7);
+  var ts     = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  var dueStr = fmtDate(dueDateFromNow(member.loan_days));
 
   var payload = {
     action:    'checkout',
@@ -1333,28 +1333,40 @@ function submitCheckout() {
     txn_id:    txn,
   };
 
-  // Production: fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
-  console.log('Checkout payload:', payload);
+  try {
+    var res  = await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
 
-  // Update simulated state
-  checkoutItems.forEach(function(item) {
-    member.rentals.push({ item_id: item.item_id, title: item.title, format: item.format, collection: item.collection, due: dueDateFromNow(member.loan_days) });
-    if (DEMO_CATALOG[item.item_id]) DEMO_CATALOG[item.item_id].status = 'checked_out';
-  });
-  member.last_activity = dueDateFromNow(0);
+    // Use due date from backend if provided
+    if (data.due_date) dueStr = fmtDate(data.due_date);
 
-  var rows = [
-    { k: 'MEMBER', v: member.display_name },
-    { k: 'PLAN',   v: member.tier },
-  ];
-  checkoutItems.forEach(function(it, i) { rows.push({ k: 'ITEM ' + (i + 1), v: it.title + ' (' + it.item_id + ')' }); });
-  rows.push({ k: 'DUE BY', v: dueStr });
-  rows.push({ k: 'REF',    v: txn });
-  if (noteText) rows.push({ k: 'NOTE', v: noteType + ': ' + noteText });
+    // Update local state so UI reflects checkout immediately
+    checkoutItems.forEach(function(item) {
+      member.rentals.push({
+        item_id: item.item_id, title: item.title,
+        format: item.format, collection: item.collection,
+        due: data.due_date || dueDateFromNow(member.loan_days)
+      });
+    });
 
-  showSuccess('co', 'Checkout Complete!',
-    'Checked out. Due by ' + dueStr + '.',
-    rows);
+    var rows = [
+      { k: 'MEMBER', v: member.display_name },
+      { k: 'PLAN',   v: member.tier },
+    ];
+    checkoutItems.forEach(function(it, i) { rows.push({ k: 'ITEM ' + (i + 1), v: it.title + ' (' + it.item_id + ')' }); });
+    rows.push({ k: 'DUE BY', v: dueStr });
+    rows.push({ k: 'REF',    v: data.txn_id || txn });
+    if (noteText) rows.push({ k: 'NOTE', v: noteType + ': ' + noteText });
+
+    showSuccess('co', 'Checkout Complete!',
+      'Checked out. Due by ' + dueStr + '.',
+      rows);
+
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'CONFIRM CHECKOUT';
+    alertEl.innerHTML = banner('err', '&#9888;', 'Checkout failed: ' + (e.message || 'Unknown error') + '. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-CHECKOUT">Email support</a>.');
+  }
 }
 
 // ================================================================
@@ -1406,7 +1418,7 @@ function toggleReturn(itemId) {
   document.getElementById('returnSubmitBtn').disabled = returnSelected.length === 0;
 }
 
-function submitReturn() {
+async function submitReturn() {
   var noteType = document.getElementById('noteTypeReturn').value;
   var noteText = document.getElementById('noteTextReturn').value.trim();
   var alertEl  = document.getElementById('returnAlert');
@@ -1417,7 +1429,7 @@ function submitReturn() {
     return;
   }
 
-  // FIX 6: backend validates return before any mutation
+  // Client-side pre-validation
   var gate = backendValidateReturn(member, returnSelected);
   if (!gate.ok) {
     alertEl.innerHTML = banner('err', '&#9888;', gate.reason);
@@ -1443,33 +1455,34 @@ function submitReturn() {
   };
 
   try {
-    // Production: await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
-    console.log('Return payload:', payload);
-  } catch(e) {}
+    var res  = await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
 
-  // Update simulated state -- move to return_pending, free slot
-  var retIds = returnSelected.slice();
-  retIds.forEach(function(id) {
-    var item = member.rentals.find(function(r) { return r.item_id === id; });
-    if (item) {
-      member.return_pending.push(item);
-      if (DEMO_CATALOG[id]) DEMO_CATALOG[id].status = 'return_pending';
-    }
-  });
-  member.rentals = member.rentals.filter(function(r) { return !retIds.includes(r.item_id); });
-  member.last_activity = dueDateFromNow(0);
+    // Update local state immediately so UI reflects return
+    var retIds = returnSelected.slice();
+    retIds.forEach(function(id) {
+      var item = member.rentals.find(function(r) { return r.item_id === id; });
+      if (item) member.return_pending.push(item);
+    });
+    member.rentals = member.rentals.filter(function(r) { return !retIds.includes(r.item_id); });
 
-  var newSlotsLeft = member.tier_limit - member.rentals.length;
-  var rows = [{ k: 'MEMBER', v: member.display_name }];
-  items.forEach(function(it, i) { rows.push({ k: 'ITEM ' + (i + 1), v: it.title + ' (' + it.item_id + ')' }); });
-  rows.push({ k: 'STATUS',    v: 'Return Bin -- slot freed' });
-  rows.push({ k: 'SLOTS NOW', v: newSlotsLeft + ' of ' + member.tier_limit + ' available' });
-  rows.push({ k: 'REF',       v: txn });
-  if (noteText) rows.push({ k: 'NOTE', v: noteType + ': ' + noteText });
+    var newSlotsLeft = member.tier_limit - member.rentals.length;
+    var rows = [{ k: 'MEMBER', v: member.display_name }];
+    items.forEach(function(it, i) { rows.push({ k: 'ITEM ' + (i + 1), v: it.title + ' (' + it.item_id + ')' }); });
+    rows.push({ k: 'STATUS',    v: 'Return Bin -- slot freed' });
+    rows.push({ k: 'SLOTS NOW', v: newSlotsLeft + ' of ' + member.tier_limit + ' available' });
+    rows.push({ k: 'REF',       v: data.txn_id || txn });
+    if (noteText) rows.push({ k: 'NOTE', v: noteType + ': ' + noteText });
 
-  showSuccess('rt', 'Return Logged!',
-    'Return logged. Slots available.',
-    rows);
+    showSuccess('rt', 'Return Logged!',
+      'Return logged. Slots available.',
+      rows);
+
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'LOG RETURN';
+    alertEl.innerHTML = banner('err', '&#9888;', 'Return failed: ' + (e.message || 'Unknown error') + '. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RETURN">Email support</a>.');
+  }
 }
 
 // ================================================================
