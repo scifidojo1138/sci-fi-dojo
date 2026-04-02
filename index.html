@@ -1744,15 +1744,17 @@ function renderBrowseList() {
   }
 
   list.innerHTML = items.map(function(it) {
-    var statusTag = getBrowseStatusTag(it);
-    var vaultTag  = it.collection === 'vault'
+    var statusTag  = getBrowseStatusTag(it);
+    var vaultTag   = it.collection === 'vault'
       ? '<span class="ri-tag ri-tag-vault">VAULT</span>' : '';
-    var action    = getBrowseAction(it);
+    var action     = getBrowseAction(it);
+    var titleStr   = it.title + (it.year    ? ' (' + it.year + ')' : '');
+    var metaStr    = it.item_id + ' &middot; ' + it.format + (it.edition ? ' &middot; ' + it.edition : '');
     return '<div class="rental-item">' +
       '<div class="ri-disc">' + getFormatEmoji(it.format) + '</div>' +
       '<div class="ri-info">' +
-        '<div class="ri-title">' + it.title + '</div>' +
-        '<div class="ri-meta">' + it.item_id + ' &middot; ' + it.format + '</div>' +
+        '<div class="ri-title">' + titleStr + '</div>' +
+        '<div class="ri-meta">' + metaStr + '</div>' +
         '<div class="ri-tags">' + statusTag + vaultTag + '</div>' +
       '</div>' +
       action +
