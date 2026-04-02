@@ -686,11 +686,9 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="card-body" id="browseList"></div>
     </div>
     <div class="card">
-      <div class="card-hdr">Request a Title<div class="card-hdr-line"></div></div>
       <div class="card-body">
         <div class="field">
-          <label class="field-lbl">Title Request</label>
-          <input type="text" id="requestInput" placeholder="Enter a movie you would like to see..." autocomplete="off" />
+          <input type="text" id="requestInput" placeholder="What would you like to see?" autocomplete="off" />
         </div>
         <div id="requestFeedback" style="min-height:18px;margin-bottom:10px;"></div>
         <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="submitTitleRequest()">SUBMIT REQUEST</button>
@@ -1101,9 +1099,6 @@ function renderStatus() {
   if (member.return_pending.length > 0) {
     banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' item' + (member.return_pending.length > 1 ? 's' : '') + ' pending. Slots available.');
   }
-  if (member.vault_access) {
-    banners += banner('vault', '&#128272;', 'You have <strong>Vault access</strong>.');
-  }
   if (banners) {
     document.getElementById('statusNotifSection').innerHTML =
       '<div class="section-hdr" style="padding-top:8px;">NOTIFICATIONS<div class="section-hdr-line"></div></div>' + banners;
@@ -1113,7 +1108,7 @@ function renderStatus() {
   var statusText = member.active ? 'Enabled' : 'Restricted';
   var statusCls  = member.active ? 'success'  : 'danger';
   var slotsCls   = st.slotsLeft === 0 ? 'warning' : 'accent';
-  var vaultText  = 'Enabled';
+  var vaultText  = 'Granted';
   var vaultCls   = 'vault';
 
   var tierDetails = member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' &middot; ' + member.loan_days + '-day loans &middot; Perks';
@@ -1759,8 +1754,7 @@ function notifyMe(itemId) {
 function confirmBrowseAction(itemId, msg) {
   var btn = document.getElementById('bact-' + itemId);
   if (!btn) return;
-  // Replace button with inline confirmation text -- no alert()
-  btn.textContent = msg + ' &#10003;';
+  btn.innerHTML = msg + ' &#10003;';
   btn.className = 'browse-action done';
   btn.removeAttribute('onclick');
 }
