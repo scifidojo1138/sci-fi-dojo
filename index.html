@@ -869,21 +869,11 @@ var DEMO_MEMBERS = {
   },
 };
 
-var DEMO_CATALOG = {
-  'SFD-023': { item_id: 'SFD-023', title: 'Dune: Part One',       format: '4K UHD',  collection: 'general', status: 'available'      },
-  'SFD-067': { item_id: 'SFD-067', title: 'Arrival',              format: 'Blu-ray', collection: 'general', status: 'available'      },
-  'SFD-134': { item_id: 'SFD-134', title: 'Alien',                format: '4K UHD',  collection: 'general', status: 'available'      },
-  'SFD-156': { item_id: 'SFD-156', title: 'The Expanse S1',       format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
-  'SFD-178': { item_id: 'SFD-178', title: 'Ex Machina',           format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
-  'SFD-215': { item_id: 'SFD-215', title: 'Contact',              format: 'Blu-ray', collection: 'general', status: 'available'      },
-  'SFD-012': { item_id: 'SFD-012', title: 'Blade Runner 2049',    format: '4K UHD',  collection: 'general', status: 'checked_out'    },
-  'SFD-045': { item_id: 'SFD-045', title: 'The Matrix',           format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
-  'SFD-101': { item_id: 'SFD-101', title: 'Annihilation',         format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
-  'SFD-202': { item_id: 'SFD-202', title: 'Moon',                 format: 'DVD',     collection: 'general', status: 'return_pending' },
-  'SFD-203': { item_id: 'SFD-203', title: 'Solaris (1972)',       format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
-  'VLT-001': { item_id: 'VLT-001', title: '2001: A Space Odyssey',format: '4K UHD',  collection: 'vault',   status: 'available'      },
-  'VLT-002': { item_id: 'VLT-002', title: 'Stalker (1979)',       format: 'Blu-ray', collection: 'vault',   status: 'available'      },
-};
+// DEMO_CATALOG removed -- catalog is loaded live from backend via goBrowse()
+// catalogCache holds the live catalog as an array after first fetch.
+// catalogByIdCache is a keyed lookup (item_id -> item) rebuilt after each fetch.
+var catalogCache      = null;  // null = not yet loaded; [] = loaded but empty
+var catalogByIdCache  = {};    // populated alongside catalogCache
 
 // Weekly cabinet code -- in production this comes from Settings sheet
 var CABINET_CODE = { general: '4471', vault: '7823', expires: dueDateFromNow(6) };
@@ -917,8 +907,10 @@ function backendGetMemberStatus(m) {
 
 function backendValidateItemForCheckout(itemId, member, alreadyQueued) {
   // FIX 5: all checkout eligibility checked here
-  var item = DEMO_CATALOG[itemId];
-  if (!item) return { ok: false, reason: 'Invalid code. Scan again.' };
+  // Catalog lookup uses live cache populated by goBrowse(). If cache is empty,
+  // the confirm card will show an error; full validation still runs server-side on submit.
+  var item = catalogByIdCache[itemId];
+  if (!item) return { ok: false, reason: 'Item not found. Browse the catalog first, or check the code and try again.' };
 
   if (alreadyQueued.includes(itemId))
     return { ok: false, reason: 'This item is already in your current selection.' };
@@ -1218,7 +1210,7 @@ function lookupItem(code) {
 }
 
 function addToQueue(code) {
-  var item   = DEMO_CATALOG[code];
+  var item   = catalogByIdCache[code];
   var queued = checkoutItems.map(function(i) { return i.item_id; });
   var result = backendValidateItemForCheckout(code, member, queued);
   if (!result.ok || !item) return;
@@ -1649,13 +1641,45 @@ function dueLabelStr(iso) {
 
 var browseFilter = 'all';
 
-function goBrowse() {
+async function goBrowse() {
   browseFilter = 'all';
   document.getElementById('browseSearch').value = '';
   document.getElementById('filter-all').classList.add('active');
   document.getElementById('filter-available').classList.remove('active');
-  renderBrowseList();
+  document.getElementById('filter-starred').classList.remove('active');
   showScreen('screen-browse');
+
+  // If catalog is already cached, render immediately
+  if (catalogCache !== null) {
+    renderBrowseList();
+    return;
+  }
+
+  // Show loading state in the list while fetching
+  document.getElementById('browseList').innerHTML =
+    '<div style="color:var(--text-mid);text-align:center;padding:24px 0;font-family:\'Share Tech Mono\',monospace;font-size:12px;letter-spacing:.08em;">' +
+    '<div class="spin-lg" style="margin:0 auto 14px;"></div>LOADING CATALOG...</div>';
+
+  try {
+    var res  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(token));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Catalog unavailable');
+
+    // Build both the array cache and the keyed lookup
+    catalogCache     = data.catalog || [];
+    catalogByIdCache = {};
+    catalogCache.forEach(function(item) {
+      catalogByIdCache[item.item_id] = item;
+    });
+
+    renderBrowseList();
+  } catch(e) {
+    document.getElementById('browseList').innerHTML =
+      '<div style="color:var(--danger);text-align:center;padding:24px 0;font-size:13px;line-height:1.6;">' +
+      'Could not load catalog.<br>Check your connection and try again.<br>' +
+      '<span style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-dim);">' + (e.message || '') + '</span>' +
+      '</div>';
+  }
 }
 
 function setBrowseFilter(f) {
@@ -1669,7 +1693,11 @@ function setBrowseFilter(f) {
 function renderBrowseList() {
   var list    = document.getElementById('browseList');
   var query   = (document.getElementById('browseSearch').value || '').toLowerCase().trim();
-  var items   = Object.values(DEMO_CATALOG);
+
+  // Guard: catalog not yet loaded (still fetching)
+  if (catalogCache === null) return;
+
+  var items   = catalogCache.slice(); // work from a copy of the live array
 
   // Apply filter
   var sIds = getStarred();
@@ -1935,7 +1963,7 @@ function getStarred() {
 }
 
 function toggleStar(itemId) {
-  var item = DEMO_CATALOG[itemId];
+  var item = catalogByIdCache[itemId];
   if (!item) return;
   var type    = (item.status === 'available') ? 'saved' : 'notify';
   var message = (type === 'saved') ? 'Saved' : 'We will notify you';
