@@ -497,6 +497,10 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
+    <div class="banner banner-info" style="margin-top:4px;">
+      <span class="banner-icon">&#128161;</span>
+      <div>Tap Check Out or Return Items below to get started.</div>
+    </div>
     <div class="spacer"></div>
   </div>
 
@@ -529,6 +533,7 @@ select option{background:var(--panel2);color:var(--text);}
               </svg>
             </button>
           </div>
+          <div style="text-align:right;margin-top:5px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);letter-spacing:.06em;">&#128247; Tap the icon to scan a QR code</div>
         </div>
         <div id="itemConfirmArea"></div>
       </div>
@@ -656,7 +661,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="codeContent"></div>
     <div class="banner banner-warn" style="margin-top:4px;">
       <span class="banner-icon">&#128274;</span>
-      <div>Code is personal. Do not share.</div>
+      <div>This code is unique to your membership. Do not share.</div>
     </div>
     <div class="spacer"></div>
   </div>
@@ -1719,7 +1724,7 @@ function renderBrowseList() {
     });
   }
 
-  // Sort: starred first, then available, then alpha
+  // Sort: starred first, then available, then alpha by sort_title (falls back to title)
   var starredIds = getStarred();
   items.sort(function(a, b) {
     var aStarred = starredIds.indexOf(a.item_id) !== -1;
@@ -1728,7 +1733,9 @@ function renderBrowseList() {
     if (!aStarred && bStarred) return 1;
     if (a.status === 'available' && b.status !== 'available') return -1;
     if (a.status !== 'available' && b.status === 'available') return 1;
-    return a.title.localeCompare(b.title);
+    var aKey = (a.sort_title || a.title || '').toLowerCase();
+    var bKey = (b.sort_title || b.title || '').toLowerCase();
+    return aKey.localeCompare(bKey);
   });
 
   if (!items.length) {
@@ -1742,7 +1749,7 @@ function renderBrowseList() {
       ? '<span class="ri-tag ri-tag-vault">VAULT</span>' : '';
     var action    = getBrowseAction(it);
     return '<div class="rental-item">' +
-      '<div class="ri-disc">&#128192;</div>' +
+      '<div class="ri-disc">' + getFormatEmoji(it.format) + '</div>' +
       '<div class="ri-info">' +
         '<div class="ri-title">' + it.title + '</div>' +
         '<div class="ri-meta">' + it.item_id + ' &middot; ' + it.format + '</div>' +
@@ -1751,6 +1758,21 @@ function renderBrowseList() {
       action +
       '</div>';
   }).join('');
+}
+
+function getFormatEmoji(format) {
+  // Emoji key:
+  // 💿 U+1F4BF -- DVD
+  // 📀 U+1F4C0 -- Blu-ray
+  // 💽 U+1F4BD -- 4K UHD
+  // 🕹️ U+1F579 -- Video Games (future/vault)
+  // 📼 U+1F4FC -- VHS (future/vault)
+  if (!format) return '\u{1F4BF}';
+  var f = format.toLowerCase();
+  if (f === 'dvd')             return '\u{1F4BF}'; // 💿
+  if (f.indexOf('4k') !== -1)  return '\u{1F4BD}'; // 💽
+  if (f.indexOf('blu') !== -1) return '\u{1F4C0}'; // 📀
+  return '\u{1F4BF}';
 }
 
 function getBrowseStatusTag(it) {
