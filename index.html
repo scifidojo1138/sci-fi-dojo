@@ -744,7 +744,7 @@ select option{background:var(--panel2);color:var(--text);}
 // ================================================================
 // CONFIG
 // ================================================================
-var BACKEND_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbzfs8YUTyaBqoP1VdBku55oxSUB65sUkzJjvZsGs4F0pxElQR9BnnNKNeooNfZFNWOw1g/exec';
 
 // ================================================================
 // FIX 3: Date helpers -- never use a frozen TODAY constant.
@@ -1018,15 +1018,15 @@ window.onerror = function(msg, src, line, col, err) {
   setTimeout(function() { loadMember(token); }, 0);
 })();
 
-function loadMember(tok) {
-  // Production: replace body with fetch() call to BACKEND_URL
+async function loadMember(tok) {
   try {
-    var data = backendLookupMember(tok);
-    if (!data) throw new Error('Member record not found.');
-    member = data;
+    // Live backend
+    var res  = await fetch(BACKEND_URL + '?action=member&token=' + encodeURIComponent(tok));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    member = data.member;
     renderStatus();
   } catch(e) {
-    // Show error visibly -- never hang on loading screen
     var msg = e && e.message ? e.message : 'Unknown error';
     showError('Could Not Load Account', 'Error: ' + msg + '. Please try again or <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-SYSTEM">email support</a>.');
   }
