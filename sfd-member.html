@@ -1,0 +1,2037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Sci-Fi Dojo -- Member</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap");
+
+/* FIX 1: All string punctuation in CSS uses plain ASCII only */
+
+:root {
+  --bg:       #080c12;
+  --panel:    #0d1520;
+  --panel2:   #111c2a;
+  --border:   #1e3450;
+  --border2:  #2a4868;
+  --accent:   #00d4ff;
+  --accent2:  #ff6b35;
+  --success:  #00ff9d;
+  --warning:  #ffcc00;
+  --danger:   #ff3b5c;
+  --vault:    #c084fc;
+  --text:     #e8f4ff;
+  --text-mid: #a8c8e8;
+  --text-dim: #6a90b0;
+  --text-lbl: #8ab4d4;
+  --glow:     0 0 20px rgba(0,212,255,.25);
+  --r:        14px;
+  --r-sm:     9px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{background:var(--bg);}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Exo 2',sans-serif;min-height:100vh;
+  font-size:17px;overflow-x:hidden;position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,.02) 1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;top:-40%;left:-40%;width:180%;height:180%;
+  background:
+    radial-gradient(ellipse at 70% 15%,rgba(0,212,255,.06) 0%,transparent 50%),
+    radial-gradient(ellipse at 15% 85%,rgba(255,107,53,.04) 0%,transparent 45%);
+  pointer-events:none;z-index:0;
+  animation:bgDrift 12s ease-in-out infinite alternate;
+}
+@keyframes bgDrift{from{opacity:.5;transform:scale(1)}to{opacity:1;transform:scale(1.05)}}
+
+.page{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 0 80px;min-height:100vh;}
+
+/* HEADER */
+.header{
+  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  background:rgba(8,12,18,.95);backdrop-filter:blur(16px);
+  position:sticky;top:0;z-index:50;
+  animation:slideDown .4s ease both;
+}
+.logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--accent);letter-spacing:2px;text-shadow:var(--glow);}
+.logo span{color:var(--accent2);}
+.hdr-r{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-mid);display:flex;align-items:center;gap:6px;letter-spacing:.04em;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* BACK NAV */
+.back-nav{
+  padding:14px 20px 0;display:flex;align-items:center;gap:10px;
+  font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-dim);
+  cursor:pointer;animation:fadeUp .3s ease both;
+}
+.back-nav:active{color:var(--text-mid);}
+.back-nav svg{width:16px;height:16px;}
+
+/* SCREENS */
+.screen{display:none;}.screen.active{display:block;}
+
+/* LOADING */
+.loading-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;gap:20px;padding:40px 20px;
+  animation:fadeUp .3s ease both;
+}
+.loading-logo{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--accent);letter-spacing:3px;text-shadow:var(--glow);text-align:center;}
+.loading-logo span{color:var(--accent2);}
+.spin-lg{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--text-dim);text-align:center;}
+
+/* ERROR */
+.error-wrap{padding:40px 20px;text-align:center;animation:fadeUp .3s ease both;}
+.error-icon{font-size:48px;margin-bottom:20px;}
+.error-title{font-family:'Orbitron',monospace;font-size:18px;color:var(--danger);margin-bottom:10px;}
+.error-msg{font-size:15px;color:var(--text-mid);line-height:1.6;}
+
+/* MEMBER HERO */
+.member-hero{padding:32px 20px 24px;animation:fadeUp .35s ease .05s both;}
+.member-eyebrow{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:14px;}
+.member-name{font-family:'Orbitron',monospace;font-size:32px;font-weight:700;color:var(--text);line-height:1.25;margin-bottom:12px;}
+.member-tier{display:inline-flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:.06em;padding:6px 14px;border-radius:20px;border:1px solid;}
+.tier-mat{color:var(--text-mid);border-color:rgba(168,200,232,.3);background:rgba(168,200,232,.07);}
+.tier-dbl{color:var(--accent);border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.07);}
+.tier-pre{color:var(--vault);border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.07);}
+.tier-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* STATUS GRID */
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .08s both;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;}
+.stat-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:600;color:var(--text);line-height:1.2;}
+.stat-value.accent {color:var(--accent);}
+.stat-value.warning{color:var(--warning);}
+.stat-value.danger {color:var(--danger);}
+.stat-value.success{color:var(--success);}
+.stat-value.vault  {color:var(--vault);}
+.stat-value.dim    {color:var(--text-mid);font-size:15px;}
+.stat-sub{font-size:13px;color:var(--text-dim);margin-top:3px;font-family:'Share Tech Mono',monospace;}
+
+/* SECTION HEADERS */
+.section-hdr{
+  padding:20px 20px 8px;
+  font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--text-lbl);
+  display:flex;align-items:center;gap:10px;
+}
+.section-hdr-line{flex:1;height:1px;background:var(--border);}
+.section-hdr:first-of-type{padding-top:8px;}
+
+/* BANNERS */
+.banner{
+  margin:0 16px 12px;padding:13px 16px;
+  border-radius:var(--r-sm);font-size:14px;line-height:1.6;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.banner-icon{flex-shrink:0;font-size:16px;margin-top:1px;}
+.banner-ok   {background:rgba(0,255,157,.07);  border:1px solid rgba(0,255,157,.25);color:var(--success);}
+.banner-warn {background:rgba(255,204,0,.07);  border:1px solid rgba(255,204,0,.3); color:var(--warning);}
+.banner-err  {background:rgba(255,59,92,.07);  border:1px solid rgba(255,59,92,.3); color:var(--danger);}
+.banner-info {background:rgba(0,212,255,.06);  border:1px solid rgba(0,212,255,.2); color:var(--accent);}
+.banner-vault{background:rgba(192,132,252,.07);border:1px solid rgba(192,132,252,.3);color:var(--vault);}
+
+/* FIX 8: Slot clarification note style */
+.slot-note{
+  margin:0 16px 14px;padding:10px 14px;
+  border-radius:var(--r-sm);font-size:12px;line-height:1.5;
+  background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);
+  color:var(--text-dim);font-family:'Share Tech Mono',monospace;
+}
+
+/* ACTION GRID */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .12s both;}
+.action-btn{
+  background:var(--panel);border:1px solid var(--border2);
+  border-radius:var(--r);padding:20px 16px;
+  cursor:pointer;text-align:center;transition:all .2s;
+  position:relative;overflow:hidden;
+}
+.action-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .2s;}
+.action-btn:active{transform:scale(.98);}
+.ab-checkout::before{background:var(--accent);}
+.ab-return::before  {background:var(--accent2);}
+.ab-rentals::before {background:var(--success);}
+.ab-code::before    {background:var(--vault);}
+.action-btn:active::before{opacity:1;}
+.ab-icon {font-size:32px;display:block;margin-bottom:10px;}
+.ab-label{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;}
+.ab-checkout .ab-label{color:var(--accent);}
+.ab-return   .ab-label{color:var(--accent2);}
+.ab-rentals  .ab-label{color:var(--success);}
+.ab-code     .ab-label{color:var(--vault);}
+.ab-sub{font-size:12px;color:var(--text-dim);margin-top:5px;font-family:'Share Tech Mono',monospace;}
+.action-btn.disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
+
+/* CARDS */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);margin:0 16px 14px;overflow:hidden;animation:fadeUp .35s ease both;}
+.card-hdr{padding:13px 18px 0;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lbl);display:flex;align-items:center;gap:8px;}
+.card-hdr-line{flex:1;height:1px;background:var(--border2);}
+.card-body{padding:14px 18px 18px;}
+
+/* SECTION HEADING */
+.section-heading{padding:20px 20px 12px;animation:fadeUp .3s ease both;}
+.section-title{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.section-sub{font-size:14px;color:var(--text-mid);line-height:1.5;}
+
+/* INPUTS */
+.field{margin-bottom:14px;}.field:last-child{margin-bottom:0;}
+.field-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:8px;display:block;}
+input[type=text],textarea,select{
+  width:100%;background:rgba(0,0,0,.4);border:1.5px solid var(--border2);
+  border-radius:var(--r-sm);padding:14px 16px;
+  font-family:'Exo 2',sans-serif;font-size:18px;color:var(--text);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+  -webkit-appearance:none;caret-color:var(--accent);
+}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1);}
+input::placeholder,textarea::placeholder{color:var(--text-dim);}
+textarea{resize:none;min-height:88px;line-height:1.6;font-size:15px;}
+select{color:var(--text-mid);}
+select option{background:var(--panel2);color:var(--text);}
+
+/* SCAN ROW */
+.scan-wrap{position:relative;}
+.scan-wrap input{padding-right:52px;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;text-transform:uppercase;}
+.scan-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:var(--text-mid);display:flex;align-items:center;transition:color .15s;}
+.scan-btn:active{color:var(--accent);}
+.scan-btn svg{width:22px;height:22px;}
+
+/* ITEM CONFIRM CARD */
+.item-confirm{background:var(--panel2);border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:16px;margin-top:12px;animation:fadeUp .2s ease both;}
+.item-confirm.ok      {border-color:rgba(0,255,157,.4);  background:rgba(0,255,157,.05);}
+.item-confirm.warn    {border-color:rgba(255,204,0,.4);  background:rgba(255,204,0,.05);}
+.item-confirm.err     {border-color:rgba(255,59,92,.4);  background:rgba(255,59,92,.05);}
+.item-confirm.vault-ok{border-color:rgba(192,132,252,.4);background:rgba(192,132,252,.05);}
+.ic-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.ic-icon{font-size:28px;flex-shrink:0;}
+.ic-title{font-weight:600;font-size:16px;color:var(--text);margin-bottom:4px;}
+.ic-meta {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);}
+.ic-tags {display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.ic-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;padding:3px 8px;border-radius:3px;border:1px solid;}
+.ic-tag-ok   {color:var(--success);border-color:rgba(0,255,157,.3);  background:rgba(0,255,157,.08);}
+.ic-tag-warn {color:var(--warning);border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.08);}
+.ic-tag-err  {color:var(--danger); border-color:rgba(255,59,92,.3);  background:rgba(255,59,92,.08);}
+.ic-tag-vault{color:var(--vault);  border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.08);}
+.ic-tag-gen  {color:var(--text-mid);border-color:var(--border2);     background:rgba(0,0,0,.2);}
+.ic-msg{font-size:13px;color:var(--text-mid);margin-top:8px;line-height:1.5;}
+
+/* RENTAL LIST */
+.rental-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+.rental-item:last-child{border-bottom:none;}
+.ri-disc{font-size:22px;flex-shrink:0;padding-top:2px;}
+.ri-info{flex:1;min-width:0;}
+.ri-title{font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ri-meta {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);margin-bottom:5px;}
+.ri-due  {font-family:'Share Tech Mono',monospace;font-size:11px;}
+.due-ok     {color:var(--text-dim);}
+.due-soon   {color:var(--warning);}
+.due-overdue{color:var(--danger);}
+.ri-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;}
+.ri-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:3px;border:1px solid;display:inline-block;}
+.ri-tag-out    {color:var(--accent);  border-color:rgba(0,212,255,.3);  background:rgba(0,212,255,.06);}
+.ri-tag-pending{color:var(--warning); border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.06);}
+.ri-tag-vault  {color:var(--vault);   border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.06);}
+
+/* RETURN SELECTABLE */
+.return-item{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;transition:all .2s;}
+.return-item:active{border-color:var(--accent2);background:rgba(255,107,53,.05);}
+.return-item.selected{border-color:var(--accent2);background:rgba(255,107,53,.06);}
+.ri-check{width:22px;height:22px;border:2px solid var(--border2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .2s;}
+.return-item.selected .ri-check{border-color:var(--accent2);background:var(--accent2);color:var(--bg);}
+
+/* NOTE SECTION */
+.note-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;margin-bottom:4px;}
+.note-toggle-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lbl);}
+.note-chevron{color:var(--text-dim);font-size:18px;transition:transform .2s;line-height:1;}
+.note-fields{display:none;margin-top:12px;animation:fadeUp .2s ease both;}
+.note-fields.open{display:block;}
+.note-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+/* PIPS */
+.pip-row{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
+.pip{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .25s;}
+.pip.on      {background:var(--accent);box-shadow:0 0 6px rgba(0,212,255,.4);}
+.pip.overdue {background:var(--danger);box-shadow:0 0 6px rgba(255,59,92,.4);}
+.pip.pending {background:var(--warning);}
+.pip-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);white-space:nowrap;margin-left:2px;}
+
+.ab-browse .ab-label{color:var(--text-mid);}
+.ab-browse:active{border-color:rgba(168,200,232,.4);box-shadow:0 4px 20px rgba(168,200,232,.1);}
+.ab-browse::before{background:var(--text-mid);}
+
+.ab-account .ab-label{color:var(--text-mid);}
+.ab-account::before{background:var(--text-mid);}
+.ab-account:active{border-color:rgba(168,200,232,.4);}
+
+/* HISTORY */
+.history-toggle{display:flex;gap:8px;margin-bottom:14px;}
+.hist-btn{
+  padding:7px 14px;border-radius:20px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .15s;
+}
+.hist-btn.active{background:var(--panel2);border-color:var(--accent);color:var(--accent);}
+.hist-item{padding:14px 0;border-bottom:1px solid var(--border);}
+.hist-item:last-child{border-bottom:none;}
+.hist-title{font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;}
+.hist-meta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);margin-bottom:8px;}
+.hist-actions{display:flex;gap:8px;}
+.hist-action{
+  padding:6px 12px;border-radius:var(--r-sm);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;font-weight:700;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .15s;
+}
+.hist-action:active{border-color:var(--accent);color:var(--accent);}
+.hist-action.done{color:var(--success);border-color:rgba(0,255,157,.3);pointer-events:none;}
+
+/* STAR */
+.star-btn{
+  background:none;border:none;cursor:pointer;font-size:20px;
+  padding:4px 8px;flex-shrink:0;align-self:center;
+  transition:transform .15s;color:var(--text-dim);
+}
+.star-btn:active{transform:scale(1.3);}
+.star-btn.starred{color:var(--warning);}
+
+/* MEMBERSHIP SCREEN */
+.billing-box{
+  background:var(--panel2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:20px;margin:0 16px 14px;
+  text-align:center;
+}
+.billing-date{
+  font-family:'Orbitron',monospace;font-size:22px;font-weight:700;
+  color:var(--accent);margin-bottom:6px;
+}
+.billing-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;}
+.mgmt-btn{
+  display:block;width:calc(100% - 32px);margin:0 16px 12px;padding:16px;
+  border-radius:var(--r);font-family:'Orbitron',monospace;
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  cursor:pointer;transition:all .15s;text-align:center;text-decoration:none;
+}
+.mgmt-change{background:var(--panel2);border:1px solid var(--accent);color:var(--accent);}
+.mgmt-cancel{background:var(--panel2);border:1px solid var(--border2);color:var(--text-dim);}
+.mgmt-note{text-align:center;font-size:12px;color:var(--text-dim);margin:0 16px 14px;line-height:1.6;}
+
+/* BROWSE FILTER */
+.browse-filters{display:flex;gap:8px;margin:0 16px 14px;}
+.filter-btn{
+  padding:8px 16px;border-radius:20px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .15s;
+}
+.filter-btn.active{background:var(--panel2);border-color:var(--accent);color:var(--accent);}
+.filter-btn:active{opacity:.7;}
+
+/* BROWSE ITEM ACTION */
+.browse-action{
+  flex-shrink:0;padding:8px 12px;border-radius:var(--r-sm);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;font-weight:700;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .2s;white-space:nowrap;align-self:center;
+}
+.browse-action:active{border-color:var(--accent);color:var(--accent);}
+.browse-action.done{border-color:var(--success);color:var(--success);pointer-events:none;}
+
+/* INLINE FEEDBACK */
+.inline-confirm{
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:var(--success);padding:8px 12px;white-space:nowrap;
+  align-self:center;flex-shrink:0;
+}
+
+/* BUTTONS */
+.btn-primary{
+  display:block;width:calc(100% - 32px);margin:0 16px;padding:18px;
+  background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;
+  cursor:pointer;transition:all .15s;
+}
+.btn-primary:active{opacity:.85;transform:scale(.99);}
+.btn-primary:disabled{opacity:.25;cursor:not-allowed;transform:none;}
+.btn-primary.return-btn{background:var(--accent2);}
+.btn-ghost{
+  display:block;width:calc(100% - 32px);margin:12px 16px 0;padding:15px;
+  background:transparent;border:1px solid var(--border2);border-radius:var(--r);
+  font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1.5px;
+  color:var(--text-mid);cursor:pointer;transition:all .15s;
+}
+.btn-ghost:active{background:rgba(255,255,255,.05);color:var(--text);}
+
+/* TERMS */
+.terms-line{text-align:center;font-size:12px;color:var(--text-mid);line-height:1.6;margin:14px 16px 0;}
+.terms-line a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;}
+
+/* SUCCESS */
+.success-wrap{padding:40px 16px 32px;animation:fadeUp .4s ease both;}
+.suc-glyph{width:72px;height:72px;border-radius:50%;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:30px;animation:popIn .45s cubic-bezier(.175,.885,.32,1.275) .1s both;}
+.suc-glyph.co{background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);}
+.suc-glyph.rt{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.3);}
+.suc-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;text-align:center;margin-bottom:10px;}
+.suc-title.co{color:var(--accent);text-shadow:var(--glow);}
+.suc-title.rt{color:var(--accent2);}
+.suc-sub{font-size:15px;color:var(--text-mid);text-align:center;line-height:1.6;margin-bottom:28px;}
+.receipt{background:var(--panel);border:1px solid var(--border2);border-radius:var(--r);padding:4px 0;margin-bottom:24px;}
+.r-row{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 18px;gap:12px;border-bottom:1px solid var(--border);}
+.r-row:last-child{border-bottom:none;}
+.r-key{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-lbl);letter-spacing:.1em;flex-shrink:0;padding-top:1px;}
+.r-val{font-size:14px;color:var(--text);text-align:right;line-height:1.5;word-break:break-word;}
+
+/* ACCESS CABINET -- FIX 4: built-in screen, FIX 10: tighter language */
+.code-display{
+  background:var(--panel2);border:1.5px solid rgba(192,132,252,.3);
+  border-radius:var(--r);padding:28px 20px;text-align:center;margin:0 16px 14px;
+}
+.code-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--vault);margin-bottom:16px;opacity:.8;}
+.code-value{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--vault);letter-spacing:12px;text-shadow:0 0 24px rgba(192,132,252,.5);margin-bottom:12px;}
+.code-expires{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
+
+/* CAMERA */
+.cam-overlay{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+.cam-overlay.hidden{display:none;}
+.cam-lbl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:var(--text-mid);text-transform:uppercase;margin-bottom:24px;}
+.cam-vp{width:280px;height:280px;position:relative;margin-bottom:24px;}
+#camVideo{width:280px;height:280px;object-fit:cover;border-radius:12px;display:block;background:var(--panel);}
+.cam-vp::before,.cam-vp::after,.cam-br::before,.cam-br::after{content:'';position:absolute;width:32px;height:32px;border-color:var(--accent);border-style:solid;}
+.cam-vp::before{top:-2px;left:-2px;  border-width:3px 0 0 3px;border-radius:4px 0 0 0;box-shadow:-2px -2px 12px rgba(0,212,255,.3);}
+.cam-vp::after {top:-2px;right:-2px; border-width:3px 3px 0 0;border-radius:0 4px 0 0;box-shadow:2px -2px 12px rgba(0,212,255,.3);}
+.cam-br::before{bottom:-2px;left:-2px; border-width:0 0 3px 3px;border-radius:0 0 0 4px;box-shadow:-2px 2px 12px rgba(0,212,255,.3);}
+.cam-br::after {bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 4px 0;box-shadow:2px 2px 12px rgba(0,212,255,.3);}
+.cam-scan{position:absolute;left:8px;right:8px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:0;animation:scanLine 2s ease-in-out infinite;box-shadow:0 0 10px var(--accent);}
+@keyframes scanLine{0%{top:8px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:272px;opacity:0}}
+.cam-hint{font-size:15px;color:var(--text-mid);text-align:center;line-height:1.6;margin-bottom:20px;}
+.cam-manual{display:flex;gap:8px;width:100%;max-width:340px;margin-bottom:20px;}
+.cam-manual input{flex:1;background:rgba(255,255,255,.1);border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:14px 16px;color:white;font-family:'Share Tech Mono',monospace;font-size:16px;outline:none;letter-spacing:.06em;text-transform:uppercase;-webkit-appearance:none;}
+.cam-manual input:focus{border-color:var(--accent);}
+.cam-manual input::placeholder{color:rgba(255,255,255,.35);text-transform:none;letter-spacing:0;}
+.cam-manual button{padding:14px 20px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--r-sm);font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;}
+.cam-close{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--text-mid);background:none;border:1px solid var(--border2);border-radius:6px;padding:10px 20px;cursor:pointer;}
+
+/* ANIMATIONS */
+@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp   {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
+@keyframes popIn    {from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}
+.spacer{height:32px;}
+</style>
+</head>
+<body>
+
+<!-- CAMERA -->
+<div class="cam-overlay hidden" id="camOverlay">
+  <div class="cam-lbl">Scan Item QR Code</div>
+  <div class="cam-vp">
+    <video id="camVideo" autoplay playsinline muted></video>
+    <div class="cam-br"></div>
+    <div class="cam-scan"></div>
+  </div>
+  <p class="cam-hint">Point camera at the QR sticker on the item</p>
+  <div class="cam-manual">
+    <input type="text" id="camInput" placeholder="Or type item code..." />
+    <button onclick="submitCamManual()">Use</button>
+  </div>
+  <button class="cam-close" onclick="closeCamera()">CANCEL</button>
+</div>
+
+<div class="page">
+  <header class="header">
+    <div class="logo">SCI-FI <span>DOJO</span></div>
+    <div class="hdr-r"><div class="live-dot"></div>Member Portal</div>
+  </header>
+
+  <!-- LOADING -->
+  <div class="screen active" id="screen-loading">
+    <div class="loading-wrap">
+      <div class="loading-logo">SCI-FI <span>DOJO</span></div>
+      <div class="spin-lg"></div>
+      <div class="loading-msg" id="loadingMsg">Verifying membership...</div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="screen" id="screen-error">
+    <div class="error-wrap">
+      <div class="error-icon">&#128683;</div>
+      <div class="error-title" id="errorTitle">Access Error</div>
+      <div class="error-msg" id="errorMsg">Something went wrong. Please scan your membership card again or contact us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1b6878727d727f7471745b7a747735787476">[email&#160;protected]</a>.</div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="screen" id="screen-status">
+    <div class="member-hero">
+      <div class="member-eyebrow">Member Portal</div>
+      <div class="member-name" id="statusName">--</div>
+      <div id="systemStatusLine" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:12px;display:none;">SYSTEM STATUS: ACTIVE</div>
+      <div class="member-tier" id="statusTier"><div class="tier-dot"></div>--</div>
+    </div>
+    <!-- FIX 2: single dedicated containers, cleared on every render -->
+    <div id="statusNotifSection"></div>
+    <div id="sectionHdrStatus" class="section-hdr" style="display:none;">ACCOUNT STATUS<div class="section-hdr-line"></div></div>
+    <div class="status-grid" id="statusGrid"></div>
+    <!-- FIX 8: persistent slot clarification note -->
+    <div class="slot-note" id="slotNote" style="display:none;">
+      Items in the Return Bin (Return Bin) do not count against your rental limit --
+      your slot is freed as soon as you log a return.
+    </div>
+    <div id="statusHints"></div>
+    <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
+    <div class="action-grid" id="actionGrid"></div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- CHECKOUT -->
+  <div class="screen" id="screen-checkout">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Check Out</div>
+      <div class="section-sub" id="checkoutSubtitle">Scan or enter an item code to rent it.</div>
+    </div>
+    <div class="pip-row" style="margin:0 16px 14px;" id="checkoutPips"></div>
+    <div class="card d2">
+      <div class="card-hdr">Item Code<div class="card-hdr-line"></div></div>
+      <div class="card-body">
+        <div class="field">
+          <div class="scan-wrap">
+            <input type="text" id="checkoutCodeInput"
+              placeholder="SFD-0000" value="SFD-"
+              autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+              oninput="onCheckoutCodeInput(this)"
+              style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;" />
+            <button class="scan-btn" onclick="openCamera('checkout')" aria-label="Scan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <rect x="7" y="7" width="3" height="3" rx=".5"/><rect x="14" y="7" width="3" height="3" rx=".5"/>
+                <rect x="7" y="14" width="3" height="3" rx=".5"/><rect x="14" y="14" width="3" height="3" rx=".5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="itemConfirmArea"></div>
+      </div>
+    </div>
+    <div class="card d3" id="checkoutQueueCard" style="display:none;">
+      <div class="card-hdr">Selected Items<div class="card-hdr-line"></div></div>
+      <div class="card-body" id="checkoutQueue"></div>
+    </div>
+    <div class="card d4">
+      <div class="card-body">
+        <div class="note-toggle" onclick="toggleNote('Checkout')">
+          <span class="note-toggle-lbl">Add a Note</span>
+          <span class="note-chevron" id="noteChevronCheckout">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsCheckout">
+          <hr class="note-divider">
+          <div class="field">
+            <label class="field-lbl">Note Type</label>
+            <select id="noteTypeCheckout">
+              <option value="">Select type...</option>
+              <option value="Request">Request</option>
+              <option value="General Note">General Note</option>
+              <option value="Disc Issue">Disc Issue</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-lbl">Note</label>
+            <textarea id="noteTextCheckout" placeholder="What would you like to share?"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="checkoutAlert"></div>
+    <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitCheckout()" disabled>CONFIRM CHECKOUT</button>
+    <p class="terms-line">By submitting, you agree to the <a href="#" onclick="return false;">SFD Rental Terms</a> and accept responsibility for all items while checked out.</p>
+    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- RETURN LOG -->
+  <div class="screen" id="screen-return">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Return Items</div>
+      <div class="section-sub">Select items to return. Slots free immediately. Items stay in Return Bin until processed.</div>
+    </div>
+    <div class="card d2">
+      <div class="card-hdr">Items to Return<div class="card-hdr-line"></div></div>
+      <div class="card-body" id="returnList"></div>
+    </div>
+    <div class="card d3">
+      <div class="card-body">
+        <div class="note-toggle" onclick="toggleNote('Return')">
+          <span class="note-toggle-lbl">Add a Note</span>
+          <span class="note-chevron" id="noteChevronReturn">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsReturn">
+          <hr class="note-divider">
+          <div class="field">
+            <label class="field-lbl">Note Type</label>
+            <select id="noteTypeReturn">
+              <option value="">Select type...</option>
+              <option value="Review">Review</option>
+              <option value="Disc Issue">Disc Issue</option>
+              <option value="General Note">General Note</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-lbl">Note</label>
+            <textarea id="noteTextReturn" placeholder="Review, disc condition, or anything else..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="returnAlert"></div>
+    <button class="btn-primary return-btn d4" id="returnSubmitBtn" onclick="submitReturn()" disabled>RETURN ITEMS</button>
+    
+    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- RENTALS -->
+  <div class="screen" id="screen-rentals">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Rentals</div>
+      <div class="section-sub" id="rentalsSubtitle">Your currently checked-out and return-pending items.</div>
+    </div>
+    <div class="card d2">
+      <div class="card-body" id="rentalsList"></div>
+    </div>
+    <div class="slot-note" style="display:block;">
+      Items in the Return Bin do not count against your rental limit -- your slot is freed as soon as you log a return.
+    </div>
+    <!-- RENTAL HISTORY -->
+    <div class="section-hdr" style="margin-top:8px;">RENTAL HISTORY<div class="section-hdr-line"></div></div>
+    <div class="history-toggle" style="margin:0 16px 14px;">
+      <button class="hist-btn active" id="hist-30"  onclick="setHistFilter(30)">30 Days</button>
+      <button class="hist-btn"        id="hist-90"  onclick="setHistFilter(90)">90 Days</button>
+      <button class="hist-btn"        id="hist-all" onclick="setHistFilter(0)">All</button>
+    </div>
+    <div class="card">
+      <div class="card-body" id="historyList"></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- FIX 4: ACCESS CABINET as a built-in screen -->
+  <div class="screen" id="screen-code">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Access Cabinet</div>
+      <!-- FIX 10: tighter, member-only language -->
+      <div class="section-sub">Personal to your account. Do not share. Rotates weekly.</div>
+    </div>
+    <div id="codeContent"></div>
+    <div class="banner banner-warn" style="margin-top:4px;">
+      <span class="banner-icon">&#128274;</span>
+      <div>Code is personal. Do not share.</div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- BROWSE COLLECTION -->
+  <div class="screen" id="screen-browse">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Browse Collection</div>
+      <div class="section-sub">Explore available titles and request items.</div>
+    </div>
+    <div style="margin:0 16px 14px;">
+      <input type="text" id="browseSearch"
+        placeholder="Search title, format, or code..."
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="renderBrowseList()" />
+    </div>
+    <div class="browse-filters">
+      <button class="filter-btn active" id="filter-all"       onclick="setBrowseFilter('all')">All</button>
+      <button class="filter-btn"        id="filter-available" onclick="setBrowseFilter('available')">Available Only</button>
+      <button class="filter-btn"        id="filter-starred"   onclick="setBrowseFilter('starred')">&#9733; Starred</button>
+    </div>
+    <div class="card">
+      <div class="card-body" id="browseList"></div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="field">
+          <input type="text" id="requestInput" placeholder="What would you like to see?" autocomplete="off" />
+        </div>
+        <div id="requestFeedback" style="min-height:18px;margin-bottom:10px;"></div>
+        <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="submitTitleRequest()">SUBMIT REQUEST</button>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- MEMBERSHIP MANAGEMENT -->
+  <div class="screen" id="screen-account">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Membership</div>
+      <div class="section-sub" id="accountSubtitle">Manage your Sci-Fi Dojo membership.</div>
+    </div>
+    <div class="billing-box">
+      <div class="billing-label">Next Billing Date</div>
+      <div class="billing-date" id="accountBillingDate">--</div>
+      <div id="accountTierLine" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);margin-top:4px;"></div>
+    </div>
+    <a class="mgmt-btn mgmt-change" id="accountChangLink" href="/cdn-cgi/l/email-protection#f380909a959a979c999cb3929c9fdd909c9ecc80869199969087cea0b5b7d3be969e919681809b9a83d3b09b929d9496">CHANGE PLAN</a>
+    <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="/cdn-cgi/l/email-protection#4635252f202f22292c290627292a6825292b793533242c2325327b150002660b232b242334352e2f366605272825232a">CANCEL MEMBERSHIP</a>
+    <p class="mgmt-note">Tap above to send us an email. We will get back to you as soon as possible. Your membership continues until the end of your current billing period.</p>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="screen" id="screen-success">
+    <div class="success-wrap">
+      <div class="suc-glyph" id="sucGlyph">&#10003;</div>
+      <div class="suc-title" id="sucTitle"></div>
+      <div class="suc-sub"   id="sucSub"></div>
+      <div class="receipt"   id="sucReceipt"></div>
+      <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+
+// ================================================================
+// FIX 1: No smart quotes anywhere in this script.
+// All string delimiters are plain ASCII single or double quotes.
+// All apostrophes in user-facing text are plain ASCII apostrophes.
+// ================================================================
+
+// ================================================================
+// CONFIG
+// ================================================================
+var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyu9m_M3S2XTWYFywRQfQnW4fmSJeA1NpdZPaoGgpJzNY1xYAMooZL7RWCypCk2Ojr0UQ/exec';
+
+// ================================================================
+// FIX 3: Date helpers -- never use a frozen TODAY constant.
+// Always call getToday() so comparisons stay accurate throughout
+// a session even if the page is left open across midnight.
+// ================================================================
+function getToday() {
+  var now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isoToDate(iso) {
+  // Parse YYYY-MM-DD as local midnight to avoid timezone shifts
+  var parts = iso.split('-');
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+}
+
+function daysUntil(iso) {
+  return Math.floor((isoToDate(iso) - getToday()) / 86400000);
+}
+
+function isOverdue(iso) {
+  return isoToDate(iso) < getToday();
+}
+
+function dueDateFromNow(days) {
+  var d = getToday();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function fmtDate(iso) {
+  if (!iso) return '--';
+  return isoToDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function fmtTs(iso) {
+  if (!iso) return '--';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+// ================================================================
+// SIMULATED BACKEND
+// FIX 5 & 6: All business logic lives here, not in UI code.
+// Client sends member_id + token + action + item_ids.
+// Backend (simulated here) decides everything else.
+// ================================================================
+
+// FIX 7: Added tok_maxed -- member exactly at limit, no pending returns
+var DEMO_MEMBERS = {
+  'tok_nebula': {
+    member_id: 'MBR-001', display_name: 'Nebula Fan',
+    tier: 'Matinee', tier_limit: 1, loan_days: 7,
+    active: true, deposit_paid: true, vault_access: false,
+    rentals: [], return_pending: [],
+    cabinet_code: null, last_activity: dueDateFromNow(-3),
+    next_billing_date: dueDateFromNow(12),
+    rental_history: [
+      { item_id:'SFD-067', title:'Arrival',        format:'Blu-ray', checked_out: dueDateFromNow(-45), returned: dueDateFromNow(-38) },
+      { item_id:'SFD-215', title:'Contact',        format:'Blu-ray', checked_out: dueDateFromNow(-20), returned: dueDateFromNow(-13) },
+    ],
+  },
+  'tok_darkstar': {
+    member_id: 'MBR-002', display_name: 'Darkstar 88',
+    tier: 'Double Feature', tier_limit: 2, loan_days: 10,
+    active: true, deposit_paid: true, vault_access: false,
+    rentals: [
+      { item_id: 'SFD-012', title: 'Blade Runner 2049', format: '4K UHD', collection: 'general', due: dueDateFromNow(3) },
+    ],
+    return_pending: [],
+    cabinet_code: '4471', last_activity: dueDateFromNow(-1),
+    next_billing_date: dueDateFromNow(5),
+    rental_history: [
+      { item_id:'SFD-023', title:'Dune: Part One',    format:'4K UHD',  checked_out: dueDateFromNow(-60), returned: dueDateFromNow(-53) },
+      { item_id:'SFD-134', title:'Alien',             format:'4K UHD',  checked_out: dueDateFromNow(-40), returned: dueDateFromNow(-33) },
+      { item_id:'SFD-178', title:'Ex Machina',        format:'Blu-ray', checked_out: dueDateFromNow(-15), returned: dueDateFromNow(-8)  },
+    ],
+  },
+  'tok_orion': {
+    member_id: 'MBR-003', display_name: 'Orion Prime',
+    tier: 'Premiere', tier_limit: 3, loan_days: 14,
+    active: true, deposit_paid: true, vault_access: true,
+    rentals: [
+      { item_id: 'SFD-045', title: 'The Matrix',   format: 'Blu-ray', collection: 'general', due: dueDateFromNow(1) },
+      { item_id: 'SFD-101', title: 'Annihilation', format: 'Blu-ray', collection: 'general', due: dueDateFromNow(-2) },
+    ],
+    return_pending: [
+      { item_id: 'SFD-202', title: 'Moon', format: 'DVD', collection: 'general', due: dueDateFromNow(-5) },
+    ],
+    cabinet_code: '4471', last_activity: dueDateFromNow(0),
+    next_billing_date: dueDateFromNow(8),
+  },
+  'tok_void': {
+    member_id: 'MBR-004', display_name: 'Void Walker',
+    tier: 'Double Feature', tier_limit: 2, loan_days: 10,
+    active: false, deposit_paid: true, vault_access: false,
+    rentals: [
+      { item_id: 'SFD-203', title: 'Solaris (1972)', format: 'Blu-ray', collection: 'general', due: dueDateFromNow(-8) },
+    ],
+    return_pending: [],
+    cabinet_code: null, last_activity: dueDateFromNow(-12),
+    next_billing_date: dueDateFromNow(3),
+  },
+  'tok_cosmo': {
+    member_id: 'MBR-005', display_name: 'Cosmo Rex',
+    tier: 'Matinee', tier_limit: 1, loan_days: 7,
+    active: true, deposit_paid: false, vault_access: false,
+    rentals: [], return_pending: [],
+    cabinet_code: null, last_activity: dueDateFromNow(-7),
+    next_billing_date: dueDateFromNow(22),
+  },
+  // FIX 7: Exactly at limit, no pending returns, active and paid
+  'tok_maxed': {
+    member_id: 'MBR-006', display_name: 'At The Limit',
+    tier: 'Double Feature', tier_limit: 2, loan_days: 10,
+    active: true, deposit_paid: true, vault_access: false,
+    rentals: [
+      { item_id: 'SFD-156', title: 'The Expanse S1', format: 'Blu-ray', collection: 'general', due: dueDateFromNow(2) },
+      { item_id: 'SFD-178', title: 'Ex Machina',     format: 'Blu-ray', collection: 'general', due: dueDateFromNow(5) },
+    ],
+    return_pending: [],
+    cabinet_code: '4471', last_activity: dueDateFromNow(-2),
+    next_billing_date: dueDateFromNow(15),
+  },
+};
+
+// DEMO_CATALOG removed — catalog loaded live from backend on startup and via goBrowse()
+// catalogCache: live array after fetch; null = not yet loaded
+// catalogByIdCache: keyed lookup rebuilt after each fetch
+var catalogCache     = null;
+var catalogByIdCache = {};
+
+// Weekly cabinet code -- in production this comes from Settings sheet
+var CABINET_CODE = { general: '4471', vault: '7823', expires: dueDateFromNow(6) };
+
+// ----------------------------------------------------------------
+// Simulated backend validation functions.
+// FIX 5: These are the sole source of truth for all business rules.
+// ----------------------------------------------------------------
+
+function backendLookupMember(token) {
+  var raw = DEMO_MEMBERS[token];
+  if (!raw) return null;
+  return JSON.parse(JSON.stringify(raw)); // deep copy so mutations stay local
+}
+
+function backendGetMemberStatus(m) {
+  // FIX 3: use getToday() for all comparisons
+  var overdueItems = m.rentals.filter(r => isOverdue(r.due));
+  var dueSoonItems = m.rentals.filter(r => { var d = daysUntil(r.due); return d >= 0 && d <= 3; });
+  var slotsUsed    = m.rentals.length;       // FIX 8: pending does NOT count
+  var slotsLeft    = Math.max(0, m.tier_limit - slotsUsed);
+
+  // FIX 9: overdue is warning-only, NOT checkout-blocking
+  var canCheckout = m.active && slotsLeft > 0;
+
+  // FIX 5: cabinet code visibility enforced here, not in UI
+  var showCode = m.active && !!m.cabinet_code;
+
+  return { overdueItems, dueSoonItems, slotsUsed, slotsLeft, canCheckout, showCode };
+}
+
+function backendValidateItemForCheckout(itemId, member, alreadyQueued) {
+  // FIX 5: all checkout eligibility checked here
+  var item = catalogByIdCache[itemId];
+  if (!item) return { ok: false, reason: 'Item not found. Browse the catalog first, or check the code and try again.' };
+
+  if (alreadyQueued.includes(itemId))
+    return { ok: false, reason: 'This item is already in your current selection.' };
+
+  if (member.rentals.find(r => r.item_id === itemId))
+    return { ok: false, reason: 'Already on your account.' };
+
+  if (item.status === 'checked_out')
+    return { ok: false, reason: 'This item is in the Return Bin and has not been processed yet.' };
+
+  if (item.status === 'return_pending')
+    return { ok: false, reason: 'This item is in the Return Bin and has not been processed yet. Check back soon.' };
+
+  // FIX 5: vault access enforced server-side
+  if (item.collection === 'vault' && !member.vault_access)
+    return { ok: false, reason: 'Item not available. Vault access required.' };
+
+  if (item.collection === 'vault')
+    return { ok: true, item, vaultItem: true };
+
+  return { ok: true, item, vaultItem: false };
+}
+
+function backendValidateCheckoutSubmit(member, itemIds, alreadyQueuedBeforeThis) {
+  // FIX 5 & 6: final checkout gate -- backend decides all eligibility
+  if (!member.active) return { ok: false, reason: 'Access restricted. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-INACTIVE">Email support</a>.' };
+
+  var slotsLeft = member.tier_limit - member.rentals.length;
+  if (itemIds.length > slotsLeft)
+    return { ok: false, reason: 'No slots available. Log a return.' };
+
+  // FIX 6: reject duplicates
+  if (new Set(itemIds).size !== itemIds.length)
+    return { ok: false, reason: 'Duplicate item. Each item can only appear once.' };
+
+  for (var id of itemIds) {
+    var r = backendValidateItemForCheckout(id, member, []);
+    if (!r.ok) return { ok: false, reason: r.reason };
+  }
+  return { ok: true };
+}
+
+function backendValidateReturn(member, itemIds) {
+  // FIX 6: reject invalid and duplicate returns
+  if (!itemIds.length) return { ok: false, reason: 'No items to return.' };
+  if (new Set(itemIds).size !== itemIds.length)
+    return { ok: false, reason: 'Duplicate items in return request.' };
+
+  var memberItemIds = member.rentals.map(r => r.item_id);
+  for (var id of itemIds) {
+    if (!memberItemIds.includes(id))
+      return { ok: false, reason: 'This item is not on your account.' };
+  }
+
+  // FIX 6: reject if already pending
+  var alreadyPending = member.return_pending.map(r => r.item_id);
+  for (var id of itemIds) {
+    if (alreadyPending.includes(id))
+      return { ok: false, reason: 'Item already in Return Bin.' };
+  }
+
+  return { ok: true };
+}
+
+// ================================================================
+// STATE
+// ================================================================
+var member        = null;
+var token         = null;
+var checkoutItems = [];   // confirmed items in queue (item objects)
+var returnSelected = [];  // item_ids selected for return
+var cameraStream  = null;
+var scanInterval  = null;
+
+// ================================================================
+// INIT
+// ================================================================
+// Top-level error handler -- surfaces any init failure on screen
+window.onerror = function(msg, src, line, col, err) {
+  var el = document.getElementById('screen-loading');
+  if (el) el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#ff3b5c;font-family:monospace;font-size:13px;">JS ERROR: ' + msg + ' (line ' + line + ')</div>';
+  return true;
+};
+
+(function init() {
+  var p = new URLSearchParams(window.location.search);
+  token = p.get('token') || p.get('t') || p.get('member') || null;
+
+  if (!token) {
+    // Demo: pick randomly from available tokens
+    var demos = Object.keys(DEMO_MEMBERS);
+    token = demos[Math.floor(Math.random() * demos.length)];
+  }
+
+  setTimeout(function() { loadMember(token); }, 0);
+})();
+
+async function loadMember(tok) {
+  var msgEl = document.getElementById('loadingMsg');
+  function setMsg(m) { if (msgEl) msgEl.textContent = m; }
+
+  try {
+    setMsg('Verifying membership...');
+    var res  = await fetch(BACKEND_URL + '?action=member&token=' + encodeURIComponent(tok));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    member = data.member;
+
+    setMsg('Loading catalog...');
+    try {
+      var cRes  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(tok));
+      var cData = await cRes.json();
+      if (cData.ok) {
+        catalogCache     = cData.catalog || [];
+        catalogByIdCache = {};
+        catalogCache.forEach(function(item) {
+          catalogByIdCache[item.item_id] = item;
+        });
+      }
+    } catch(ce) {
+      console.warn('Catalog preload failed:', ce.message);
+    }
+
+    setMsg('Ready.');
+    renderStatus();
+  } catch(e) {
+    showError('Connection Interrupted',
+      'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
+      '<br><br>' +
+      '<a href="javascript:location.reload()" style="color:var(--accent);font-family:\'Share Tech Mono\',monospace;font-size:13px;letter-spacing:.08em;">TRY AGAIN</a>' +
+      '<br><br>' +
+      'Still not loading? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-SYSTEM" style="color:var(--accent);">Email support</a>.');
+  }
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showError(title, msg) {
+  document.getElementById('errorTitle').textContent = title;
+  document.getElementById('errorMsg').innerHTML = msg;
+  showScreen('screen-error');
+}
+
+function goStatus() {
+  checkoutItems  = [];
+  returnSelected = [];
+  renderStatus();
+  showScreen('screen-status');
+}
+
+// ================================================================
+// STATUS SCREEN
+// FIX 2: All injectable containers cleared at top of render.
+//        No content is ever appended without first clearing.
+// FIX 8: Slot clarification note shown when pending items exist.
+// FIX 9: Overdue = warning banner only, not checkout block.
+// ================================================================
+function renderStatus() {
+  if (!member) return;
+
+  var st = backendGetMemberStatus(member);
+
+  // FIX 2: clear all mutable containers before writing
+  document.getElementById('statusNotifSection').innerHTML = '';
+  document.getElementById('statusGrid').innerHTML         = '';
+  document.getElementById('statusHints').innerHTML        = '';
+  document.getElementById('actionGrid').innerHTML         = '';
+  document.getElementById('sectionHdrStatus').style.display  = 'none';
+  document.getElementById('sectionHdrActions').style.display = 'none';
+
+  // Name only in hero -- tier moves into status card
+  document.getElementById('statusName').textContent = member.display_name;
+  var statusLine = document.getElementById('systemStatusLine');
+  if (statusLine) statusLine.style.display = member.active ? 'block' : 'none';
+  // Show tier + plan details under member name
+  var tierEl  = document.getElementById('statusTier');
+  var tierCls = member.tier === 'Premiere' ? 'tier-pre' : member.tier === 'Double Feature' ? 'tier-dbl' : 'tier-mat';
+  tierEl.className   = 'member-tier ' + tierCls;
+  tierEl.style.display = '';
+  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>' + member.tier + '</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">' + member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' at a time &bull; ' + member.loan_days + ' day limit</div></div>';
+
+  // Banners
+  var banners = '';
+  if (!member.active) {
+    banners += banner('err', '&#9888;', 'Access restricted. New checkouts are paused. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-INACTIVE" style="color:inherit;">Email support</a> to resolve.');
+  }
+  // FIX 9: overdue is warning only
+  if (st.overdueItems.length > 0) {
+    var titles = st.overdueItems.map(function(r) { return r.title; }).join(', ');
+    banners += banner('warn', '&#9200;', 'Overdue items. Return soon. Checkout available. Items: ' + titles + '.');
+  } else if (st.dueSoonItems.length > 0) {
+    var dueList = st.dueSoonItems.map(function(r) { return r.title + ' (' + dueLabelStr(r.due) + ')'; }).join(', ');
+    banners += banner('warn', '&#9200;', 'Due soon: ' + dueList + '.');
+  }
+  if (member.return_pending.length > 0) {
+    banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' item' + (member.return_pending.length > 1 ? 's' : '') + ' pending. Slots available.');
+  }
+  if (banners) {
+    document.getElementById('statusNotifSection').innerHTML =
+      '<div class="section-hdr" style="padding-top:8px;">NOTIFICATIONS<div class="section-hdr-line"></div></div>' + banners;
+  }
+
+  // Stats grid
+  var statusText = member.active ? 'Enabled' : 'Restricted';
+  var statusCls  = member.active ? 'success'  : 'danger';
+  var slotsCls   = st.slotsLeft === 0 ? 'warning' : 'accent';
+  var vaultText  = 'Granted';
+  var vaultCls   = 'vault';
+
+  var tierDetails = member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' &middot; ' + member.loan_days + '-day loans &middot; Perks';
+  document.getElementById('sectionHdrStatus').style.display = '';
+  document.getElementById('statusGrid').innerHTML =
+    statCard('Access',      statusText,  statusCls, member.tier) +
+    statCard('Available',   st.slotsLeft + ' of ' + member.tier_limit, slotsCls, st.slotsUsed + ' checked out') +
+    statCard('Return Bin',  String(member.return_pending.length), member.return_pending.length > 0 ? 'warning' : 'dim', 'awaiting processing') +
+    (member.vault_access ? statCard('Vault Access', vaultText, vaultCls, 'Premiere members only') : '');
+
+  // FIX 8: slot note -- visible whenever there are pending items
+  document.getElementById('slotNote').style.display = member.return_pending.length > 0 ? '' : 'none';
+
+  // FIX 2: hint area -- separate from banners, cleared above
+  var hints = '';
+  if (st.slotsLeft === 0 && member.active) {
+    hints = '<div class="banner banner-info" style="animation:none;"><span class="banner-icon">&#128161;</span><div>No slots available. Return items to free a slot. Return Bin items do not count against your limit.</div></div>';
+  }
+  document.getElementById('statusHints').innerHTML = hints;
+
+  // Action grid
+  var canReturn  = member.rentals.length > 0;
+  var hasRentals = member.rentals.length > 0 || member.return_pending.length > 0;
+
+  // FIX 5: showCode determined by backend status function only
+  var checkoutSlots = st.slotsLeft;
+  document.getElementById('actionGrid').innerHTML =
+    actionBtn('ab-checkout', '&#128192;', 'CHECK OUT', checkoutSlots + ' slot' + (checkoutSlots !== 1 ? 's' : '') + ' available', st.canCheckout, 'goCheckout()') +
+    actionBtn('ab-return',   '&#8629;', 'RETURN ITEMS',  canReturn ? 'Select items to return' : 'No active rentals.', canReturn, 'goReturn()') +
+    actionBtn('ab-rentals',  '&#128203;', 'RENTALS', hasRentals ? (member.rentals.length + ' out, ' + member.return_pending.length + ' pending') : 'No active rentals.', hasRentals, 'goRentals()') +
+    (st.showCode ? actionBtn('ab-code', '&#128273;', 'ACCESS CABINET', 'Tap to view your code', true, 'goCode()') : '') +
+    actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'View inventory &amp; request titles', true, 'goBrowse()') +
+    actionBtn('ab-account', '&#9881;',   'MEMBERSHIP',  member.next_billing_date ? 'Next bill: ' + fmtDate(member.next_billing_date) : 'Manage your plan', true, 'goAccount()');
+  document.getElementById('sectionHdrActions').style.display = '';
+
+  // Always navigate to status screen after render
+  showScreen('screen-status');
+}
+
+function banner(type, icon, html) {
+  return '<div class="banner banner-' + type + '"><span class="banner-icon">' + icon + '</span><div>' + html + '</div></div>';
+}
+
+function statCard(label, value, cls, sub) {
+  return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-value ' + cls + '">' + value + '</div>' + (sub ? '<div class="stat-sub">' + sub + '</div>' : '') + '</div>';
+}
+function statCardFull(label, value, cls, sub) {
+  return '<div class="stat-card" style="grid-column:span 2;"><div class="stat-label">' + label + '</div><div class="stat-value ' + cls + '">' + value + '</div>' + (sub ? '<div class="stat-sub">' + sub + '</div>' : '') + '</div>';
+}
+
+function actionBtn(cls, icon, label, sub, enabled, onclick) {
+  return '<div class="action-btn ' + cls + (enabled ? '' : ' disabled') + '" onclick="' + (enabled ? onclick : '') + '">' +
+    '<span class="ab-icon">' + icon + '</span>' +
+    '<div class="ab-label">' + label + '</div>' +
+    '<div class="ab-sub">' + sub + '</div>' +
+    '</div>';
+}
+
+// ================================================================
+// CHECKOUT FLOW
+// FIX 5: UI only collects item IDs. Backend validates everything.
+// ================================================================
+function goCheckout() {
+  checkoutItems = [];
+  document.getElementById('checkoutCodeInput').value = 'SFD-';
+  document.getElementById('itemConfirmArea').innerHTML = '';
+  document.getElementById('checkoutAlert').innerHTML  = '';
+  document.getElementById('checkoutQueue').innerHTML  = '';
+  document.getElementById('checkoutQueueCard').style.display = 'none';
+  document.getElementById('noteTextCheckout').value   = '';
+  document.getElementById('noteTypeCheckout').value   = '';
+  document.getElementById('noteFieldsCheckout').classList.remove('open');
+  document.getElementById('noteChevronCheckout').style.transform = '';
+
+  var st = backendGetMemberStatus(member);
+  document.getElementById('checkoutSubtitle').textContent =
+    (!st.canCheckout ? 'No slots available. Return items first.' : st.slotsLeft + ' slot' + (st.slotsLeft !== 1 ? 's' : '') + ' available.') ;
+
+  renderCheckoutPips();
+  document.getElementById('checkoutSubmitBtn').disabled = true;
+  showScreen('screen-checkout');
+}
+
+function onCheckoutCodeInput(el) {
+  el.value = el.value.toUpperCase();
+  var code = el.value.trim();
+  if (code.length >= 8) lookupItem(code);
+  else document.getElementById('itemConfirmArea').innerHTML = '';
+}
+
+function lookupItem(code) {
+  var area    = document.getElementById('itemConfirmArea');
+  var queued  = checkoutItems.map(function(i) { return i.item_id; });
+  var result  = backendValidateItemForCheckout(code, member, queued);
+
+  if (!result.ok) {
+    area.innerHTML = itemConfirmCard('err', result.reason, null);
+    return;
+  }
+
+  var item     = result.item;
+  var cardType = result.vaultItem ? 'vault-ok' : 'ok';
+  var tags     = formatTags(item);
+  var addBtn   = '<button onclick="addToQueue(\'' + item.item_id + '\')" style="width:100%;margin-top:10px;padding:13px;background:var(--success);color:var(--bg);border:none;border-radius:var(--r-sm);font-family:\'Orbitron\',monospace;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;">+ ADD THIS ITEM</button>';
+
+  area.innerHTML = itemConfirmCard(cardType, 'This item is available and ready to check out.', item) + addBtn;
+}
+
+function addToQueue(code) {
+  var item   = catalogByIdCache[code];
+  var queued = checkoutItems.map(function(i) { return i.item_id; });
+  var result = backendValidateItemForCheckout(code, member, queued);
+  if (!result.ok || !item) return;
+
+  var slotsLeft = member.tier_limit - member.rentals.length - checkoutItems.length;
+  if (slotsLeft <= 0) return;
+
+  checkoutItems.push(item);
+  document.getElementById('checkoutCodeInput').value     = 'SFD-';
+  document.getElementById('itemConfirmArea').innerHTML   = '';
+  renderCheckoutQueue();
+  renderCheckoutPips();
+  document.getElementById('checkoutSubmitBtn').disabled = checkoutItems.length === 0;
+}
+
+function removeFromQueue(code) {
+  checkoutItems = checkoutItems.filter(function(i) { return i.item_id !== code; });
+  renderCheckoutQueue();
+  renderCheckoutPips();
+  document.getElementById('checkoutSubmitBtn').disabled = checkoutItems.length === 0;
+}
+
+function renderCheckoutQueue() {
+  var card = document.getElementById('checkoutQueueCard');
+  var body = document.getElementById('checkoutQueue');
+  if (!checkoutItems.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  body.innerHTML = checkoutItems.map(function(it) {
+    return '<div class="rental-item">' +
+      '<div class="ri-disc">&#128192;</div>' +
+      '<div class="ri-info">' +
+        '<div class="ri-title">' + it.title + '</div>' +
+        '<div class="ri-meta">' + it.item_id + ' &middot; ' + it.format + ' &middot; ' + (it.collection === 'vault' ? 'Vault' : 'General') + '</div>' +
+      '</div>' +
+      '<button onclick="removeFromQueue(\'' + it.item_id + '\')" style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;">&times;</button>' +
+      '</div>';
+  }).join('');
+}
+
+function renderCheckoutPips() {
+  var slotsTotal = member.tier_limit - member.rentals.length;
+  var filled     = checkoutItems.length;
+  var html = '';
+  for (var i = 0; i < Math.max(slotsTotal, 1); i++) {
+    html += '<div class="pip' + (i < filled ? ' on' : '') + '"></div>';
+  }
+  html += '<span class="pip-lbl">' + filled + ' / ' + slotsTotal + '</span>';
+  document.getElementById('checkoutPips').innerHTML = html;
+}
+
+function itemConfirmCard(status, msg, item) {
+  var icons  = { ok: '&#10003;', warn: '&#9888;', err: '&#10007;', 'vault-ok': '&#128272;' };
+  var icon   = icons[status] || '&#128192;';
+  var tags   = item ? formatTags(item) : '';
+  var title  = item ? item.title : (status === 'err' ? 'Cannot Add Item' : 'Item');
+  return '<div class="item-confirm ' + status + '">' +
+    '<div class="ic-top">' +
+      '<div class="ic-icon">' + icon + '</div>' +
+      '<div><div class="ic-title">' + title + '</div>' + (tags ? '<div class="ic-tags">' + tags + '</div>' : '') + '</div>' +
+    '</div>' +
+    '<div class="ic-msg">' + msg + '</div>' +
+    '</div>';
+}
+
+function formatTags(item) {
+  var colTag = item.collection === 'vault'
+    ? '<span class="ic-tag ic-tag-vault">VAULT</span>'
+    : '<span class="ic-tag ic-tag-gen">GENERAL</span>';
+  var fmtTag = item.format ? '<span class="ic-tag ic-tag-gen">' + item.format + '</span>' : '';
+  return fmtTag + colTag;
+}
+
+async function submitCheckout() {
+  var noteType = document.getElementById('noteTypeCheckout').value;
+  var noteText = document.getElementById('noteTextCheckout').value.trim();
+  var alertEl  = document.getElementById('checkoutAlert');
+  alertEl.innerHTML = '';
+
+  if (noteText && !noteType) {
+    alertEl.innerHTML = banner('warn', '&#9888;', 'Please select a note type before submitting.');
+    return;
+  }
+
+  // Client-side pre-validation
+  var ids  = checkoutItems.map(function(i) { return i.item_id; });
+  var gate = backendValidateCheckoutSubmit(member, ids, []);
+  if (!gate.ok) {
+    alertEl.innerHTML = banner('err', '&#9888;', gate.reason);
+    return;
+  }
+
+  var btn = document.getElementById('checkoutSubmitBtn');
+  btn.disabled = true; btn.textContent = 'SUBMITTING...';
+
+  var txn    = 'CO-' + Date.now().toString().slice(-7);
+  var ts     = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  var dueStr = fmtDate(dueDateFromNow(member.loan_days));
+
+  var payload = {
+    action:    'checkout',
+    member_id: member.member_id,
+    token:     token,
+    item_ids:  ids,
+    note_type: noteType || null,
+    note_text: noteText || null,
+    timestamp: ts,
+    txn_id:    txn,
+  };
+
+  try {
+    var res  = await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    // Use due date from backend if provided
+    if (data.due_date) dueStr = fmtDate(data.due_date);
+
+    // Update local state so UI reflects checkout immediately
+    checkoutItems.forEach(function(item) {
+      member.rentals.push({
+        item_id: item.item_id, title: item.title,
+        format: item.format, collection: item.collection,
+        due: data.due_date || dueDateFromNow(member.loan_days)
+      });
+    });
+
+    var rows = [
+      { k: 'MEMBER', v: member.display_name },
+      { k: 'PLAN',   v: member.tier },
+    ];
+    checkoutItems.forEach(function(it, i) { rows.push({ k: 'ITEM ' + (i + 1), v: it.title + ' (' + it.item_id + ')' }); });
+    rows.push({ k: 'DUE BY', v: dueStr });
+    rows.push({ k: 'REF',    v: data.txn_id || txn });
+    if (noteText) rows.push({ k: 'NOTE', v: noteType + ': ' + noteText });
+
+    showSuccess('co', 'Checkout Complete!',
+      'Checked out. Due by ' + dueStr + '.',
+      rows);
+
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'CONFIRM CHECKOUT';
+    alertEl.innerHTML = banner('err', '&#9888;', 'Checkout failed: ' + (e.message || 'Unknown error') + '. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-CHECKOUT">Email support</a>.');
+  }
+}
+
+// ================================================================
+// RETURN FLOW
+// FIX 6: backend validates before state mutation
+// ================================================================
+function goReturn() {
+  returnSelected = [];
+  document.getElementById('noteTextReturn').value = '';
+  document.getElementById('noteTypeReturn').value = '';
+  document.getElementById('noteFieldsReturn').classList.remove('open');
+  document.getElementById('noteChevronReturn').style.transform = '';
+  document.getElementById('returnAlert').innerHTML = '';
+  renderReturnList();
+  document.getElementById('returnSubmitBtn').disabled = true;
+  showScreen('screen-return');
+}
+
+function renderReturnList() {
+  var list = document.getElementById('returnList');
+  if (!member.rentals.length) {
+    list.innerHTML = '<div style="color:var(--text-mid);font-size:14px;text-align:center;padding:16px 0;">No items currently checked out.</div>';
+    return;
+  }
+  list.innerHTML = member.rentals.map(function(r) {
+    var sel  = returnSelected.includes(r.item_id);
+    var ov   = isOverdue(r.due);
+    var soon = !ov && daysUntil(r.due) <= 3;
+    var dueCls = ov ? 'due-overdue' : (soon ? 'due-soon' : 'due-ok');
+    var dueText = ov ? ('Overdue since ' + fmtDate(r.due)) : ('Due ' + fmtDate(r.due));
+    return '<div class="return-item' + (sel ? ' selected' : '') + '" onclick="toggleReturn(\'' + r.item_id + '\')">' +
+      '<div class="ri-check">' + (sel ? '&#10003;' : '') + '</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + r.title + '</div>' +
+        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-mid);margin-bottom:4px;">' + r.item_id + ' &middot; ' + r.format + '</div>' +
+        '<div class="ri-due ' + dueCls + '">' + dueText + '</div>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function toggleReturn(itemId) {
+  if (returnSelected.includes(itemId)) {
+    returnSelected = returnSelected.filter(function(i) { return i !== itemId; });
+  } else {
+    returnSelected.push(itemId);
+  }
+  renderReturnList();
+  document.getElementById('returnSubmitBtn').disabled = returnSelected.length === 0;
+}
+
+async function submitReturn() {
+  var noteType = document.getElementById('noteTypeReturn').value;
+  var noteText = document.getElementById('noteTextReturn').value.trim();
+  var alertEl  = document.getElementById('returnAlert');
+  alertEl.innerHTML = '';
+
+  if (noteText && !noteType) {
+    alertEl.innerHTML = banner('warn', '&#9888;', 'Please select a note type for your message.');
+    return;
+  }
+
+  // Client-side pre-validation
+  var gate = backendValidateReturn(member, returnSelected);
+  if (!gate.ok) {
+    alertEl.innerHTML = banner('err', '&#9888;', gate.reason);
+    return;
+  }
+
+  var btn = document.getElementById('returnSubmitBtn');
+  btn.disabled = true; btn.textContent = 'LOGGING...';
+
+  var txn   = 'RT-' + Date.now().toString().slice(-7);
+  var ts    = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  var items = member.rentals.filter(function(r) { return returnSelected.includes(r.item_id); });
+
+  var payload = {
+    action:    'return_log',
+    member_id: member.member_id,
+    token:     token,
+    item_ids:  returnSelected,
+    note_type: noteType || null,
+    note_text: noteText || null,
+    timestamp: ts,
+    txn_id:    txn,
+  };
+
+  try {
+    var res  = await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+
+    // Update local state immediately so UI reflects return
+    var retIds = returnSelected.slice();
+    retIds.forEach(function(id) {
+      var item = member.rentals.find(function(r) { return r.item_id === id; });
+      if (item) member.return_pending.push(item);
+    });
+    member.rentals = member.rentals.filter(function(r) { return !retIds.includes(r.item_id); });
+
+    var newSlotsLeft = member.tier_limit - member.rentals.length;
+    var rows = [{ k: 'MEMBER', v: member.display_name }];
+    items.forEach(function(it, i) { rows.push({ k: 'ITEM ' + (i + 1), v: it.title + ' (' + it.item_id + ')' }); });
+    rows.push({ k: 'STATUS',    v: 'Return Bin -- slot freed' });
+    rows.push({ k: 'SLOTS NOW', v: newSlotsLeft + ' of ' + member.tier_limit + ' available' });
+    rows.push({ k: 'REF',       v: data.txn_id || txn });
+    if (noteText) rows.push({ k: 'NOTE', v: noteType + ': ' + noteText });
+
+    showSuccess('rt', 'Return Logged!',
+      'Return logged. Slots available.',
+      rows);
+
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'LOG RETURN';
+    alertEl.innerHTML = banner('err', '&#9888;', 'Return failed: ' + (e.message || 'Unknown error') + '. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RETURN">Email support</a>.');
+  }
+}
+
+// ================================================================
+// RENTALS
+// ================================================================
+function goRentals() {
+  var all = member.rentals.map(function(r) { return Object.assign({}, r, { state: 'checked_out' }); })
+    .concat(member.return_pending.map(function(r) { return Object.assign({}, r, { state: 'return_pending' }); }));
+
+  document.getElementById('rentalsSubtitle').textContent =
+    member.rentals.length + ' checked out, ' + member.return_pending.length + ' return pending.';
+  histFilter = 30;
+  document.getElementById('hist-30').classList.add('active');
+  document.getElementById('hist-90').classList.remove('active');
+  document.getElementById('hist-all').classList.remove('active');
+  renderHistory();
+
+  var list = document.getElementById('rentalsList');
+  if (!all.length) {
+    list.innerHTML = '<div style="color:var(--text-mid);font-size:14px;text-align:center;padding:20px 0;">No active or pending items.</div>';
+  } else {
+    list.innerHTML = all.map(function(r) {
+      var ov   = r.state === 'checked_out' && isOverdue(r.due);
+      var soon = r.state === 'checked_out' && !ov && daysUntil(r.due) <= 3;
+      var dueCls = ov ? 'due-overdue' : (soon ? 'due-soon' : 'due-ok');
+      var stateTag = r.state === 'return_pending'
+        ? '<span class="ri-tag ri-tag-pending">RETURN BIN</span>'
+        : '<span class="ri-tag ri-tag-out">CHECKED OUT</span>';
+      var vaultTag = r.collection === 'vault' ? ' <span class="ri-tag ri-tag-vault">VAULT</span>' : '';
+      var dueBlock = r.state === 'checked_out'
+        ? '<div class="ri-due ' + dueCls + '">' + (ov ? 'Overdue since ' : 'Due ') + fmtDate(r.due) + '</div>'
+        : '<div class="ri-due" style="color:var(--text-dim);">In Return Bin. Not counted against your limit.</div>';
+      return '<div class="rental-item">' +
+        '<div class="ri-disc">' + (r.state === 'return_pending' ? '&#128236;' : '&#128192;') + '</div>' +
+        '<div class="ri-info">' +
+          '<div class="ri-title">' + r.title + '</div>' +
+          '<div class="ri-meta">' + r.item_id + ' &middot; ' + r.format + '</div>' +
+          '<div class="ri-tags">' + stateTag + vaultTag + '</div>' +
+          dueBlock +
+        '</div>' +
+        '</div>';
+    }).join('');
+  }
+  showScreen('screen-rentals');
+}
+
+// ================================================================
+// ACCESS CABINET
+// FIX 4: Built-in screen. No dynamic screen creation or removal.
+// FIX 5: Visibility gate enforced by backendGetMemberStatus only.
+// FIX 10: Language tightened -- member-only, personal, no sharing.
+// ================================================================
+function goCode() {
+  var st = backendGetMemberStatus(member);
+  if (!st.showCode) return; // FIX 5: backend gate
+
+  var html =
+    '<div class="code-display">' +
+      '<div class="code-label">General Collection</div>' +
+      '<div class="code-value">' + CABINET_CODE.general + '</div>' +
+      '<div class="code-expires">Valid until ' + fmtDate(CABINET_CODE.expires) + '</div>' +
+    '</div>';
+
+  if (member.vault_access) {
+    html +=
+      '<div class="code-display" style="border-color:rgba(192,132,252,.4);">' +
+        '<div class="code-label">Vault Collection</div>' +
+        '<div class="code-value" style="text-shadow:0 0 24px rgba(192,132,252,.5);">' + CABINET_CODE.vault + '</div>' +
+        '<div class="code-expires">Valid until ' + fmtDate(CABINET_CODE.expires) + '</div>' +
+      '</div>';
+  }
+
+  document.getElementById('codeContent').innerHTML = html;
+  showScreen('screen-code');
+}
+
+// ================================================================
+// SUCCESS
+// ================================================================
+function showSuccess(type, title, sub, rows) {
+  var glyph = document.getElementById('sucGlyph');
+  glyph.innerHTML   = type === 'co' ? '&#10003;' : '&#8629;';
+  glyph.className   = 'suc-glyph ' + type;
+  var t = document.getElementById('sucTitle');
+  t.textContent = title; t.className = 'suc-title ' + type;
+  document.getElementById('sucSub').textContent = sub;
+  document.getElementById('sucReceipt').innerHTML = rows.map(function(r) {
+    return '<div class="r-row"><span class="r-key">' + r.k + '</span><span class="r-val">' + r.v + '</span></div>';
+  }).join('');
+  showScreen('screen-success');
+}
+
+// ================================================================
+// NOTE TOGGLE
+// ================================================================
+function toggleNote(ctx) {
+  var fields   = document.getElementById('noteFields' + ctx);
+  var chevron  = document.getElementById('noteChevron' + ctx);
+  var isOpen   = fields.classList.toggle('open');
+  chevron.style.transform = isOpen ? 'rotate(45deg)' : '';
+}
+
+// ================================================================
+// CAMERA
+// ================================================================
+function openCamera(ctx) {
+  document.getElementById('camInput').value = '';
+  document.getElementById('camOverlay').classList.remove('hidden');
+  navigator.mediaDevices && navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+    .then(function(stream) {
+      cameraStream = stream;
+      var v = document.getElementById('camVideo');
+      v.srcObject = stream; v.style.display = 'block'; v.play();
+      startQRScan(v);
+    })
+    .catch(function() { document.getElementById('camVideo').style.display = 'none'; });
+}
+
+function closeCamera() {
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
+  document.getElementById('camOverlay').classList.add('hidden');
+  document.getElementById('camVideo').style.display = 'block';
+}
+
+function startQRScan(v) {
+  if (!('BarcodeDetector' in window)) return;
+  var det = new BarcodeDetector({ formats: ['qr_code'] });
+  scanInterval = setInterval(async function() {
+    if (v.readyState !== v.HAVE_ENOUGH_DATA) return;
+    try {
+      var codes = await det.detect(v);
+      if (codes.length) onQRDetected(codes[0].rawValue);
+    } catch(e) {}
+  }, 300);
+}
+
+function onQRDetected(raw) {
+  var code = raw.trim().toUpperCase();
+  try {
+    var u = new URL(raw);
+    var p = u.searchParams.get('item') || u.searchParams.get('id');
+    if (p) code = p.toUpperCase();
+  } catch(e) {}
+  closeCamera();
+  document.getElementById('checkoutCodeInput').value = code;
+  lookupItem(code);
+}
+
+function submitCamManual() {
+  var v = document.getElementById('camInput').value.trim();
+  if (v) onQRDetected(v);
+}
+
+// ================================================================
+// DATE LABEL HELPERS
+// ================================================================
+function dueLabelStr(iso) {
+  var d = daysUntil(iso);
+  if (d === 0) return 'due today';
+  if (d === 1) return 'due tomorrow';
+  return 'due in ' + d + ' days';
+}
+
+// ================================================================
+// BROWSE COLLECTION
+// FUTURE: Upgrade requests to notifications or reservation queue if needed
+// ================================================================
+
+var browseFilter = 'all';
+
+async function goBrowse() {
+  browseFilter = 'all';
+  document.getElementById('browseSearch').value = '';
+  document.getElementById('filter-all').classList.add('active');
+  document.getElementById('filter-available').classList.remove('active');
+  document.getElementById('filter-starred').classList.remove('active');
+  showScreen('screen-browse');
+
+  if (catalogCache !== null) {
+    renderBrowseList();
+    return;
+  }
+
+  document.getElementById('browseList').innerHTML =
+    '<div style="color:var(--text-mid);text-align:center;padding:24px 0;font-family:\'Share Tech Mono\',monospace;font-size:12px;letter-spacing:.08em;">' +
+    '<div class="spin-lg" style="margin:0 auto 14px;"></div>LOADING CATALOG...</div>';
+
+  try {
+    var res  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(token));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Catalog unavailable');
+    catalogCache     = data.catalog || [];
+    catalogByIdCache = {};
+    catalogCache.forEach(function(item) { catalogByIdCache[item.item_id] = item; });
+    renderBrowseList();
+  } catch(e) {
+    document.getElementById('browseList').innerHTML =
+      '<div style="color:var(--danger);text-align:center;padding:24px 0;font-size:13px;line-height:1.6;">' +
+      'Could not load catalog.<br>Check your connection and try again.<br>' +
+      '<span style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-dim);">' + (e.message || '') + '</span></div>';
+  }
+}
+
+function setBrowseFilter(f) {
+  browseFilter = f;
+  document.getElementById('filter-all').classList.toggle('active',      f === 'all');
+  document.getElementById('filter-available').classList.toggle('active', f === 'available');
+  document.getElementById('filter-starred').classList.toggle('active',   f === 'starred');
+  renderBrowseList();
+}
+
+function renderBrowseList() {
+  var list  = document.getElementById('browseList');
+  var query = (document.getElementById('browseSearch').value || '').toLowerCase().trim();
+
+  if (catalogCache === null) return;
+
+  var items = catalogCache.slice();
+
+  var sIds = getStarred();
+  if (browseFilter === 'available') {
+    items = items.filter(function(it) { return it.status === 'available'; });
+  } else if (browseFilter === 'starred') {
+    items = items.filter(function(it) { return sIds.indexOf(it.item_id) !== -1; });
+  }
+
+  if (query) {
+    items = items.filter(function(it) {
+      return (
+        (it.title      && it.title.toLowerCase().indexOf(query)      !== -1) ||
+        (it.item_id    && it.item_id.toLowerCase().indexOf(query)    !== -1) ||
+        (it.format     && it.format.toLowerCase().indexOf(query)     !== -1) ||
+        (it.collection && it.collection.toLowerCase().indexOf(query) !== -1)
+      );
+    });
+  }
+
+  var starredIds = getStarred();
+  items.sort(function(a, b) {
+    var aStarred = starredIds.indexOf(a.item_id) !== -1;
+    var bStarred = starredIds.indexOf(b.item_id) !== -1;
+    if (aStarred && !bStarred) return -1;
+    if (!aStarred && bStarred) return 1;
+    if (a.status === 'available' && b.status !== 'available') return -1;
+    if (a.status !== 'available' && b.status === 'available') return 1;
+    var aKey = (a.sort_title || a.title || '').toLowerCase();
+    var bKey = (b.sort_title || b.title || '').toLowerCase();
+    return aKey.localeCompare(bKey);
+  });
+
+  if (!items.length) {
+    list.innerHTML = '<div style="color:var(--text-mid);text-align:center;padding:20px 0;font-size:14px;">No items match your search.</div>';
+    return;
+  }
+
+  list.innerHTML = items.map(function(it) {
+    var statusTag = getBrowseStatusTag(it);
+    var vaultTag  = it.collection === 'vault' ? '<span class="ri-tag ri-tag-vault">VAULT</span>' : '';
+    var action    = getBrowseAction(it);
+    var titleStr  = it.title + (it.year    ? ' (' + it.year + ')' : '');
+    var metaStr   = it.item_id + ' &middot; ' + it.format + (it.edition ? ' &middot; ' + it.edition : '');
+    return '<div class="rental-item">' +
+      '<div class="ri-disc">' + getFormatEmoji(it.format) + '</div>' +
+      '<div class="ri-info">' +
+        '<div class="ri-title">' + titleStr + '</div>' +
+        '<div class="ri-meta">' + metaStr + '</div>' +
+        '<div class="ri-tags">' + statusTag + vaultTag + '</div>' +
+      '</div>' +
+      action +
+      '</div>';
+  }).join('');
+}
+
+function getFormatEmoji(format) {
+  // 💿 DVD  📀 Blu-ray  💽 4K UHD  🕹️ Video Games (future)  📼 VHS (future)
+  if (!format) return '\u{1F4BF}';
+  var f = format.toLowerCase();
+  if (f === 'dvd')             return '\u{1F4BF}'; // 💿
+  if (f.indexOf('4k') !== -1)  return '\u{1F4BD}'; // 💽
+  if (f.indexOf('blu') !== -1) return '\u{1F4C0}'; // 📀
+  return '\u{1F4BF}';
+}
+
+function getBrowseStatusTag(it) {
+  if (it.status === 'available')      return '<span class="ri-tag ri-tag-out">AVAILABLE</span>';
+  if (it.status === 'checked_out')    return '<span class="ri-tag ri-tag-pending">CHECKED OUT</span>';
+  if (it.status === 'return_pending') return '<span class="ri-tag ri-tag-pending">RETURN BIN</span>';
+  return '';
+}
+
+function getBrowseAction(it) {
+  // Star + Notify Me for unavailable. FUTURE: wire to Sheets.
+  var id      = it.item_id;
+  var starred = isStarred(id);
+  var starBtn = '<button class="star-btn' + (starred ? ' starred' : '') + '" data-id="' + id + '" onclick="toggleStar(this.dataset.id)">' + (starred ? '&#9733;' : '&#9734;') + '</button>';
+  if (it.status !== 'available') {
+    return starBtn + '<button class="browse-action" id="bact-' + id + '" data-id="' + id + '" onclick="notifyMe(this.dataset.id)">NOTIFY ME</button>';
+  }
+  return starBtn;
+}
+
+// wishlist removed
+
+function notifyMe(itemId) {
+  // FUTURE: wire to Google Sheets Requests tab
+  console.log('Notify request:', member.member_id, itemId);
+  confirmBrowseAction(itemId, 'We will notify you');
+}
+
+function confirmBrowseAction(itemId, msg) {
+  var btn = document.getElementById('bact-' + itemId);
+  if (!btn) return;
+  btn.innerHTML = msg + ' &#10003;';
+  btn.className = 'browse-action done';
+  btn.removeAttribute('onclick');
+}
+
+function submitTitleRequest() {
+  var input = document.getElementById('requestInput');
+  var val   = input.value.trim();
+  if (!val) return;
+
+  // FUTURE: wire to Google Sheets requests tab
+  console.log('Title request:', member.member_id, val);
+
+  input.value = '';
+  var fb = document.getElementById('requestFeedback');
+  fb.innerHTML = '<span style="font-family:monospace;font-size:11px;color:var(--success);">Thanks -- we will review your request. &#10003;</span>';
+  setTimeout(function() { if (fb) fb.innerHTML = ''; }, 4000);
+}
+
+
+
+function submitRemoteCode() {
+  var code   = document.getElementById('remoteCodeInput') ? document.getElementById('remoteCodeInput').value.trim().toUpperCase() : '';
+  var errEl  = document.getElementById('remoteCodeErr');
+  if (!code) return;
+  remoteCodeAttempted = code;
+  if (errEl) errEl.textContent = '';
+
+  // Production: validate against backend
+  // For prototype: accept any 4+ char code
+  if (code.length >= 4) {
+    applyRemoteOverride();
+  } else {
+    if (errEl) errEl.textContent = 'Invalid code. Please try again.';
+  }
+}
+
+
+function getToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function isoToDate(iso) {
+  // Parse YYYY-MM-DD as local midnight to avoid timezone shifts
+  const parts = iso.split('-');
+  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+}
+
+function daysUntil(iso) {
+  return Math.floor((isoToDate(iso) - getToday()) / 86400000);
+}
+
+function isOverdue(iso) {
+  return isoToDate(iso) < getToday();
+}
+
+function dueDateFromNow(days) {
+  const d = getToday();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function fmtDate(iso) {
+  if (!iso) return '--';
+  return isoToDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function fmtTs(iso) {
+  if (!iso) return '--';
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+// ================================================================
+
+
+// ================================================================
+// MEMBERSHIP SCREEN
+// ================================================================
+function goAccount() {
+  var billingEl  = document.getElementById('accountBillingDate');
+  var tierEl     = document.getElementById('accountTierLine');
+  var changeLink = document.getElementById('accountChangLink');
+  var cancelLink = document.getElementById('accountCancelLink');
+  var subtitle   = document.getElementById('accountSubtitle');
+
+  billingEl.textContent = member.next_billing_date ? fmtDate(member.next_billing_date) : 'Not available';
+  tierEl.textContent    = member.tier + ' -- ' + member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ', ' + member.loan_days + '-day loans';
+  subtitle.textContent  = 'Your ' + member.tier + ' membership.';
+
+  var base    = 'mailto:scifidojo@aol.com';
+  var nameTag = encodeURIComponent('@' + (member.member_id || 'member'));
+
+  changeLink.href = base +
+    '?subject=' + encodeURIComponent('SFD - Membership Change') +
+    '&body=' + encodeURIComponent('Hi,\n\nI would like to change my membership.\n\nCurrent plan: ' + member.tier + '\nRequested plan: \n\nThank you,\n' + member.display_name);
+
+  cancelLink.href = base +
+    '?subject=' + encodeURIComponent('SFD - Membership Cancel') +
+    '&body=' + encodeURIComponent('Hi,\n\nI would like to cancel my Sci-Fi Dojo membership.\n\nMember: ' + member.display_name + '\nCurrent plan: ' + member.tier + '\n\nThank you,\n' + member.display_name);
+
+  showScreen('screen-account');
+}
+
+// ================================================================
+// RENTAL HISTORY
+// ================================================================
+var histFilter = 30;
+
+function setHistFilter(days) {
+  histFilter = days;
+  document.getElementById('hist-30').classList.toggle('active',  days === 30);
+  document.getElementById('hist-90').classList.toggle('active',  days === 90);
+  document.getElementById('hist-all').classList.toggle('active', days === 0);
+  renderHistory();
+}
+
+function renderHistory() {
+  var list    = document.getElementById('historyList');
+  var history = (member.rental_history || []).slice();
+
+  if (histFilter > 0) {
+    var cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - histFilter);
+    history = history.filter(function(h) {
+      return new Date(h.returned) >= cutoff || new Date(h.checked_out) >= cutoff;
+    });
+  }
+
+  history.sort(function(a, b) {
+    return new Date(b.checked_out) - new Date(a.checked_out);
+  });
+
+  if (!history.length) {
+    list.innerHTML = '<div style="color:var(--text-mid);font-size:14px;text-align:center;padding:16px 0;">No rental history in this period.</div>';
+    return;
+  }
+
+  list.innerHTML = history.map(function(h) {
+    var safeId    = h.item_id.replace(/[^a-zA-Z0-9]/g, '');
+    var safeDate  = h.checked_out.replace(/[^0-9]/g, '');
+    var rid       = 'hist-' + safeId + '-' + safeDate;
+    return '<div class="hist-item">' +
+      '<div class="hist-title">' + h.title + '</div>' +
+      '<div class="hist-meta">' + h.format + ' &middot; Out: ' + fmtDate(h.checked_out) + ' &middot; Returned: ' + fmtDate(h.returned) + '</div>' +
+      '<div class="hist-actions">' +
+        '<button class="hist-action" id="' + rid + '-rev"' +
+          ' data-rid="' + rid + '" data-type="review" data-itemid="' + h.item_id + '"' +
+          ' onclick="histAction(this)">LEAVE REVIEW</button>' +
+        '<button class="hist-action" id="' + rid + '-flag"' +
+          ' data-rid="' + rid + '" data-type="flag" data-itemid="' + h.item_id + '"' +
+          ' onclick="histAction(this)">FLAG ISSUE</button>' +
+      '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function histAction(btn) {
+  if (!btn || btn.classList.contains('done')) return;
+  var rid    = btn.getAttribute('data-rid');
+  var type   = btn.getAttribute('data-type');
+  var itemId = btn.getAttribute('data-itemid');
+  var isReview = type === 'review';
+  // FUTURE: submit to Google Sheets Transactions tab with note_type
+  console.log((isReview ? 'Review' : 'Disc Issue') + ':', member.member_id, itemId);
+  btn.textContent = isReview ? 'THANKS!' : 'FLAGGED';
+  btn.classList.add('done');
+}
+
+// ================================================================
+// STARRED ITEMS (localStorage)
+// ================================================================
+var STAR_KEY = 'sfd_starred_' + (member ? member.member_id : 'anon');
+
+function getStarred() {
+  try {
+    return JSON.parse(localStorage.getItem(STAR_KEY) || '[]');
+  } catch(e) { return []; }
+}
+
+function toggleStar(itemId) {
+  var item = catalogByIdCache[itemId];
+  if (!item) return;
+  var type    = (item.status === 'available') ? 'saved' : 'notify';
+  var message = (type === 'saved') ? 'Saved' : 'We will notify you';
+  // Update localStorage star state
+  var starred = getStarred();
+  var sidx    = starred.indexOf(itemId);
+  if (sidx === -1) starred.push(itemId);
+  else starred.splice(sidx, 1);
+  try { localStorage.setItem(STAR_KEY, JSON.stringify(starred)); } catch(e) {}
+  // FUTURE: wire to Sheets
+  console.log('Star action:', member.member_id, itemId, type);
+  confirmBrowseAction(itemId, message);
+  renderBrowseList();
+}
+
+function isStarred(itemId) {
+  return getStarred().indexOf(itemId) !== -1;
+}
+
+
+// ================================================================
+// INVENTORY STRUCTURE SUPPORT
+// Maps raw Google Sheet row to catalog item. FUTURE: use when
+// loading catalog from Apps Script backend.
+// ================================================================
+function mapSheetItem(row) {
+  return {
+    item_id:          row.item_id,
+    title:            row.title,
+    format:           row.format,
+    status:           row.status,
+    collection:       row.collection,
+    subcategory:      row.subcategory      || 'standard',
+    group_name:       row.group_name       || '',
+    disc_count:       parseInt(row.disc_count || 1, 10),
+    condition:        row.condition        || 'good',
+    acquisition_type: row.acquisition_type || 'owned',
+    cost:             row.cost             || '',
+    source:           row.source           || '',
+    notes:            row.notes            || '',
+    last_checked:     row.last_checked     || ''
+  };
+}
+
+</script>
+
+</body>
+</html>
