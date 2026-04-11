@@ -464,7 +464,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="loading-wrap">
       <div class="loading-logo">SCI-FI <span>DOJO</span></div>
       <div class="spin-lg"></div>
-      <div class="loading-msg" id="loadingMsg">Verifying membership...</div>
+      <div class="loading-msg">Verifying membership...</div>
     </div>
   </div>
 
@@ -712,7 +712,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="billing-date" id="accountBillingDate">--</div>
       <div id="accountTierLine" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);margin-top:4px;"></div>
     </div>
-    <a class="mgmt-btn mgmt-change" id="accountChangLink" href="/cdn-cgi/l/email-protection#f380909a959a979c999cb3929c9fdd909c9ecc80869199969087cea0b5b7d3be969e919681809b9a83d3b09b929d9496">CHANGE PLAN</a>
+    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">CHANGE PLAN</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="/cdn-cgi/l/email-protection#4635252f202f22292c290627292a6825292b793533242c2325327b150002660b232b242334352e2f366605272825232a">CANCEL MEMBERSHIP</a>
     <p class="mgmt-note">Tap above to send us an email. We will get back to you as soon as possible. Your membership continues until the end of your current billing period.</p>
     <div class="spacer"></div>
@@ -869,25 +869,29 @@ var DEMO_MEMBERS = {
   },
 };
 
-// DEMO_CATALOG removed — catalog loaded live from backend on startup and via goBrowse()
-// catalogCache: live array after fetch; null = not yet loaded
-// catalogByIdCache: keyed lookup rebuilt after each fetch
-var catalogCache     = null;
-var catalogByIdCache = {};
+var DEMO_CATALOG = {
+  'SFD-023': { item_id: 'SFD-023', title: 'Dune: Part One',       format: '4K UHD',  collection: 'general', status: 'available'      },
+  'SFD-067': { item_id: 'SFD-067', title: 'Arrival',              format: 'Blu-ray', collection: 'general', status: 'available'      },
+  'SFD-134': { item_id: 'SFD-134', title: 'Alien',                format: '4K UHD',  collection: 'general', status: 'available'      },
+  'SFD-156': { item_id: 'SFD-156', title: 'The Expanse S1',       format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
+  'SFD-178': { item_id: 'SFD-178', title: 'Ex Machina',           format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
+  'SFD-215': { item_id: 'SFD-215', title: 'Contact',              format: 'Blu-ray', collection: 'general', status: 'available'      },
+  'SFD-012': { item_id: 'SFD-012', title: 'Blade Runner 2049',    format: '4K UHD',  collection: 'general', status: 'checked_out'    },
+  'SFD-045': { item_id: 'SFD-045', title: 'The Matrix',           format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
+  'SFD-101': { item_id: 'SFD-101', title: 'Annihilation',         format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
+  'SFD-202': { item_id: 'SFD-202', title: 'Moon',                 format: 'DVD',     collection: 'general', status: 'return_pending' },
+  'SFD-203': { item_id: 'SFD-203', title: 'Solaris (1972)',       format: 'Blu-ray', collection: 'general', status: 'checked_out'    },
+  'VLT-001': { item_id: 'VLT-001', title: '2001: A Space Odyssey',format: '4K UHD',  collection: 'vault',   status: 'available'      },
+  'VLT-002': { item_id: 'VLT-002', title: 'Stalker (1979)',       format: 'Blu-ray', collection: 'vault',   status: 'available'      },
+};
 
 // Weekly cabinet code -- in production this comes from Settings sheet
 var CABINET_CODE = { general: '4471', vault: '7823', expires: dueDateFromNow(6) };
 
 // ----------------------------------------------------------------
-// Simulated backend validation functions.
+// Backend validation functions.
 // FIX 5: These are the sole source of truth for all business rules.
 // ----------------------------------------------------------------
-
-function backendLookupMember(token) {
-  var raw = DEMO_MEMBERS[token];
-  if (!raw) return null;
-  return JSON.parse(JSON.stringify(raw)); // deep copy so mutations stay local
-}
 
 function backendGetMemberStatus(m) {
   // FIX 3: use getToday() for all comparisons
@@ -907,8 +911,8 @@ function backendGetMemberStatus(m) {
 
 function backendValidateItemForCheckout(itemId, member, alreadyQueued) {
   // FIX 5: all checkout eligibility checked here
-  var item = catalogByIdCache[itemId];
-  if (!item) return { ok: false, reason: 'Item not found. Browse the catalog first, or check the code and try again.' };
+  var item = DEMO_CATALOG[itemId];
+  if (!item) return { ok: false, reason: 'Invalid code. Scan again.' };
 
   if (alreadyQueued.includes(itemId))
     return { ok: false, reason: 'This item is already in your current selection.' };
@@ -1007,34 +1011,12 @@ window.onerror = function(msg, src, line, col, err) {
 })();
 
 async function loadMember(tok) {
-  var msgEl = document.getElementById('loadingMsg') || document.querySelector('.loading-msg');
-  function setMsg(m) { if (msgEl) msgEl.textContent = m; }
-
   try {
-    setMsg('Verifying membership...');
+    // Live backend
     var res  = await fetch(BACKEND_URL + '?action=member&token=' + encodeURIComponent(tok));
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
     member = data.member;
-
-    setMsg('Loading catalog...');
-    // Preload catalog silently in background -- no navigation, just populate cache
-    try {
-      var cRes  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(tok));
-      var cData = await cRes.json();
-      if (cData.ok) {
-        catalogCache     = cData.catalog || [];
-        catalogByIdCache = {};
-        catalogCache.forEach(function(item) {
-          catalogByIdCache[item.item_id] = item;
-        });
-      }
-    } catch(ce) {
-      // Catalog preload failure is non-fatal -- goBrowse() will retry
-      console.warn('Catalog preload failed:', ce.message);
-    }
-
-    setMsg('Ready.');
     renderStatus();
   } catch(e) {
     var msg = e && e.message ? e.message : 'Unknown error';
@@ -1073,6 +1055,9 @@ function goStatus() {
 // ================================================================
 function renderStatus() {
   if (!member) return;
+
+  // Set STAR_KEY now that member is loaded
+  STAR_KEY = 'sfd_starred_' + member.member_id;
 
   var st = backendGetMemberStatus(member);
 
@@ -1207,8 +1192,14 @@ function goCheckout() {
 function onCheckoutCodeInput(el) {
   el.value = el.value.toUpperCase();
   var code = el.value.trim();
-  if (code.length >= 8) lookupItem(code);
-  else document.getElementById('itemConfirmArea').innerHTML = '';
+  var area = document.getElementById('itemConfirmArea');
+  if (code.length >= 8) {
+    lookupItem(code);
+  } else if (code.length > 4) {
+    area.innerHTML = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-dim);padding:10px 0;letter-spacing:.08em;">Keep typing...</div>';
+  } else {
+    area.innerHTML = '';
+  }
 }
 
 function lookupItem(code) {
@@ -1230,7 +1221,7 @@ function lookupItem(code) {
 }
 
 function addToQueue(code) {
-  var item   = catalogByIdCache[code];
+  var item   = DEMO_CATALOG[code];
   var queued = checkoutItems.map(function(i) { return i.item_id; });
   var result = backendValidateItemForCheckout(code, member, queued);
   if (!result.ok || !item) return;
@@ -1661,44 +1652,13 @@ function dueLabelStr(iso) {
 
 var browseFilter = 'all';
 
-async function goBrowse() {
+function goBrowse() {
   browseFilter = 'all';
   document.getElementById('browseSearch').value = '';
   document.getElementById('filter-all').classList.add('active');
   document.getElementById('filter-available').classList.remove('active');
-  document.getElementById('filter-starred').classList.remove('active');
+  renderBrowseList();
   showScreen('screen-browse');
-
-  // Catalog already preloaded at startup — render immediately
-  if (catalogCache !== null) {
-    renderBrowseList();
-    return;
-  }
-
-  // Cache miss — fetch now (preload failed or not yet complete)
-  document.getElementById('browseList').innerHTML =
-    '<div style="color:var(--text-mid);text-align:center;padding:24px 0;font-family:\'Share Tech Mono\',monospace;font-size:12px;letter-spacing:.08em;">' +
-    '<div class="spin-lg" style="margin:0 auto 14px;"></div>LOADING CATALOG...</div>';
-
-  try {
-    var res  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(token));
-    var data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Catalog unavailable');
-
-    catalogCache     = data.catalog || [];
-    catalogByIdCache = {};
-    catalogCache.forEach(function(item) {
-      catalogByIdCache[item.item_id] = item;
-    });
-
-    renderBrowseList();
-  } catch(e) {
-    document.getElementById('browseList').innerHTML =
-      '<div style="color:var(--danger);text-align:center;padding:24px 0;font-size:13px;line-height:1.6;">' +
-      'Could not load catalog.<br>Check your connection and try again.<br>' +
-      '<span style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-dim);">' + (e.message || '') + '</span>' +
-      '</div>';
-  }
 }
 
 function setBrowseFilter(f) {
@@ -1710,13 +1670,9 @@ function setBrowseFilter(f) {
 }
 
 function renderBrowseList() {
-  var list  = document.getElementById('browseList');
-  var query = (document.getElementById('browseSearch').value || '').toLowerCase().trim();
-
-  // Guard: catalog not yet loaded
-  if (catalogCache === null) return;
-
-  var items = catalogCache.slice();
+  var list    = document.getElementById('browseList');
+  var query   = (document.getElementById('browseSearch').value || '').toLowerCase().trim();
+  var items   = Object.values(DEMO_CATALOG);
 
   // Apply filter
   var sIds = getStarred();
@@ -1738,7 +1694,7 @@ function renderBrowseList() {
     });
   }
 
-  // Sort: starred first, then available, then alpha by sort_title (falls back to title)
+  // Sort: starred first, then available, then alpha
   var starredIds = getStarred();
   items.sort(function(a, b) {
     var aStarred = starredIds.indexOf(a.item_id) !== -1;
@@ -1747,9 +1703,7 @@ function renderBrowseList() {
     if (!aStarred && bStarred) return 1;
     if (a.status === 'available' && b.status !== 'available') return -1;
     if (a.status !== 'available' && b.status === 'available') return 1;
-    var aKey = (a.sort_title || a.title || '').toLowerCase();
-    var bKey = (b.sort_title || b.title || '').toLowerCase();
-    return aKey.localeCompare(bKey);
+    return a.title.localeCompare(b.title);
   });
 
   if (!items.length) {
@@ -1762,13 +1716,11 @@ function renderBrowseList() {
     var vaultTag  = it.collection === 'vault'
       ? '<span class="ri-tag ri-tag-vault">VAULT</span>' : '';
     var action    = getBrowseAction(it);
-    var titleStr  = it.title + (it.year    ? ' (' + it.year + ')' : '');
-    var metaStr   = it.item_id + ' &middot; ' + it.format + (it.edition ? ' &middot; ' + it.edition : '');
     return '<div class="rental-item">' +
-      '<div class="ri-disc">' + getFormatEmoji(it.format) + '</div>' +
+      '<div class="ri-disc">&#128192;</div>' +
       '<div class="ri-info">' +
-        '<div class="ri-title">' + titleStr + '</div>' +
-        '<div class="ri-meta">' + metaStr + '</div>' +
+        '<div class="ri-title">' + it.title + '</div>' +
+        '<div class="ri-meta">' + it.item_id + ' &middot; ' + it.format + '</div>' +
         '<div class="ri-tags">' + statusTag + vaultTag + '</div>' +
       '</div>' +
       action +
@@ -1776,14 +1728,11 @@ function renderBrowseList() {
   }).join('');
 }
 
-function getFormatEmoji(format) {
-  // 💿 DVD  📀 Blu-ray  💽 4K UHD  🕹️ Video Games (future)  📼 VHS (future)
-  if (!format) return '\u{1F4BF}';
-  var f = format.toLowerCase();
-  if (f === 'dvd')             return '\u{1F4BF}'; // 💿
-  if (f.indexOf('4k') !== -1)  return '\u{1F4BD}'; // 💽
-  if (f.indexOf('blu') !== -1) return '\u{1F4C0}'; // 📀
-  return '\u{1F4BF}';
+function getBrowseStatusTag(it) {
+  if (it.status === 'available')      return '<span class="ri-tag ri-tag-out">AVAILABLE</span>';
+  if (it.status === 'checked_out')    return '<span class="ri-tag ri-tag-pending">CHECKED OUT</span>';
+  if (it.status === 'return_pending') return '<span class="ri-tag ri-tag-pending">RETURN BIN</span>';
+  return '';
 }
 
 function getBrowseAction(it) {
@@ -1827,70 +1776,13 @@ function submitTitleRequest() {
   setTimeout(function() { if (fb) fb.innerHTML = ''; }, 4000);
 }
 
-
-
-function submitRemoteCode() {
-  var code   = document.getElementById('remoteCodeInput') ? document.getElementById('remoteCodeInput').value.trim().toUpperCase() : '';
-  var errEl  = document.getElementById('remoteCodeErr');
-  if (!code) return;
-  remoteCodeAttempted = code;
-  if (errEl) errEl.textContent = '';
-
-  // Production: validate against backend
-  // For prototype: accept any 4+ char code
-  if (code.length >= 4) {
-    applyRemoteOverride();
-  } else {
-    if (errEl) errEl.textContent = 'Invalid code. Please try again.';
-  }
-}
-
-
-function getToday() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function isoToDate(iso) {
-  // Parse YYYY-MM-DD as local midnight to avoid timezone shifts
-  const parts = iso.split('-');
-  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-}
-
-function daysUntil(iso) {
-  return Math.floor((isoToDate(iso) - getToday()) / 86400000);
-}
-
-function isOverdue(iso) {
-  return isoToDate(iso) < getToday();
-}
-
-function dueDateFromNow(days) {
-  const d = getToday();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
-
-function fmtDate(iso) {
-  if (!iso) return '--';
-  return isoToDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function fmtTs(iso) {
-  if (!iso) return '--';
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-}
-
-// ================================================================
-
-
 // ================================================================
 // MEMBERSHIP SCREEN
 // ================================================================
 function goAccount() {
   var billingEl  = document.getElementById('accountBillingDate');
   var tierEl     = document.getElementById('accountTierLine');
-  var changeLink = document.getElementById('accountChangLink');
+  var changeLink = document.getElementById('accountChangeLink');
   var cancelLink = document.getElementById('accountCancelLink');
   var subtitle   = document.getElementById('accountSubtitle');
 
@@ -1979,8 +1871,9 @@ function histAction(btn) {
 
 // ================================================================
 // STARRED ITEMS (localStorage)
+// STAR_KEY is set after member loads to use the correct member_id.
 // ================================================================
-var STAR_KEY = 'sfd_starred_' + (member ? member.member_id : 'anon');
+var STAR_KEY = 'sfd_starred_anon'; // overwritten in renderStatus() once member is known
 
 function getStarred() {
   try {
@@ -1989,7 +1882,7 @@ function getStarred() {
 }
 
 function toggleStar(itemId) {
-  var item = catalogByIdCache[itemId];
+  var item = DEMO_CATALOG[itemId];
   if (!item) return;
   var type    = (item.status === 'available') ? 'saved' : 'notify';
   var message = (type === 'saved') ? 'Saved' : 'We will notify you';
@@ -2009,30 +1902,6 @@ function isStarred(itemId) {
   return getStarred().indexOf(itemId) !== -1;
 }
 
-
-// ================================================================
-// INVENTORY STRUCTURE SUPPORT
-// Maps raw Google Sheet row to catalog item. FUTURE: use when
-// loading catalog from Apps Script backend.
-// ================================================================
-function mapSheetItem(row) {
-  return {
-    item_id:          row.item_id,
-    title:            row.title,
-    format:           row.format,
-    status:           row.status,
-    collection:       row.collection,
-    subcategory:      row.subcategory      || 'standard',
-    group_name:       row.group_name       || '',
-    disc_count:       parseInt(row.disc_count || 1, 10),
-    condition:        row.condition        || 'good',
-    acquisition_type: row.acquisition_type || 'owned',
-    cost:             row.cost             || '',
-    source:           row.source           || '',
-    notes:            row.notes            || '',
-    last_checked:     row.last_checked     || ''
-  };
-}
 
 </script>
 
