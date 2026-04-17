@@ -409,7 +409,7 @@ body::after {
 <!-- HEADER -->
 <header class="site-header">
   <a href="/" class="header-logo">Sci&#8209;Fi <span>Dojo</span></a>
-  <a href="/" class="header-back">&#8592; Back to Site</a>
+  <a href="#" class="header-back" onclick="handleBack(event)">&#8592; Back</a>
 </header>
 
 <!-- HERO -->
@@ -438,7 +438,7 @@ body::after {
     </div>
     <div class="cheat-item">
       <div class="cheat-label">Your Membership</div>
-      <div class="cheat-value">Your disc limit, loan window, and current rentals are always visible in your member app, just scan you member card or bookmark your member link.</div>
+      <div class="cheat-value">Your disc limit, loan window, and current rentals are always visible in your member app, just scan your member card or bookmark your member link.</div>
     </div>
     <div class="cheat-item">
       <div class="cheat-label">Checking Out</div>
@@ -623,6 +623,18 @@ body::after {
   </div>
   <div class="footer-copy">&copy; 2026 Sci-Fi Dojo &mdash; Asbury Park, NJ</div>
 </footer>
+<script>
+function handleBack(e) {
+  e.preventDefault();
 
+  const sameOrigin = document.referrer && document.referrer.includes(window.location.origin);
+
+  if (sameOrigin && history.length > 1) {
+    history.back();
+  } else {
+    window.location.href = "/";
+  }
+}
+</script>
 </body>
 </html>
