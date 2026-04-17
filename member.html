@@ -432,6 +432,21 @@ select option{background:var(--panel2);color:var(--text);}
 @keyframes fadeUp   {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
 @keyframes popIn    {from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 .d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}
+/* CATALOG STATUS INDICATOR */
+.catalog-status{
+  margin:0 16px 14px;padding:8px 14px;
+  display:flex;align-items:center;gap:8px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;
+  cursor:default;
+}
+.catalog-status.clickable{cursor:pointer;}
+.catalog-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s;}
+.catalog-dot.loading{background:var(--warning);box-shadow:0 0 6px var(--warning);animation:blink 1s ease-in-out infinite;}
+.catalog-dot.ready  {background:var(--success);box-shadow:0 0 6px var(--success);}
+.catalog-dot.failed {background:var(--danger); box-shadow:0 0 6px var(--danger);}
+.catalog-status-text{color:var(--text-dim);}
+.catalog-status.clickable .catalog-status-text{color:var(--danger);}
+
 .spacer{height:32px;}
 </style>
 </head>
@@ -464,7 +479,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="loading-wrap">
       <div class="loading-logo">SCI-FI <span>DOJO</span></div>
       <div class="spin-lg"></div>
-      <div class="loading-msg" id="loadingMsg">Verifying membership...</div>
+      <div class="loading-msg">Verifying membership...</div>
     </div>
   </div>
 
@@ -491,12 +506,13 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="status-grid" id="statusGrid"></div>
     <!-- FIX 8: persistent slot clarification note -->
     <div class="slot-note" id="slotNote" style="display:none;">
-      Items in the Return Bin (Return Bin) do not count against your rental limit --
+      Items in the Return Bin do not count against your rental limit --
       your slot is freed as soon as you log a return.
     </div>
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
+    <div id="catalogStatusBar"></div>
     <div class="spacer"></div>
   </div>
 
@@ -563,7 +579,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div id="checkoutAlert"></div>
     <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitCheckout()" disabled>CONFIRM CHECKOUT</button>
-    <p class="terms-line">By submitting, you agree to the <a href="#" onclick="return false;">SFD Rental Terms</a> and accept responsibility for all items while checked out.</p>
+    <p class="terms-line">By submitting, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a> and accept responsibility for all items while checked out.</p>
     <button class="btn-ghost" onclick="goStatus()">Cancel</button>
     <div class="spacer"></div>
   </div>
@@ -656,7 +672,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="codeContent"></div>
     <div class="banner banner-warn" style="margin-top:4px;">
       <span class="banner-icon">&#128274;</span>
-      <div>Code is personal. Do not share.</div>
+      <div>This code is unique to your membership. Do not share.</div>
     </div>
     <div class="spacer"></div>
   </div>
@@ -712,7 +728,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="billing-date" id="accountBillingDate">--</div>
       <div id="accountTierLine" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);margin-top:4px;"></div>
     </div>
-    <a class="mgmt-btn mgmt-change" id="accountChangLink" href="/cdn-cgi/l/email-protection#f380909a959a979c999cb3929c9fdd909c9ecc80869199969087cea0b5b7d3be969e919681809b9a83d3b09b929d9496">CHANGE PLAN</a>
+    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">CHANGE PLAN</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="/cdn-cgi/l/email-protection#4635252f202f22292c290627292a6825292b793533242c2325327b150002660b232b242334352e2f366605272825232a">CANCEL MEMBERSHIP</a>
     <p class="mgmt-note">Tap above to send us an email. We will get back to you as soon as possible. Your membership continues until the end of your current billing period.</p>
     <div class="spacer"></div>
@@ -742,7 +758,7 @@ select option{background:var(--panel2);color:var(--text);}
 // ================================================================
 // CONFIG
 // ================================================================
-var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbyu9m_M3S2XTWYFywRQfQnW4fmSJeA1NpdZPaoGgpJzNY1xYAMooZL7RWCypCk2Ojr0UQ/exec';
+var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz21tQVQwLDgdoVjRRwXioSNgo1jMSOzA8kNlUteVub9fdCsvcqBKeyIVIqETpLyq0_Yg/exec';
 
 // ================================================================
 // FIX 3: Date helpers -- never use a frozen TODAY constant.
@@ -874,20 +890,15 @@ var DEMO_MEMBERS = {
 // catalogByIdCache: keyed lookup rebuilt after each fetch
 var catalogCache     = null;
 var catalogByIdCache = {};
+var catalogStatus    = 'loading'; // 'loading' | 'ready' | 'failed'
 
 // Weekly cabinet code -- in production this comes from Settings sheet
 var CABINET_CODE = { general: '4471', vault: '7823', expires: dueDateFromNow(6) };
 
 // ----------------------------------------------------------------
-// Simulated backend validation functions.
+// Backend validation functions.
 // FIX 5: These are the sole source of truth for all business rules.
 // ----------------------------------------------------------------
-
-function backendLookupMember(token) {
-  var raw = DEMO_MEMBERS[token];
-  if (!raw) return null;
-  return JSON.parse(JSON.stringify(raw)); // deep copy so mutations stay local
-}
 
 function backendGetMemberStatus(m) {
   // FIX 3: use getToday() for all comparisons
@@ -1017,23 +1028,13 @@ async function loadMember(tok) {
     if (!data.ok) throw new Error(data.error);
     member = data.member;
 
-    setMsg('Loading catalog...');
-    try {
-      var cRes  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(tok));
-      var cData = await cRes.json();
-      if (cData.ok) {
-        catalogCache     = cData.catalog || [];
-        catalogByIdCache = {};
-        catalogCache.forEach(function(item) {
-          catalogByIdCache[item.item_id] = item;
-        });
-      }
-    } catch(ce) {
-      console.warn('Catalog preload failed:', ce.message);
-    }
-
-    setMsg('Ready.');
+    // Render dashboard immediately -- don't wait for catalog
+    catalogStatus = 'loading';
     renderStatus();
+
+    // Load catalog in background
+    loadCatalog(tok);
+
   } catch(e) {
     showError('Connection Interrupted',
       'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
@@ -1042,6 +1043,40 @@ async function loadMember(tok) {
       '<br><br>' +
       'Still not loading? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-SYSTEM" style="color:var(--accent);">Email support</a>.');
   }
+}
+
+async function loadCatalog(tok) {
+  setCatalogStatus('loading');
+  try {
+    var res  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(tok));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Catalog unavailable');
+    catalogCache     = data.catalog || [];
+    catalogByIdCache = {};
+    catalogCache.forEach(function(item) { catalogByIdCache[item.item_id] = item; });
+    setCatalogStatus('ready');
+  } catch(e) {
+    console.warn('Catalog load failed:', e.message);
+    setCatalogStatus('failed');
+  }
+}
+
+function setCatalogStatus(status) {
+  catalogStatus = status;
+  var bar = document.getElementById('catalogStatusBar');
+  if (!bar) return;
+  if (status === 'ready') {
+    bar.innerHTML = '<div class="catalog-status"><div class="catalog-dot ready"></div><span class="catalog-status-text">CATALOG: READY</span></div>';
+    setTimeout(function() { if (bar) bar.innerHTML = ''; }, 2000);
+  } else if (status === 'loading') {
+    bar.innerHTML = '<div class="catalog-status"><div class="catalog-dot loading"></div><span class="catalog-status-text">CATALOG: LOADING...</span></div>';
+  } else if (status === 'failed') {
+    bar.innerHTML = '<div class="catalog-status clickable" onclick="retryCatalog()"><div class="catalog-dot failed"></div><span class="catalog-status-text">CATALOG: FAILED — TAP TO RETRY</span></div>';
+  }
+}
+
+function retryCatalog() {
+  if (token) loadCatalog(token);
 }
 
 // ================================================================
@@ -1076,6 +1111,9 @@ function goStatus() {
 function renderStatus() {
   if (!member) return;
 
+  // Set STAR_KEY now that member is loaded
+  STAR_KEY = 'sfd_starred_' + member.member_id;
+
   var st = backendGetMemberStatus(member);
 
   // FIX 2: clear all mutable containers before writing
@@ -1092,7 +1130,10 @@ function renderStatus() {
   if (statusLine) statusLine.style.display = member.active ? 'block' : 'none';
   // Show tier + plan details under member name
   var tierEl  = document.getElementById('statusTier');
-  var tierCls = member.tier === 'Premiere' ? 'tier-pre' : member.tier === 'Double Feature' ? 'tier-dbl' : 'tier-mat';
+  var tierCls = member.tier === 'Premiere' ? 'tier-pre' :
+                member.tier === 'Double Feature' ? 'tier-dbl' :
+                member.tier === 'Friends & Family' ? 'tier-dbl' :
+                member.tier === 'Donor' ? 'tier-pre' : 'tier-mat';
   tierEl.className   = 'member-tier ' + tierCls;
   tierEl.style.display = '';
   tierEl.innerHTML = '<div class="tier-dot"></div><div><div>' + member.tier + '</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">' + member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' at a time &bull; ' + member.loan_days + ' day limit</div></div>';
@@ -1113,6 +1154,8 @@ function renderStatus() {
   if (member.return_pending.length > 0) {
     banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' item' + (member.return_pending.length > 1 ? 's' : '') + ' pending. Slots available.');
   }
+  // Persistent getting-started prompt -- always shown
+  banners += banner('info', '&#128161;', 'Tap Check Out or Return Items below to get started.');
   if (banners) {
     document.getElementById('statusNotifSection').innerHTML =
       '<div class="section-hdr" style="padding-top:8px;">NOTIFICATIONS<div class="section-hdr-line"></div></div>' + banners;
@@ -1209,8 +1252,14 @@ function goCheckout() {
 function onCheckoutCodeInput(el) {
   el.value = el.value.toUpperCase();
   var code = el.value.trim();
-  if (code.length >= 8) lookupItem(code);
-  else document.getElementById('itemConfirmArea').innerHTML = '';
+  var area = document.getElementById('itemConfirmArea');
+  if (code.length >= 8) {
+    lookupItem(code);
+  } else if (code.length > 4) {
+    area.innerHTML = '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-dim);padding:10px 0;letter-spacing:.08em;">Keep typing...</div>';
+  } else {
+    area.innerHTML = '';
+  }
 }
 
 function lookupItem(code) {
@@ -1546,21 +1595,21 @@ function goRentals() {
 // ================================================================
 function goCode() {
   var st = backendGetMemberStatus(member);
-  if (!st.showCode) return; // FIX 5: backend gate
+  if (!st.showCode) return;
 
   var html =
     '<div class="code-display">' +
       '<div class="code-label">General Collection</div>' +
-      '<div class="code-value">' + CABINET_CODE.general + '</div>' +
-      '<div class="code-expires">Valid until ' + fmtDate(CABINET_CODE.expires) + '</div>' +
+      '<div class="code-value">' + (member.cabinet_code || '----') + '</div>' +
+      '<div class="code-expires">Rotates weekly. Personal to your account.</div>' +
     '</div>';
 
-  if (member.vault_access) {
+  if (member.vault_access && member.vault_code) {
     html +=
       '<div class="code-display" style="border-color:rgba(192,132,252,.4);">' +
         '<div class="code-label">Vault Collection</div>' +
-        '<div class="code-value" style="text-shadow:0 0 24px rgba(192,132,252,.5);">' + CABINET_CODE.vault + '</div>' +
-        '<div class="code-expires">Valid until ' + fmtDate(CABINET_CODE.expires) + '</div>' +
+        '<div class="code-value" style="text-shadow:0 0 24px rgba(192,132,252,.5);">' + member.vault_code + '</div>' +
+        '<div class="code-expires">Rotates weekly. Personal to your account.</div>' +
       '</div>';
   }
 
@@ -1671,29 +1720,26 @@ async function goBrowse() {
   document.getElementById('filter-starred').classList.remove('active');
   showScreen('screen-browse');
 
+  // If catalog failed, retry now
+  if (catalogStatus === 'failed') {
+    catalogCache = null;
+    loadCatalog(token);
+    document.getElementById('browseList').innerHTML =
+      '<div style="color:var(--text-mid);text-align:center;padding:24px 0;font-family:\'Share Tech Mono\',monospace;font-size:12px;letter-spacing:.08em;">' +
+      '<div class="spin-lg" style="margin:0 auto 14px;"></div>RETRYING...</div>';
+    return;
+  }
+
+  // Already loaded — render immediately
   if (catalogCache !== null) {
     renderBrowseList();
     return;
   }
 
+  // Still loading from background fetch — show spinner
   document.getElementById('browseList').innerHTML =
     '<div style="color:var(--text-mid);text-align:center;padding:24px 0;font-family:\'Share Tech Mono\',monospace;font-size:12px;letter-spacing:.08em;">' +
     '<div class="spin-lg" style="margin:0 auto 14px;"></div>LOADING CATALOG...</div>';
-
-  try {
-    var res  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(token));
-    var data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Catalog unavailable');
-    catalogCache     = data.catalog || [];
-    catalogByIdCache = {};
-    catalogCache.forEach(function(item) { catalogByIdCache[item.item_id] = item; });
-    renderBrowseList();
-  } catch(e) {
-    document.getElementById('browseList').innerHTML =
-      '<div style="color:var(--danger);text-align:center;padding:24px 0;font-size:13px;line-height:1.6;">' +
-      'Could not load catalog.<br>Check your connection and try again.<br>' +
-      '<span style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-dim);">' + (e.message || '') + '</span></div>';
-  }
 }
 
 function setBrowseFilter(f) {
@@ -1730,6 +1776,7 @@ function renderBrowseList() {
     });
   }
 
+  // Sort: starred first, then available, then alpha by sort_title (falls back to title)
   var starredIds = getStarred();
   items.sort(function(a, b) {
     var aStarred = starredIds.indexOf(a.item_id) !== -1;
@@ -1824,70 +1871,13 @@ function submitTitleRequest() {
   setTimeout(function() { if (fb) fb.innerHTML = ''; }, 4000);
 }
 
-
-
-function submitRemoteCode() {
-  var code   = document.getElementById('remoteCodeInput') ? document.getElementById('remoteCodeInput').value.trim().toUpperCase() : '';
-  var errEl  = document.getElementById('remoteCodeErr');
-  if (!code) return;
-  remoteCodeAttempted = code;
-  if (errEl) errEl.textContent = '';
-
-  // Production: validate against backend
-  // For prototype: accept any 4+ char code
-  if (code.length >= 4) {
-    applyRemoteOverride();
-  } else {
-    if (errEl) errEl.textContent = 'Invalid code. Please try again.';
-  }
-}
-
-
-function getToday() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function isoToDate(iso) {
-  // Parse YYYY-MM-DD as local midnight to avoid timezone shifts
-  const parts = iso.split('-');
-  return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-}
-
-function daysUntil(iso) {
-  return Math.floor((isoToDate(iso) - getToday()) / 86400000);
-}
-
-function isOverdue(iso) {
-  return isoToDate(iso) < getToday();
-}
-
-function dueDateFromNow(days) {
-  const d = getToday();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
-
-function fmtDate(iso) {
-  if (!iso) return '--';
-  return isoToDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function fmtTs(iso) {
-  if (!iso) return '--';
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-}
-
-// ================================================================
-
-
 // ================================================================
 // MEMBERSHIP SCREEN
 // ================================================================
 function goAccount() {
   var billingEl  = document.getElementById('accountBillingDate');
   var tierEl     = document.getElementById('accountTierLine');
-  var changeLink = document.getElementById('accountChangLink');
+  var changeLink = document.getElementById('accountChangeLink');
   var cancelLink = document.getElementById('accountCancelLink');
   var subtitle   = document.getElementById('accountSubtitle');
 
@@ -1976,8 +1966,9 @@ function histAction(btn) {
 
 // ================================================================
 // STARRED ITEMS (localStorage)
+// STAR_KEY is set after member loads to use the correct member_id.
 // ================================================================
-var STAR_KEY = 'sfd_starred_' + (member ? member.member_id : 'anon');
+var STAR_KEY = 'sfd_starred_anon'; // overwritten in renderStatus() once member is known
 
 function getStarred() {
   try {
@@ -2006,30 +1997,6 @@ function isStarred(itemId) {
   return getStarred().indexOf(itemId) !== -1;
 }
 
-
-// ================================================================
-// INVENTORY STRUCTURE SUPPORT
-// Maps raw Google Sheet row to catalog item. FUTURE: use when
-// loading catalog from Apps Script backend.
-// ================================================================
-function mapSheetItem(row) {
-  return {
-    item_id:          row.item_id,
-    title:            row.title,
-    format:           row.format,
-    status:           row.status,
-    collection:       row.collection,
-    subcategory:      row.subcategory      || 'standard',
-    group_name:       row.group_name       || '',
-    disc_count:       parseInt(row.disc_count || 1, 10),
-    condition:        row.condition        || 'good',
-    acquisition_type: row.acquisition_type || 'owned',
-    cost:             row.cost             || '',
-    source:           row.source           || '',
-    notes:            row.notes            || '',
-    last_checked:     row.last_checked     || ''
-  };
-}
 
 </script>
 
