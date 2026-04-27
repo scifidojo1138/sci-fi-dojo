@@ -9,6 +9,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-member-apple-touch-icon.png">
 <link rel="manifest" href="favicon-member-site.webmanifest">
 <title>SFD Member</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.min.js"></script>
 <style>
 @import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap");
 
@@ -462,6 +463,7 @@ select option{background:var(--panel2);color:var(--text);}
   <div class="cam-lbl">Scan Item QR Code</div>
   <div class="cam-vp">
     <video id="camVideo" autoplay playsinline muted></video>
+    <canvas id="camCanvas" style="display:none;"></canvas>
     <div class="cam-br"></div>
     <div class="cam-scan"></div>
   </div>
@@ -763,7 +765,7 @@ select option{background:var(--panel2);color:var(--text);}
 // ================================================================
 // CONFIG
 // ================================================================
-var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbz21tQVQwLDgdoVjRRwXioSNgo1jMSOzA8kNlUteVub9fdCsvcqBKeyIVIqETpLyq0_Yg/exec';
+var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbynCT6h4SRl2tq_DWUJeSZCI2Yl4UM5oQ0RGtVG0XllIfvngH7CL14l7MztpyFhOymxDw/exec';
 
 // ================================================================
 // FIX 3: Date helpers -- never use a frozen TODAY constant.
@@ -1665,22 +1667,35 @@ function openCamera(ctx) {
 }
 
 function closeCamera() {
-  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
+  if (scanInterval) { cancelAnimationFrame(scanInterval); scanInterval = null; }
   if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
   document.getElementById('camOverlay').classList.add('hidden');
   document.getElementById('camVideo').style.display = 'block';
 }
 
 function startQRScan(v) {
-  if (!('BarcodeDetector' in window)) return;
-  var det = new BarcodeDetector({ formats: ['qr_code'] });
-  scanInterval = setInterval(async function() {
-    if (v.readyState !== v.HAVE_ENOUGH_DATA) return;
-    try {
-      var codes = await det.detect(v);
-      if (codes.length) onQRDetected(codes[0].rawValue);
-    } catch(e) {}
-  }, 300);
+  var canvas  = document.getElementById('camCanvas');
+  var ctx     = canvas.getContext('2d');
+
+  function tick() {
+    if (!cameraStream) return; // camera was closed
+    if (v.readyState === v.HAVE_ENOUGH_DATA) {
+      canvas.width  = v.videoWidth;
+      canvas.height = v.videoHeight;
+      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: 'dontInvert',
+      });
+      if (code) {
+        onQRDetected(code.data);
+        return; // stop scanning after successful read
+      }
+    }
+    scanInterval = requestAnimationFrame(tick);
+  }
+
+  scanInterval = requestAnimationFrame(tick);
 }
 
 function onQRDetected(raw) {
