@@ -432,6 +432,13 @@ select option{background:var(--panel2);color:var(--text);}
 .cam-manual input::placeholder{color:rgba(255,255,255,.35);text-transform:none;letter-spacing:0;}
 .cam-manual button{padding:14px 20px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--r-sm);font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;}
 .cam-close{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--text-mid);background:none;border:1px solid var(--border2);border-radius:6px;padding:10px 20px;cursor:pointer;}
+.cam-scan-btn{
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:3px;
+  background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);
+  padding:16px 48px;cursor:pointer;margin-bottom:4px;
+  transition:opacity .15s;
+}
+.cam-scan-btn:active{opacity:.8;}
 
 /* ANIMATIONS */
 @keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
@@ -465,9 +472,10 @@ select option{background:var(--panel2);color:var(--text);}
     <video id="camVideo" autoplay playsinline webkit-playsinline muted></video>
     <canvas id="camCanvas" style="display:none;"></canvas>
     <div class="cam-br"></div>
-    <div class="cam-scan"></div>
   </div>
-  <p class="cam-hint">Point camera at the QR sticker on the item</p>
+  <p class="cam-hint">Frame the QR code, then tap Scan</p>
+  <button class="cam-scan-btn" onclick="captureQRFrame()">SCAN</button>
+  <div id="camFeedback" style="font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--danger);min-height:20px;margin:8px 0;text-align:center;"></div>
   <div class="cam-manual">
     <input type="text" id="camInput" placeholder="Or type item code..." />
     <button onclick="submitCamManual()">Use</button>
@@ -520,6 +528,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
     <div id="catalogStatusBar"></div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v0.8.1</div>
     <div class="spacer"></div>
   </div>
 
@@ -1655,6 +1664,7 @@ function toggleNote(ctx) {
 // ================================================================
 function openCamera(ctx) {
   document.getElementById('camInput').value = '';
+  document.getElementById('camFeedback').textContent = '';
   document.getElementById('camOverlay').classList.remove('hidden');
   navigator.mediaDevices && navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
@@ -1667,7 +1677,7 @@ function openCamera(ctx) {
       v.setAttribute('muted', true);
       v.srcObject = stream;
       v.style.display = 'block';
-      startQRScan(v);
+      v.play();
     })
     .catch(function(err) {
       console.log('Camera error:', err);
@@ -1675,55 +1685,49 @@ function openCamera(ctx) {
     });
 }
 
+function captureQRFrame() {
+  var v      = document.getElementById('camVideo');
+  var canvas = document.getElementById('camCanvas');
+  var ctx    = canvas.getContext('2d');
+  var fb     = document.getElementById('camFeedback');
+
+  if (!v || v.videoWidth === 0 || v.videoHeight === 0) {
+    fb.textContent = 'Camera not ready. Try again.';
+    return;
+  }
+
+  canvas.width  = 640;
+  canvas.height = 480;
+
+  try {
+    ctx.drawImage(v, 0, 0, 640, 480);
+    var imageData = ctx.getImageData(0, 0, 640, 480);
+    var code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth',
+    });
+    if (code && code.data) {
+      fb.style.color = 'var(--success)';
+      fb.textContent = 'Code detected.';
+      setTimeout(function() {
+        onQRDetected(code.data);
+      }, 200);
+    } else {
+      fb.style.color = 'var(--danger)';
+      fb.textContent = 'No QR code found. Reframe and try again.';
+    }
+  } catch(e) {
+    fb.style.color = 'var(--danger)';
+    fb.textContent = 'Scan failed. Try again.';
+    console.log('jsQR error:', e);
+  }
+}
+
 function closeCamera() {
   if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
   if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
   document.getElementById('camOverlay').classList.add('hidden');
   document.getElementById('camVideo').style.display = 'block';
-}
-
-function startQRScan(v) {
-  var canvas = document.getElementById('camCanvas');
-  var ctx    = canvas.getContext('2d');
-
-  function scan() {
-    if (!cameraStream) return;
-    if (v.videoWidth > 0 && v.videoHeight > 0) {
-      canvas.width  = 640;
-      canvas.height = 480;
-      try {
-        ctx.drawImage(v, 0, 0, 640, 480);
-        var imageData = ctx.getImageData(0, 0, 640, 480);
-        var code = jsQR(imageData.data, imageData.width, imageData.height, {
-          inversionAttempts: 'attemptBoth',
-        });
-        if (code && code.data) {
-          clearInterval(scanInterval);
-          scanInterval = null;
-          onQRDetected(code.data);
-        }
-      } catch(e) {
-        console.log('jsQR error:', e);
-      }
-    }
-  }
-
-  function startLoop() {
-    scanInterval = setInterval(scan, 200);
-  }
-
-  // Handle both: metadata already loaded, or not yet loaded
-  if (v.readyState >= 1) {
-    var p = v.play();
-    if (p && p.then) { p.then(startLoop).catch(startLoop); }
-    else { startLoop(); }
-  } else {
-    v.onloadedmetadata = function() {
-      var p = v.play();
-      if (p && p.then) { p.then(startLoop).catch(startLoop); }
-      else { startLoop(); }
-    };
-  }
+  document.getElementById('camFeedback').textContent = '';
 }
 
 function onQRDetected(raw) {
