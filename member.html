@@ -1656,7 +1656,9 @@ function toggleNote(ctx) {
 function openCamera(ctx) {
   document.getElementById('camInput').value = '';
   document.getElementById('camOverlay').classList.remove('hidden');
-  navigator.mediaDevices && navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+  navigator.mediaDevices && navigator.mediaDevices.getUserMedia({
+    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+  })
     .then(function(stream) {
       cameraStream = stream;
       var v = document.getElementById('camVideo');
@@ -1667,11 +1669,14 @@ function openCamera(ctx) {
       v.style.display = 'block';
       startQRScan(v);
     })
-    .catch(function() { document.getElementById('camVideo').style.display = 'none'; });
+    .catch(function(err) {
+      console.log('Camera error:', err);
+      document.getElementById('camVideo').style.display = 'none';
+    });
 }
 
 function closeCamera() {
-  if (scanInterval) { cancelAnimationFrame(scanInterval); scanInterval = null; }
+  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
   if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
   document.getElementById('camOverlay').classList.add('hidden');
   document.getElementById('camVideo').style.display = 'block';
@@ -1681,34 +1686,44 @@ function startQRScan(v) {
   var canvas = document.getElementById('camCanvas');
   var ctx    = canvas.getContext('2d');
 
-  function tick() {
+  function scan() {
     if (!cameraStream) return;
     if (v.videoWidth > 0 && v.videoHeight > 0) {
-      // Downscale to 640x480 for reliable jsQR performance on iPhone
       canvas.width  = 640;
       canvas.height = 480;
-      ctx.drawImage(v, 0, 0, 640, 480);
       try {
-        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(v, 0, 0, 640, 480);
+        var imageData = ctx.getImageData(0, 0, 640, 480);
         var code = jsQR(imageData.data, imageData.width, imageData.height, {
           inversionAttempts: 'attemptBoth',
         });
-        if (code) {
+        if (code && code.data) {
+          clearInterval(scanInterval);
+          scanInterval = null;
           onQRDetected(code.data);
-          return;
         }
       } catch(e) {
-        console.log(e);
+        console.log('jsQR error:', e);
       }
     }
-    scanInterval = requestAnimationFrame(tick);
   }
 
-  // Use onloadedmetadata for reliable iOS frame availability
-  v.onloadedmetadata = function() {
-    v.play();
-    scanInterval = requestAnimationFrame(tick);
-  };
+  function startLoop() {
+    scanInterval = setInterval(scan, 200);
+  }
+
+  // Handle both: metadata already loaded, or not yet loaded
+  if (v.readyState >= 1) {
+    var p = v.play();
+    if (p && p.then) { p.then(startLoop).catch(startLoop); }
+    else { startLoop(); }
+  } else {
+    v.onloadedmetadata = function() {
+      var p = v.play();
+      if (p && p.then) { p.then(startLoop).catch(startLoop); }
+      else { startLoop(); }
+    };
+  }
 }
 
 function onQRDetected(raw) {
