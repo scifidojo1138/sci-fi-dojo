@@ -462,7 +462,7 @@ select option{background:var(--panel2);color:var(--text);}
 <div class="cam-overlay hidden" id="camOverlay">
   <div class="cam-lbl">Scan Item QR Code</div>
   <div class="cam-vp">
-    <video id="camVideo" autoplay playsinline muted></video>
+    <video id="camVideo" autoplay playsinline webkit-playsinline muted></video>
     <canvas id="camCanvas" style="display:none;"></canvas>
     <div class="cam-br"></div>
     <div class="cam-scan"></div>
@@ -1660,7 +1660,11 @@ function openCamera(ctx) {
     .then(function(stream) {
       cameraStream = stream;
       var v = document.getElementById('camVideo');
-      v.srcObject = stream; v.style.display = 'block'; v.play();
+      v.setAttribute('playsinline', true);
+      v.setAttribute('autoplay', true);
+      v.setAttribute('muted', true);
+      v.srcObject = stream;
+      v.style.display = 'block';
       startQRScan(v);
     })
     .catch(function() { document.getElementById('camVideo').style.display = 'none'; });
@@ -1674,28 +1678,37 @@ function closeCamera() {
 }
 
 function startQRScan(v) {
-  var canvas  = document.getElementById('camCanvas');
-  var ctx     = canvas.getContext('2d');
+  var canvas = document.getElementById('camCanvas');
+  var ctx    = canvas.getContext('2d');
 
   function tick() {
-    if (!cameraStream) return; // camera was closed
-    if (v.readyState === v.HAVE_ENOUGH_DATA) {
-      canvas.width  = v.videoWidth;
-      canvas.height = v.videoHeight;
-      ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
-      var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      var code = jsQR(imageData.data, imageData.width, imageData.height, {
-        inversionAttempts: 'dontInvert',
-      });
-      if (code) {
-        onQRDetected(code.data);
-        return; // stop scanning after successful read
+    if (!cameraStream) return;
+    if (v.videoWidth > 0 && v.videoHeight > 0) {
+      // Downscale to 640x480 for reliable jsQR performance on iPhone
+      canvas.width  = 640;
+      canvas.height = 480;
+      ctx.drawImage(v, 0, 0, 640, 480);
+      try {
+        var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        var code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'attemptBoth',
+        });
+        if (code) {
+          onQRDetected(code.data);
+          return;
+        }
+      } catch(e) {
+        console.log(e);
       }
     }
     scanInterval = requestAnimationFrame(tick);
   }
 
-  scanInterval = requestAnimationFrame(tick);
+  // Use onloadedmetadata for reliable iOS frame availability
+  v.onloadedmetadata = function() {
+    v.play();
+    scanInterval = requestAnimationFrame(tick);
+  };
 }
 
 function onQRDetected(raw) {
