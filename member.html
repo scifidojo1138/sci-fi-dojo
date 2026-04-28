@@ -1691,7 +1691,15 @@ function captureQRFrame() {
   var ctx    = canvas.getContext('2d');
   var fb     = document.getElementById('camFeedback');
 
+  // Check jsQR loaded
+  if (typeof jsQR === 'undefined') {
+    fb.style.color = 'var(--danger)';
+    fb.textContent = 'Scanner not loaded. Use manual entry below.';
+    return;
+  }
+
   if (!v || v.videoWidth === 0 || v.videoHeight === 0) {
+    fb.style.color = 'var(--danger)';
     fb.textContent = 'Camera not ready. Try again.';
     return;
   }
@@ -1708,16 +1716,14 @@ function captureQRFrame() {
     if (code && code.data) {
       fb.style.color = 'var(--success)';
       fb.textContent = 'Code detected.';
-      setTimeout(function() {
-        onQRDetected(code.data);
-      }, 200);
+      setTimeout(function() { onQRDetected(code.data); }, 200);
     } else {
       fb.style.color = 'var(--danger)';
       fb.textContent = 'No QR code found. Reframe and try again.';
     }
   } catch(e) {
     fb.style.color = 'var(--danger)';
-    fb.textContent = 'Scan failed. Try again.';
+    fb.textContent = (e.name || 'Error') + ': ' + (e.message || 'use manual entry below');
     console.log('jsQR error:', e);
   }
 }
