@@ -10927,93 +10927,12 @@ function fmtTs(iso) {
 // Backend (simulated here) decides everything else.
 // ================================================================
 
-// FIX 7: Added tok_maxed -- member exactly at limit, no pending returns
-var DEMO_MEMBERS = {
-  'tok_nebula': {
-    member_id: 'MBR-001', display_name: 'Nebula Fan',
-    tier: 'Matinee', tier_limit: 1, loan_days: 7,
-    active: true, deposit_paid: true, vault_access: false,
-    rentals: [], return_pending: [],
-    cabinet_code: null, last_activity: dueDateFromNow(-3),
-    next_billing_date: dueDateFromNow(12),
-    rental_history: [
-      { item_id:'SFD-067', title:'Arrival',        format:'Blu-ray', checked_out: dueDateFromNow(-45), returned: dueDateFromNow(-38) },
-      { item_id:'SFD-215', title:'Contact',        format:'Blu-ray', checked_out: dueDateFromNow(-20), returned: dueDateFromNow(-13) },
-    ],
-  },
-  'tok_darkstar': {
-    member_id: 'MBR-002', display_name: 'Darkstar 88',
-    tier: 'Double Feature', tier_limit: 2, loan_days: 10,
-    active: true, deposit_paid: true, vault_access: false,
-    rentals: [
-      { item_id: 'SFD-012', title: 'Blade Runner 2049', format: '4K UHD', collection: 'general', due: dueDateFromNow(3) },
-    ],
-    return_pending: [],
-    cabinet_code: '4471', last_activity: dueDateFromNow(-1),
-    next_billing_date: dueDateFromNow(5),
-    rental_history: [
-      { item_id:'SFD-023', title:'Dune: Part One',    format:'4K UHD',  checked_out: dueDateFromNow(-60), returned: dueDateFromNow(-53) },
-      { item_id:'SFD-134', title:'Alien',             format:'4K UHD',  checked_out: dueDateFromNow(-40), returned: dueDateFromNow(-33) },
-      { item_id:'SFD-178', title:'Ex Machina',        format:'Blu-ray', checked_out: dueDateFromNow(-15), returned: dueDateFromNow(-8)  },
-    ],
-  },
-  'tok_orion': {
-    member_id: 'MBR-003', display_name: 'Orion Prime',
-    tier: 'Premiere', tier_limit: 3, loan_days: 14,
-    active: true, deposit_paid: true, vault_access: true,
-    rentals: [
-      { item_id: 'SFD-045', title: 'The Matrix',   format: 'Blu-ray', collection: 'general', due: dueDateFromNow(1) },
-      { item_id: 'SFD-101', title: 'Annihilation', format: 'Blu-ray', collection: 'general', due: dueDateFromNow(-2) },
-    ],
-    return_pending: [
-      { item_id: 'SFD-202', title: 'Moon', format: 'DVD', collection: 'general', due: dueDateFromNow(-5) },
-    ],
-    cabinet_code: '4471', last_activity: dueDateFromNow(0),
-    next_billing_date: dueDateFromNow(8),
-  },
-  'tok_void': {
-    member_id: 'MBR-004', display_name: 'Void Walker',
-    tier: 'Double Feature', tier_limit: 2, loan_days: 10,
-    active: false, deposit_paid: true, vault_access: false,
-    rentals: [
-      { item_id: 'SFD-203', title: 'Solaris (1972)', format: 'Blu-ray', collection: 'general', due: dueDateFromNow(-8) },
-    ],
-    return_pending: [],
-    cabinet_code: null, last_activity: dueDateFromNow(-12),
-    next_billing_date: dueDateFromNow(3),
-  },
-  'tok_cosmo': {
-    member_id: 'MBR-005', display_name: 'Cosmo Rex',
-    tier: 'Matinee', tier_limit: 1, loan_days: 7,
-    active: true, deposit_paid: false, vault_access: false,
-    rentals: [], return_pending: [],
-    cabinet_code: null, last_activity: dueDateFromNow(-7),
-    next_billing_date: dueDateFromNow(22),
-  },
-  // FIX 7: Exactly at limit, no pending returns, active and paid
-  'tok_maxed': {
-    member_id: 'MBR-006', display_name: 'At The Limit',
-    tier: 'Double Feature', tier_limit: 2, loan_days: 10,
-    active: true, deposit_paid: true, vault_access: false,
-    rentals: [
-      { item_id: 'SFD-156', title: 'The Expanse S1', format: 'Blu-ray', collection: 'general', due: dueDateFromNow(2) },
-      { item_id: 'SFD-178', title: 'Ex Machina',     format: 'Blu-ray', collection: 'general', due: dueDateFromNow(5) },
-    ],
-    return_pending: [],
-    cabinet_code: '4471', last_activity: dueDateFromNow(-2),
-    next_billing_date: dueDateFromNow(15),
-  },
-};
-
 // DEMO_CATALOG removed — catalog loaded live from backend on startup and via goBrowse()
 // catalogCache: live array after fetch; null = not yet loaded
 // catalogByIdCache: keyed lookup rebuilt after each fetch
 var catalogCache     = null;
 var catalogByIdCache = {};
 var catalogStatus    = 'loading'; // 'loading' | 'ready' | 'failed'
-
-// Weekly cabinet code -- in production this comes from Settings sheet
-var CABINET_CODE = { general: '4471', vault: '7823', expires: dueDateFromNow(6) };
 
 // ----------------------------------------------------------------
 // Backend validation functions.
@@ -11129,9 +11048,11 @@ window.onerror = function(msg, src, line, col, err) {
   token = p.get('token') || p.get('t') || p.get('member') || null;
 
   if (!token) {
-    // Demo: pick randomly from available tokens
-    var demos = Object.keys(DEMO_MEMBERS);
-    token = demos[Math.floor(Math.random() * demos.length)];
+    showError('Membership Not Found',
+      'No membership link detected. Please scan the QR code on your membership card to access your account.' +
+      '<br><br>' +
+      'Need help? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - No Token" style="color:var(--accent);">Email support</a>.');
+    return;
   }
 
   setTimeout(function() { loadMember(token); }, 0);
@@ -11155,13 +11076,24 @@ async function loadMember(tok) {
     // Load catalog in background
     loadCatalog(tok);
 
-  } catch(e) {
-    showError('Connection Interrupted',
-      'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
-      '<br><br>' +
-      '<a href="javascript:location.reload()" style="color:var(--accent);font-family:\'Share Tech Mono\',monospace;font-size:13px;letter-spacing:.08em;">TRY AGAIN</a>' +
-      '<br><br>' +
-      'Still not loading? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-SYSTEM" style="color:var(--accent);">Email support</a>.');
+} catch(e) {
+    var msg = (e.message || '').toLowerCase();
+    var isAuthError = msg.indexOf('token') !== -1 || msg.indexOf('member') !== -1 ||
+                      msg.indexOf('invalid') !== -1 || msg.indexOf('not found') !== -1 ||
+                      msg.indexOf('expired') !== -1 || msg.indexOf('unauthorized') !== -1;
+    if (isAuthError) {
+      showError('Membership Link Invalid',
+        'This membership link is not valid or has expired. Please scan the QR code on your current membership card.' +
+        '<br><br>' +
+        'If this keeps happening, <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-AUTH" style="color:var(--accent);">email support</a>.');
+    } else {
+      showError('Connection Interrupted',
+        'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
+        '<br><br>' +
+        '<a href="javascript:location.reload()" style="color:var(--accent);font-family:\'Share Tech Mono\',monospace;font-size:13px;letter-spacing:.08em;">TRY AGAIN</a>' +
+        '<br><br>' +
+        'Still not loading? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-SYSTEM" style="color:var(--accent);">Email support</a>.');
+    }
   }
 }
 
@@ -11183,6 +11115,13 @@ async function loadCatalog(tok) {
 
 function setCatalogStatus(status) {
   catalogStatus = status;
+  // Re-render the dashboard when catalog state changes, but only if the
+  // status screen is currently showing -- this flips the Check Out tile
+  // from grayed to enabled (or to failed) without disturbing other screens.
+  var statusScreen = document.getElementById('screen-status');
+  if (member && statusScreen && statusScreen.classList.contains('active')) {
+    renderStatus();
+  }
   var bar = document.getElementById('catalogStatusBar');
   if (!bar) return;
   if (status === 'ready') {
@@ -11312,8 +11251,13 @@ function renderStatus() {
 
   // FIX 5: showCode determined by backend status function only
   var checkoutSlots = st.slotsLeft;
+  // Gate checkout when catalog unavailable -- validation needs catalog data
+  var catalogReady = (catalogStatus !== 'failed' && catalogCache !== null);
+  var checkoutEnabled = st.canCheckout && catalogReady;
+  var checkoutSub = !catalogReady ? 'Catalog loading — please wait' :
+                    (checkoutSlots + ' slot' + (checkoutSlots !== 1 ? 's' : '') + ' available');
   document.getElementById('actionGrid').innerHTML =
-    actionBtn('ab-checkout', '&#128192;', 'CHECK OUT', checkoutSlots + ' slot' + (checkoutSlots !== 1 ? 's' : '') + ' available', st.canCheckout, 'goCheckout()') +
+    actionBtn('ab-checkout', '&#128192;', 'CHECK OUT', checkoutSub, checkoutEnabled, 'goCheckout()') +
     actionBtn('ab-return',   '&#8629;', 'RETURN ITEMS',  canReturn ? 'Select items to return' : 'No active rentals.', canReturn, 'goReturn()') +
     actionBtn('ab-rentals',  '&#128203;', 'RENTALS', hasRentals ? (member.rentals.length + ' out, ' + member.return_pending.length + ' pending') : 'No active rentals.', hasRentals, 'goRentals()') +
     (st.showCode ? actionBtn('ab-code', '&#128273;', 'ACCESS CABINET', 'Tap to view your code', true, 'goCode()') : '') +
