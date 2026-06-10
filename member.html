@@ -9,6 +9,763 @@
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-member-apple-touch-icon.png">
 <link rel="manifest" href="favicon-member-site.webmanifest">
 <title>SFD Member</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap">
+<style>
+/* Fonts loaded via <link> above -- a CSS @import here blocks rendering
+   until the font stylesheet round-trip completes. */
+
+/* FIX 1: All string punctuation in CSS uses plain ASCII only */
+
+:root {
+  --bg:       #080c12;
+  --panel:    #0d1520;
+  --panel2:   #111c2a;
+  --border:   #1e3450;
+  --border2:  #2a4868;
+  --accent:   #00d4ff;
+  --accent2:  #ff6b35;
+  --success:  #00ff9d;
+  --warning:  #ffcc00;
+  --danger:   #ff3b5c;
+  --vault:    #c084fc;
+  --text:     #e8f4ff;
+  --text-mid: #a8c8e8;
+  --text-dim: #6a90b0;
+  --text-lbl: #8ab4d4;
+  --glow:     0 0 20px rgba(0,212,255,.25);
+  --r:        14px;
+  --r-sm:     9px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{background:var(--bg);}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Exo 2',sans-serif;min-height:100vh;
+  font-size:17px;overflow-x:hidden;position:relative;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,212,255,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,212,255,.02) 1px,transparent 1px);
+  background-size:32px 32px;pointer-events:none;z-index:0;
+}
+body::after{
+  content:'';position:fixed;top:-40%;left:-40%;width:180%;height:180%;
+  background:
+    radial-gradient(ellipse at 70% 15%,rgba(0,212,255,.06) 0%,transparent 50%),
+    radial-gradient(ellipse at 15% 85%,rgba(255,107,53,.04) 0%,transparent 45%);
+  pointer-events:none;z-index:0;
+  animation:bgDrift 12s ease-in-out infinite alternate;
+}
+@keyframes bgDrift{from{opacity:.5;transform:scale(1)}to{opacity:1;transform:scale(1.05)}}
+
+.page{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 0 80px;min-height:100vh;}
+
+/* HEADER */
+.header{
+  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  background:rgba(8,12,18,.95);backdrop-filter:blur(16px);
+  position:sticky;top:0;z-index:50;
+  animation:slideDown .4s ease both;
+}
+.logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--accent);letter-spacing:2px;text-shadow:var(--glow);}
+.logo span{color:var(--accent2);}
+.hdr-r{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-mid);display:flex;align-items:center;gap:6px;letter-spacing:.04em;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* BACK NAV */
+.back-nav{
+  padding:14px 20px 0;display:flex;align-items:center;gap:10px;
+  font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-dim);
+  cursor:pointer;animation:fadeUp .3s ease both;
+}
+.back-nav:active{color:var(--text-mid);}
+.back-nav svg{width:16px;height:16px;}
+
+/* SCREENS */
+.screen{display:none;}.screen.active{display:block;}
+
+/* LOADING */
+.loading-wrap{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-height:60vh;gap:20px;padding:40px 20px;
+  animation:fadeUp .3s ease both;
+}
+.loading-logo{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--accent);letter-spacing:3px;text-shadow:var(--glow);text-align:center;}
+.loading-logo span{color:var(--accent2);}
+.spin-lg{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--text-dim);text-align:center;}
+
+/* ERROR */
+.error-wrap{padding:40px 20px;text-align:center;animation:fadeUp .3s ease both;}
+.error-icon{font-size:48px;margin-bottom:20px;}
+.error-title{font-family:'Orbitron',monospace;font-size:18px;color:var(--danger);margin-bottom:10px;}
+.error-msg{font-size:15px;color:var(--text-mid);line-height:1.6;}
+
+/* MEMBER HERO */
+.member-hero{padding:32px 20px 24px;animation:fadeUp .35s ease .05s both;}
+.member-eyebrow{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:14px;}
+.member-name{font-family:'Orbitron',monospace;font-size:32px;font-weight:700;color:var(--text);line-height:1.25;margin-bottom:12px;}
+.member-tier{display:inline-flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:.06em;padding:6px 14px;border-radius:20px;border:1px solid;}
+.tier-mat{color:var(--text-mid);border-color:rgba(168,200,232,.3);background:rgba(168,200,232,.07);}
+.tier-dbl{color:var(--accent);border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.07);}
+.tier-pre{color:var(--vault);border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.07);}
+.tier-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+/* STATUS GRID */
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .08s both;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;}
+.stat-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:6px;}
+.stat-value{font-size:24px;font-weight:600;color:var(--text);line-height:1.2;}
+.stat-value.accent {color:var(--accent);}
+.stat-value.warning{color:var(--warning);}
+.stat-value.danger {color:var(--danger);}
+.stat-value.success{color:var(--success);}
+.stat-value.vault  {color:var(--vault);}
+.stat-value.dim    {color:var(--text-mid);font-size:15px;}
+.stat-sub{font-size:13px;color:var(--text-dim);margin-top:3px;font-family:'Share Tech Mono',monospace;}
+
+/* SECTION HEADERS */
+.section-hdr{
+  padding:20px 20px 8px;
+  font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--text-lbl);
+  display:flex;align-items:center;gap:10px;
+}
+.section-hdr-line{flex:1;height:1px;background:var(--border);}
+.section-hdr:first-of-type{padding-top:8px;}
+
+/* BANNERS */
+.banner{
+  margin:0 16px 12px;padding:13px 16px;
+  border-radius:var(--r-sm);font-size:14px;line-height:1.6;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.banner-icon{flex-shrink:0;font-size:16px;margin-top:1px;}
+.banner-ok   {background:rgba(0,255,157,.07);  border:1px solid rgba(0,255,157,.25);color:var(--success);}
+.banner-warn {background:rgba(255,204,0,.07);  border:1px solid rgba(255,204,0,.3); color:var(--warning);}
+.banner-err  {background:rgba(255,59,92,.07);  border:1px solid rgba(255,59,92,.3); color:var(--danger);}
+.banner-info {background:rgba(0,212,255,.06);  border:1px solid rgba(0,212,255,.2); color:var(--accent);}
+.banner-vault{background:rgba(192,132,252,.07);border:1px solid rgba(192,132,252,.3);color:var(--vault);}
+
+/* FIX 8: Slot clarification note style */
+.slot-note{
+  margin:0 16px 14px;padding:10px 14px;
+  border-radius:var(--r-sm);font-size:12px;line-height:1.5;
+  background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);
+  color:var(--text-dim);font-family:'Share Tech Mono',monospace;
+}
+
+/* ACTION GRID */
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .12s both;}
+.action-btn{
+  background:var(--panel);border:1px solid var(--border2);
+  border-radius:var(--r);padding:20px 16px;
+  cursor:pointer;text-align:center;transition:all .2s;
+  position:relative;overflow:hidden;
+}
+.action-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .2s;}
+.action-btn:active{transform:scale(.98);}
+.ab-checkout::before{background:var(--accent);}
+.ab-return::before  {background:var(--accent2);}
+.ab-rentals::before {background:var(--success);}
+.ab-code::before    {background:var(--vault);}
+.action-btn:active::before{opacity:1;}
+.ab-icon {font-size:32px;display:block;margin-bottom:10px;}
+.ab-label{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;}
+.ab-checkout .ab-label{color:var(--accent);}
+.ab-return   .ab-label{color:var(--accent2);}
+.ab-rentals  .ab-label{color:var(--success);}
+.ab-code     .ab-label{color:var(--vault);}
+.ab-sub{font-size:12px;color:var(--text-dim);margin-top:5px;font-family:'Share Tech Mono',monospace;}
+.action-btn.disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
+
+/* CARDS */
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);margin:0 16px 14px;overflow:hidden;animation:fadeUp .35s ease both;}
+.card-hdr{padding:13px 18px 0;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lbl);display:flex;align-items:center;gap:8px;}
+.card-hdr-line{flex:1;height:1px;background:var(--border2);}
+.card-body{padding:14px 18px 18px;}
+
+/* SECTION HEADING */
+.section-heading{padding:20px 20px 12px;animation:fadeUp .3s ease both;}
+.section-title{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.section-sub{font-size:14px;color:var(--text-mid);line-height:1.5;}
+
+/* INPUTS */
+.field{margin-bottom:14px;}.field:last-child{margin-bottom:0;}
+.field-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:8px;display:block;}
+input[type=text],textarea,select{
+  width:100%;background:rgba(0,0,0,.4);border:1.5px solid var(--border2);
+  border-radius:var(--r-sm);padding:14px 16px;
+  font-family:'Exo 2',sans-serif;font-size:18px;color:var(--text);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+  -webkit-appearance:none;caret-color:var(--accent);
+}
+input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1);}
+input::placeholder,textarea::placeholder{color:var(--text-dim);}
+textarea{resize:none;min-height:88px;line-height:1.6;font-size:15px;}
+select{color:var(--text-mid);}
+select option{background:var(--panel2);color:var(--text);}
+
+/* SCAN ROW */
+.scan-wrap{position:relative;}
+.scan-wrap input{padding-right:52px;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;text-transform:uppercase;}
+.scan-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:var(--text-mid);display:flex;align-items:center;transition:color .15s;}
+.scan-btn:active{color:var(--accent);}
+.scan-btn svg{width:22px;height:22px;}
+
+/* ITEM CONFIRM CARD */
+.item-confirm{background:var(--panel2);border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:16px;margin-top:12px;animation:fadeUp .2s ease both;}
+.item-confirm.ok      {border-color:rgba(0,255,157,.4);  background:rgba(0,255,157,.05);}
+.item-confirm.warn    {border-color:rgba(255,204,0,.4);  background:rgba(255,204,0,.05);}
+.item-confirm.err     {border-color:rgba(255,59,92,.4);  background:rgba(255,59,92,.05);}
+.item-confirm.vault-ok{border-color:rgba(192,132,252,.4);background:rgba(192,132,252,.05);}
+.ic-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.ic-icon{font-size:28px;flex-shrink:0;}
+.ic-title{font-weight:600;font-size:16px;color:var(--text);margin-bottom:4px;}
+.ic-meta {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);}
+.ic-tags {display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.ic-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;padding:3px 8px;border-radius:3px;border:1px solid;}
+.ic-tag-ok   {color:var(--success);border-color:rgba(0,255,157,.3);  background:rgba(0,255,157,.08);}
+.ic-tag-warn {color:var(--warning);border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.08);}
+.ic-tag-err  {color:var(--danger); border-color:rgba(255,59,92,.3);  background:rgba(255,59,92,.08);}
+.ic-tag-vault{color:var(--vault);  border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.08);}
+.ic-tag-gen  {color:var(--text-mid);border-color:var(--border2);     background:rgba(0,0,0,.2);}
+.ic-msg{font-size:13px;color:var(--text-mid);margin-top:8px;line-height:1.5;}
+
+/* RENTAL LIST */
+.rental-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+.rental-item:last-child{border-bottom:none;}
+.ri-disc{font-size:22px;flex-shrink:0;padding-top:2px;}
+.ri-info{flex:1;min-width:0;}
+.ri-title{font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ri-meta {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);margin-bottom:5px;}
+.ri-due  {font-family:'Share Tech Mono',monospace;font-size:11px;}
+.due-ok     {color:var(--text-dim);}
+.due-soon   {color:var(--warning);}
+.due-overdue{color:var(--danger);}
+.ri-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;}
+.ri-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:3px;border:1px solid;display:inline-block;}
+.ri-tag-out    {color:var(--accent);  border-color:rgba(0,212,255,.3);  background:rgba(0,212,255,.06);}
+.ri-tag-pending{color:var(--warning); border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.06);}
+.ri-tag-vault  {color:var(--vault);   border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.06);}
+
+/* RETURN SELECTABLE */
+.return-item{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;transition:all .2s;}
+.return-item:active{border-color:var(--accent2);background:rgba(255,107,53,.05);}
+.return-item.selected{border-color:var(--accent2);background:rgba(255,107,53,.06);}
+.ri-check{width:22px;height:22px;border:2px solid var(--border2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .2s;}
+.return-item.selected .ri-check{border-color:var(--accent2);background:var(--accent2);color:var(--bg);}
+
+/* NOTE SECTION */
+.note-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;margin-bottom:4px;}
+.note-toggle-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lbl);}
+.note-chevron{color:var(--text-dim);font-size:18px;transition:transform .2s;line-height:1;}
+.note-fields{display:none;margin-top:12px;animation:fadeUp .2s ease both;}
+.note-fields.open{display:block;}
+.note-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+
+/* PIPS */
+.pip-row{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
+.pip{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .25s;}
+.pip.on      {background:var(--accent);box-shadow:0 0 6px rgba(0,212,255,.4);}
+.pip.overdue {background:var(--danger);box-shadow:0 0 6px rgba(255,59,92,.4);}
+.pip.pending {background:var(--warning);}
+.pip-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);white-space:nowrap;margin-left:2px;}
+
+.ab-browse .ab-label{color:var(--text-mid);}
+.ab-browse:active{border-color:rgba(168,200,232,.4);box-shadow:0 4px 20px rgba(168,200,232,.1);}
+.ab-browse::before{background:var(--text-mid);}
+
+.ab-account .ab-label{color:var(--text-mid);}
+.ab-account::before{background:var(--text-mid);}
+.ab-account:active{border-color:rgba(168,200,232,.4);}
+
+/* HISTORY */
+.history-toggle{display:flex;gap:8px;margin-bottom:14px;}
+.hist-btn{
+  padding:7px 14px;border-radius:20px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .15s;
+}
+.hist-btn.active{background:var(--panel2);border-color:var(--accent);color:var(--accent);}
+.hist-item{padding:14px 0;border-bottom:1px solid var(--border);}
+.hist-item:last-child{border-bottom:none;}
+.hist-title{font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;}
+.hist-meta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);margin-bottom:8px;}
+.hist-actions{display:flex;gap:8px;}
+.hist-action{
+  padding:6px 12px;border-radius:var(--r-sm);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;font-weight:700;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .15s;
+}
+.hist-action:active{border-color:var(--accent);color:var(--accent);}
+.hist-action.done{color:var(--success);border-color:rgba(0,255,157,.3);pointer-events:none;}
+
+/* STAR */
+.star-btn{
+  background:none;border:none;cursor:pointer;font-size:20px;
+  padding:4px 8px;flex-shrink:0;align-self:center;
+  transition:transform .15s;color:var(--text-dim);
+}
+.star-btn:active{transform:scale(1.3);}
+.star-btn.starred{color:var(--warning);}
+
+/* MEMBERSHIP SCREEN */
+.billing-box{
+  background:var(--panel2);border:1px solid var(--border2);
+  border-radius:var(--r);padding:20px;margin:0 16px 14px;
+  text-align:center;
+}
+.billing-date{
+  font-family:'Orbitron',monospace;font-size:22px;font-weight:700;
+  color:var(--accent);margin-bottom:6px;
+}
+.billing-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;}
+.mgmt-btn{
+  display:block;width:calc(100% - 32px);margin:0 16px 12px;padding:16px;
+  border-radius:var(--r);font-family:'Orbitron',monospace;
+  font-size:11px;font-weight:700;letter-spacing:2px;
+  cursor:pointer;transition:all .15s;text-align:center;text-decoration:none;
+}
+.mgmt-change{background:var(--panel2);border:1px solid var(--accent);color:var(--accent);}
+.mgmt-cancel{background:var(--panel2);border:1px solid var(--border2);color:var(--text-dim);}
+.mgmt-note{text-align:center;font-size:12px;color:var(--text-dim);margin:0 16px 14px;line-height:1.6;}
+
+/* BROWSE FILTER */
+.browse-filters{display:flex;gap:8px;margin:0 16px 14px;}
+.filter-btn{
+  padding:8px 16px;border-radius:20px;cursor:pointer;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .15s;
+}
+.filter-btn.active{background:var(--panel2);border-color:var(--accent);color:var(--accent);}
+.filter-btn:active{opacity:.7;}
+
+/* BROWSE ITEM ACTION */
+.browse-action{
+  flex-shrink:0;padding:8px 12px;border-radius:var(--r-sm);cursor:pointer;
+  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;font-weight:700;
+  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
+  transition:all .2s;white-space:nowrap;align-self:center;
+}
+.browse-action:active{border-color:var(--accent);color:var(--accent);}
+.browse-action.done{border-color:var(--success);color:var(--success);pointer-events:none;}
+
+/* INLINE FEEDBACK */
+.inline-confirm{
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  color:var(--success);padding:8px 12px;white-space:nowrap;
+  align-self:center;flex-shrink:0;
+}
+
+/* BUTTONS */
+.btn-primary{
+  display:block;width:calc(100% - 32px);margin:0 16px;padding:18px;
+  background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;
+  cursor:pointer;transition:all .15s;
+}
+.btn-primary:active{opacity:.85;transform:scale(.99);}
+.btn-primary:disabled{opacity:.25;cursor:not-allowed;transform:none;}
+.btn-primary.return-btn{background:var(--accent2);}
+.btn-ghost{
+  display:block;width:calc(100% - 32px);margin:12px 16px 0;padding:15px;
+  background:transparent;border:1px solid var(--border2);border-radius:var(--r);
+  font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1.5px;
+  color:var(--text-mid);cursor:pointer;transition:all .15s;
+}
+.btn-ghost:active{background:rgba(255,255,255,.05);color:var(--text);}
+
+/* TERMS */
+.terms-line{text-align:center;font-size:12px;color:var(--text-mid);line-height:1.6;margin:14px 16px 0;}
+.terms-line a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;}
+
+/* SUCCESS */
+.success-wrap{padding:40px 16px 32px;animation:fadeUp .4s ease both;}
+.suc-glyph{width:72px;height:72px;border-radius:50%;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:30px;animation:popIn .45s cubic-bezier(.175,.885,.32,1.275) .1s both;}
+.suc-glyph.co{background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);}
+.suc-glyph.rt{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.3);}
+.suc-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;text-align:center;margin-bottom:10px;}
+.suc-title.co{color:var(--accent);text-shadow:var(--glow);}
+.suc-title.rt{color:var(--accent2);}
+.suc-sub{font-size:15px;color:var(--text-mid);text-align:center;line-height:1.6;margin-bottom:28px;}
+.receipt{background:var(--panel);border:1px solid var(--border2);border-radius:var(--r);padding:4px 0;margin-bottom:24px;}
+.r-row{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 18px;gap:12px;border-bottom:1px solid var(--border);}
+.r-row:last-child{border-bottom:none;}
+.r-key{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-lbl);letter-spacing:.1em;flex-shrink:0;padding-top:1px;}
+.r-val{font-size:14px;color:var(--text);text-align:right;line-height:1.5;word-break:break-word;}
+
+/* ACCESS CABINET -- FIX 4: built-in screen, FIX 10: tighter language */
+.code-display{
+  background:var(--panel2);border:1.5px solid rgba(192,132,252,.3);
+  border-radius:var(--r);padding:28px 20px;text-align:center;margin:0 16px 14px;
+}
+.code-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--vault);margin-bottom:16px;opacity:.8;}
+.code-value{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--vault);letter-spacing:12px;text-shadow:0 0 24px rgba(192,132,252,.5);margin-bottom:12px;}
+.code-expires{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
+
+/* CAMERA */
+.cam-overlay{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
+.cam-overlay.hidden{display:none;}
+.cam-lbl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:var(--text-mid);text-transform:uppercase;margin-bottom:24px;}
+.cam-vp{width:280px;height:280px;position:relative;margin-bottom:24px;}
+#camVideo{width:280px;height:280px;object-fit:cover;border-radius:12px;display:block;background:var(--panel);}
+.cam-vp::before,.cam-vp::after,.cam-br::before,.cam-br::after{content:'';position:absolute;width:32px;height:32px;border-color:var(--accent);border-style:solid;}
+.cam-vp::before{top:-2px;left:-2px;  border-width:3px 0 0 3px;border-radius:4px 0 0 0;box-shadow:-2px -2px 12px rgba(0,212,255,.3);}
+.cam-vp::after {top:-2px;right:-2px; border-width:3px 3px 0 0;border-radius:0 4px 0 0;box-shadow:2px -2px 12px rgba(0,212,255,.3);}
+.cam-br::before{bottom:-2px;left:-2px; border-width:0 0 3px 3px;border-radius:0 0 0 4px;box-shadow:-2px 2px 12px rgba(0,212,255,.3);}
+.cam-br::after {bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 4px 0;box-shadow:2px 2px 12px rgba(0,212,255,.3);}
+.cam-scan{position:absolute;left:8px;right:8px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:0;animation:scanLine 2s ease-in-out infinite;box-shadow:0 0 10px var(--accent);}
+@keyframes scanLine{0%{top:8px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:272px;opacity:0}}
+.cam-hint{font-size:15px;color:var(--text-mid);text-align:center;line-height:1.6;margin-bottom:20px;}
+.cam-manual{display:flex;gap:8px;width:100%;max-width:340px;margin-bottom:20px;}
+.cam-manual input{flex:1;background:rgba(255,255,255,.1);border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:14px 16px;color:white;font-family:'Share Tech Mono',monospace;font-size:16px;outline:none;letter-spacing:.06em;text-transform:uppercase;-webkit-appearance:none;}
+.cam-manual input:focus{border-color:var(--accent);}
+.cam-manual input::placeholder{color:rgba(255,255,255,.35);text-transform:none;letter-spacing:0;}
+.cam-manual button{padding:14px 20px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--r-sm);font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;}
+.cam-close{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--text-mid);background:none;border:1px solid var(--border2);border-radius:6px;padding:10px 20px;cursor:pointer;}
+.cam-scan-btn{
+  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:3px;
+  background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);
+  padding:16px 48px;cursor:pointer;margin-bottom:4px;
+  transition:opacity .15s;
+}
+.cam-scan-btn:active{opacity:.8;}
+
+/* ANIMATIONS */
+@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeUp   {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
+@keyframes popIn    {from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}
+/* CATALOG STATUS INDICATOR */
+.catalog-status{
+  margin:0 16px 14px;padding:8px 14px;
+  display:flex;align-items:center;gap:8px;
+  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;
+  cursor:default;
+}
+.catalog-status.clickable{cursor:pointer;}
+.catalog-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s;}
+.catalog-dot.loading{background:var(--warning);box-shadow:0 0 6px var(--warning);animation:blink 1s ease-in-out infinite;}
+.catalog-dot.ready  {background:var(--success);box-shadow:0 0 6px var(--success);}
+.catalog-dot.failed {background:var(--danger); box-shadow:0 0 6px var(--danger);}
+.catalog-status-text{color:var(--text-dim);}
+.catalog-status.clickable .catalog-status-text{color:var(--danger);}
+
+.spacer{height:32px;}
+</style>
+</head>
+<body>
+
+<!-- CAMERA -->
+<div class="cam-overlay hidden" id="camOverlay">
+  <div class="cam-lbl">Scan Item QR Code</div>
+  <div class="cam-vp">
+    <video id="camVideo" autoplay playsinline webkit-playsinline muted></video>
+    <canvas id="camCanvas" style="display:none;"></canvas>
+    <div class="cam-br"></div>
+  </div>
+  <p class="cam-hint">Frame the QR code, then tap Scan</p>
+  <button class="cam-scan-btn" onclick="captureQRFrame()">SCAN</button>
+  <div id="camFeedback" style="font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--danger);min-height:20px;margin:8px 0;text-align:center;"></div>
+  <div class="cam-manual">
+    <input type="text" id="camInput" placeholder="Or type item code..." />
+    <button onclick="submitCamManual()">Use</button>
+  </div>
+  <button class="cam-close" onclick="closeCamera()">CANCEL</button>
+</div>
+
+<div class="page">
+  <header class="header">
+    <div class="logo">SCI-FI <span>DOJO</span></div>
+    <div class="hdr-r"><div class="live-dot"></div>Member Portal</div>
+  </header>
+
+  <!-- LOADING -->
+  <div class="screen active" id="screen-loading">
+    <div class="loading-wrap">
+      <div class="loading-logo">SCI-FI <span>DOJO</span></div>
+      <div class="spin-lg"></div>
+      <div class="loading-msg">Verifying membership...</div>
+    </div>
+  </div>
+
+  <!-- ERROR -->
+  <div class="screen" id="screen-error">
+    <div class="error-wrap">
+      <div class="error-icon">&#128683;</div>
+      <div class="error-title" id="errorTitle">Access Error</div>
+      <div class="error-msg" id="errorMsg">Something went wrong. Please scan your membership card again or contact us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1b6878727d727f7471745b7a747735787476">[email&#160;protected]</a>.</div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="screen" id="screen-status">
+    <div class="member-hero">
+      <div class="member-eyebrow">Member Portal</div>
+      <div class="member-name" id="statusName">--</div>
+      <div id="systemStatusLine" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:12px;display:none;">SYSTEM STATUS: ACTIVE</div>
+      <div class="member-tier" id="statusTier"><div class="tier-dot"></div>--</div>
+    </div>
+    <!-- FIX 2: single dedicated containers, cleared on every render -->
+    <div id="statusNotifSection"></div>
+    <div id="sectionHdrStatus" class="section-hdr" style="display:none;">ACCOUNT STATUS<div class="section-hdr-line"></div></div>
+    <div class="status-grid" id="statusGrid"></div>
+    <!-- FIX 8: persistent slot clarification note -->
+    <div class="slot-note" id="slotNote" style="display:none;">
+      Items in the Return Bin do not count against your rental limit --
+      your slot is freed as soon as you log a return.
+    </div>
+    <div id="statusHints"></div>
+    <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
+    <div class="action-grid" id="actionGrid"></div>
+    <div id="catalogStatusBar"></div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v0.8.2</div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- CHECKOUT -->
+  <div class="screen" id="screen-checkout">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Check Out</div>
+      <div class="section-sub" id="checkoutSubtitle">Scan or enter an item code to rent it.</div>
+    </div>
+    <div class="pip-row" style="margin:0 16px 14px;" id="checkoutPips"></div>
+    <div class="card d2">
+      <div class="card-hdr">Item Code<div class="card-hdr-line"></div></div>
+      <div class="card-body">
+        <div class="field">
+          <div class="scan-wrap">
+            <input type="text" id="checkoutCodeInput"
+              placeholder="SFD-0000" value="SFD-"
+              autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+              oninput="onCheckoutCodeInput(this)"
+              style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;" />
+            <button class="scan-btn" onclick="openCamera('checkout')" aria-label="Scan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <rect x="7" y="7" width="3" height="3" rx=".5"/><rect x="14" y="7" width="3" height="3" rx=".5"/>
+                <rect x="7" y="14" width="3" height="3" rx=".5"/><rect x="14" y="14" width="3" height="3" rx=".5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="itemConfirmArea"></div>
+      </div>
+    </div>
+    <div class="card d3" id="checkoutQueueCard" style="display:none;">
+      <div class="card-hdr">Selected Items<div class="card-hdr-line"></div></div>
+      <div class="card-body" id="checkoutQueue"></div>
+    </div>
+    <div class="card d4">
+      <div class="card-body">
+        <div class="note-toggle" onclick="toggleNote('Checkout')">
+          <span class="note-toggle-lbl">Add a Note</span>
+          <span class="note-chevron" id="noteChevronCheckout">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsCheckout">
+          <hr class="note-divider">
+          <div class="field">
+            <label class="field-lbl">Note Type</label>
+            <select id="noteTypeCheckout">
+              <option value="">Select type...</option>
+              <option value="Request">Request</option>
+              <option value="General Note">General Note</option>
+              <option value="Disc Issue">Disc Issue</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-lbl">Note</label>
+            <textarea id="noteTextCheckout" placeholder="What would you like to share?"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="checkoutAlert"></div>
+    <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitCheckout()" disabled>CONFIRM CHECKOUT</button>
+    <p class="terms-line">By submitting, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a> and accept responsibility for all items while checked out.</p>
+    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- RETURN LOG -->
+  <div class="screen" id="screen-return">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Return Items</div>
+      <div class="section-sub">Select items to return. Slots free immediately. Items stay in Return Bin until processed.</div>
+    </div>
+    <div class="card d2">
+      <div class="card-hdr">Items to Return<div class="card-hdr-line"></div></div>
+      <div class="card-body" id="returnList"></div>
+    </div>
+    <div class="card d3">
+      <div class="card-body">
+        <div class="note-toggle" onclick="toggleNote('Return')">
+          <span class="note-toggle-lbl">Add a Note</span>
+          <span class="note-chevron" id="noteChevronReturn">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsReturn">
+          <hr class="note-divider">
+          <div class="field">
+            <label class="field-lbl">Note Type</label>
+            <select id="noteTypeReturn">
+              <option value="">Select type...</option>
+              <option value="Review">Review</option>
+              <option value="Disc Issue">Disc Issue</option>
+              <option value="General Note">General Note</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-lbl">Note</label>
+            <textarea id="noteTextReturn" placeholder="Review, disc condition, or anything else..."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="returnAlert"></div>
+    <button class="btn-primary return-btn d4" id="returnSubmitBtn" onclick="submitReturn()" disabled>RETURN ITEMS</button>
+    
+    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- RENTALS -->
+  <div class="screen" id="screen-rentals">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Rentals</div>
+      <div class="section-sub" id="rentalsSubtitle">Your currently checked-out and return-pending items.</div>
+    </div>
+    <div class="card d2">
+      <div class="card-body" id="rentalsList"></div>
+    </div>
+    <div class="slot-note" style="display:block;">
+      Items in the Return Bin do not count against your rental limit -- your slot is freed as soon as you log a return.
+    </div>
+    <!-- RENTAL HISTORY -->
+    <div class="section-hdr" style="margin-top:8px;">RENTAL HISTORY<div class="section-hdr-line"></div></div>
+    <div class="history-toggle" style="margin:0 16px 14px;">
+      <button class="hist-btn active" id="hist-30"  onclick="setHistFilter(30)">30 Days</button>
+      <button class="hist-btn"        id="hist-90"  onclick="setHistFilter(90)">90 Days</button>
+      <button class="hist-btn"        id="hist-all" onclick="setHistFilter(0)">All</button>
+    </div>
+    <div class="card">
+      <div class="card-body" id="historyList"></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- FIX 4: ACCESS CABINET as a built-in screen -->
+  <div class="screen" id="screen-code">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Access Cabinet</div>
+      <!-- FIX 10: tighter, member-only language -->
+      <div class="section-sub">Personal to your account. Do not share. Rotates weekly.</div>
+    </div>
+    <div id="codeContent"></div>
+    <div class="banner banner-warn" style="margin-top:4px;">
+      <span class="banner-icon">&#128274;</span>
+      <div>This code is unique to your membership. Do not share.</div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- BROWSE COLLECTION -->
+  <div class="screen" id="screen-browse">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Browse Collection</div>
+      <div class="section-sub">Explore available titles and request items.</div>
+    </div>
+    <div style="margin:0 16px 14px;">
+      <input type="text" id="browseSearch"
+        placeholder="Search title, format, or code..."
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="onBrowseSearchInput()" />
+    </div>
+    <div class="browse-filters">
+      <button class="filter-btn active" id="filter-all"       onclick="setBrowseFilter('all')">All</button>
+      <button class="filter-btn"        id="filter-available" onclick="setBrowseFilter('available')">Available Only</button>
+      <button class="filter-btn"        id="filter-starred"   onclick="setBrowseFilter('starred')">&#9733; Starred</button>
+    </div>
+    <div class="card">
+      <div class="card-body" id="browseList"></div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div class="field">
+          <input type="text" id="requestInput" placeholder="What would you like to see?" autocomplete="off" />
+        </div>
+        <div id="requestFeedback" style="min-height:18px;margin-bottom:10px;"></div>
+        <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="submitTitleRequest()">SUBMIT REQUEST</button>
+      </div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- MEMBERSHIP MANAGEMENT -->
+  <div class="screen" id="screen-account">
+    <div class="back-nav" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Membership</div>
+      <div class="section-sub" id="accountSubtitle">Manage your Sci-Fi Dojo membership.</div>
+    </div>
+    <div class="billing-box">
+      <div class="billing-label">Next Billing Date</div>
+      <div class="billing-date" id="accountBillingDate">--</div>
+      <div id="accountTierLine" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);margin-top:4px;"></div>
+    </div>
+    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">CHANGE PLAN</a>
+    <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="/cdn-cgi/l/email-protection#4635252f202f22292c290627292a6825292b793533242c2325327b150002660b232b242334352e2f366605272825232a">CANCEL MEMBERSHIP</a>
+    <p class="mgmt-note">Tap above to send us an email. We will get back to you as soon as possible. Your membership continues until the end of your current billing period.</p>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="screen" id="screen-success">
+    <div class="success-wrap">
+      <div class="suc-glyph" id="sucGlyph">&#10003;</div>
+      <div class="suc-title" id="sucTitle"></div>
+      <div class="suc-sub"   id="sucSub"></div>
+      <div class="receipt"   id="sucReceipt"></div>
+      <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
 <script>
 /* jsQR v1.4.0 — inlined to avoid CSP/CDN issues */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -10114,759 +10871,6 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 /******/ ])["default"];
 });
 </script>
-<style>
-@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap");
-
-/* FIX 1: All string punctuation in CSS uses plain ASCII only */
-
-:root {
-  --bg:       #080c12;
-  --panel:    #0d1520;
-  --panel2:   #111c2a;
-  --border:   #1e3450;
-  --border2:  #2a4868;
-  --accent:   #00d4ff;
-  --accent2:  #ff6b35;
-  --success:  #00ff9d;
-  --warning:  #ffcc00;
-  --danger:   #ff3b5c;
-  --vault:    #c084fc;
-  --text:     #e8f4ff;
-  --text-mid: #a8c8e8;
-  --text-dim: #6a90b0;
-  --text-lbl: #8ab4d4;
-  --glow:     0 0 20px rgba(0,212,255,.25);
-  --r:        14px;
-  --r-sm:     9px;
-}
-
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html{background:var(--bg);}
-body{
-  background:var(--bg);color:var(--text);
-  font-family:'Exo 2',sans-serif;min-height:100vh;
-  font-size:17px;overflow-x:hidden;position:relative;
-}
-body::before{
-  content:'';position:fixed;inset:0;
-  background-image:
-    linear-gradient(rgba(0,212,255,.02) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(0,212,255,.02) 1px,transparent 1px);
-  background-size:32px 32px;pointer-events:none;z-index:0;
-}
-body::after{
-  content:'';position:fixed;top:-40%;left:-40%;width:180%;height:180%;
-  background:
-    radial-gradient(ellipse at 70% 15%,rgba(0,212,255,.06) 0%,transparent 50%),
-    radial-gradient(ellipse at 15% 85%,rgba(255,107,53,.04) 0%,transparent 45%);
-  pointer-events:none;z-index:0;
-  animation:bgDrift 12s ease-in-out infinite alternate;
-}
-@keyframes bgDrift{from{opacity:.5;transform:scale(1)}to{opacity:1;transform:scale(1.05)}}
-
-.page{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 0 80px;min-height:100vh;}
-
-/* HEADER */
-.header{
-  padding:16px 20px;display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--border);
-  background:rgba(8,12,18,.95);backdrop-filter:blur(16px);
-  position:sticky;top:0;z-index:50;
-  animation:slideDown .4s ease both;
-}
-.logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--accent);letter-spacing:2px;text-shadow:var(--glow);}
-.logo span{color:var(--accent2);}
-.hdr-r{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-mid);display:flex;align-items:center;gap:6px;letter-spacing:.04em;}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:blink 2s ease-in-out infinite;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
-
-/* BACK NAV */
-.back-nav{
-  padding:14px 20px 0;display:flex;align-items:center;gap:10px;
-  font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-dim);
-  cursor:pointer;animation:fadeUp .3s ease both;
-}
-.back-nav:active{color:var(--text-mid);}
-.back-nav svg{width:16px;height:16px;}
-
-/* SCREENS */
-.screen{display:none;}.screen.active{display:block;}
-
-/* LOADING */
-.loading-wrap{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  min-height:60vh;gap:20px;padding:40px 20px;
-  animation:fadeUp .3s ease both;
-}
-.loading-logo{font-family:'Orbitron',monospace;font-size:22px;font-weight:900;color:var(--accent);letter-spacing:3px;text-shadow:var(--glow);text-align:center;}
-.loading-logo span{color:var(--accent2);}
-.spin-lg{width:40px;height:40px;border:3px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.loading-msg{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--text-dim);text-align:center;}
-
-/* ERROR */
-.error-wrap{padding:40px 20px;text-align:center;animation:fadeUp .3s ease both;}
-.error-icon{font-size:48px;margin-bottom:20px;}
-.error-title{font-family:'Orbitron',monospace;font-size:18px;color:var(--danger);margin-bottom:10px;}
-.error-msg{font-size:15px;color:var(--text-mid);line-height:1.6;}
-
-/* MEMBER HERO */
-.member-hero{padding:32px 20px 24px;animation:fadeUp .35s ease .05s both;}
-.member-eyebrow{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:14px;}
-.member-name{font-family:'Orbitron',monospace;font-size:32px;font-weight:700;color:var(--text);line-height:1.25;margin-bottom:12px;}
-.member-tier{display:inline-flex;align-items:center;gap:8px;font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:.06em;padding:6px 14px;border-radius:20px;border:1px solid;}
-.tier-mat{color:var(--text-mid);border-color:rgba(168,200,232,.3);background:rgba(168,200,232,.07);}
-.tier-dbl{color:var(--accent);border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.07);}
-.tier-pre{color:var(--vault);border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.07);}
-.tier-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
-
-/* STATUS GRID */
-.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .08s both;}
-.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r-sm);padding:16px 18px;}
-.stat-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:6px;}
-.stat-value{font-size:24px;font-weight:600;color:var(--text);line-height:1.2;}
-.stat-value.accent {color:var(--accent);}
-.stat-value.warning{color:var(--warning);}
-.stat-value.danger {color:var(--danger);}
-.stat-value.success{color:var(--success);}
-.stat-value.vault  {color:var(--vault);}
-.stat-value.dim    {color:var(--text-mid);font-size:15px;}
-.stat-sub{font-size:13px;color:var(--text-dim);margin-top:3px;font-family:'Share Tech Mono',monospace;}
-
-/* SECTION HEADERS */
-.section-hdr{
-  padding:20px 20px 8px;
-  font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.15em;
-  text-transform:uppercase;color:var(--text-lbl);
-  display:flex;align-items:center;gap:10px;
-}
-.section-hdr-line{flex:1;height:1px;background:var(--border);}
-.section-hdr:first-of-type{padding-top:8px;}
-
-/* BANNERS */
-.banner{
-  margin:0 16px 12px;padding:13px 16px;
-  border-radius:var(--r-sm);font-size:14px;line-height:1.6;
-  display:flex;gap:10px;align-items:flex-start;
-}
-.banner-icon{flex-shrink:0;font-size:16px;margin-top:1px;}
-.banner-ok   {background:rgba(0,255,157,.07);  border:1px solid rgba(0,255,157,.25);color:var(--success);}
-.banner-warn {background:rgba(255,204,0,.07);  border:1px solid rgba(255,204,0,.3); color:var(--warning);}
-.banner-err  {background:rgba(255,59,92,.07);  border:1px solid rgba(255,59,92,.3); color:var(--danger);}
-.banner-info {background:rgba(0,212,255,.06);  border:1px solid rgba(0,212,255,.2); color:var(--accent);}
-.banner-vault{background:rgba(192,132,252,.07);border:1px solid rgba(192,132,252,.3);color:var(--vault);}
-
-/* FIX 8: Slot clarification note style */
-.slot-note{
-  margin:0 16px 14px;padding:10px 14px;
-  border-radius:var(--r-sm);font-size:12px;line-height:1.5;
-  background:rgba(0,212,255,.04);border:1px solid rgba(0,212,255,.15);
-  color:var(--text-dim);font-family:'Share Tech Mono',monospace;
-}
-
-/* ACTION GRID */
-.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .12s both;}
-.action-btn{
-  background:var(--panel);border:1px solid var(--border2);
-  border-radius:var(--r);padding:20px 16px;
-  cursor:pointer;text-align:center;transition:all .2s;
-  position:relative;overflow:hidden;
-}
-.action-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;opacity:0;transition:opacity .2s;}
-.action-btn:active{transform:scale(.98);}
-.ab-checkout::before{background:var(--accent);}
-.ab-return::before  {background:var(--accent2);}
-.ab-rentals::before {background:var(--success);}
-.ab-code::before    {background:var(--vault);}
-.action-btn:active::before{opacity:1;}
-.ab-icon {font-size:32px;display:block;margin-bottom:10px;}
-.ab-label{font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:1.5px;}
-.ab-checkout .ab-label{color:var(--accent);}
-.ab-return   .ab-label{color:var(--accent2);}
-.ab-rentals  .ab-label{color:var(--success);}
-.ab-code     .ab-label{color:var(--vault);}
-.ab-sub{font-size:12px;color:var(--text-dim);margin-top:5px;font-family:'Share Tech Mono',monospace;}
-.action-btn.disabled{opacity:.35;cursor:not-allowed;pointer-events:none;}
-
-/* CARDS */
-.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);margin:0 16px 14px;overflow:hidden;animation:fadeUp .35s ease both;}
-.card-hdr{padding:13px 18px 0;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-lbl);display:flex;align-items:center;gap:8px;}
-.card-hdr-line{flex:1;height:1px;background:var(--border2);}
-.card-body{padding:14px 18px 18px;}
-
-/* SECTION HEADING */
-.section-heading{padding:20px 20px 12px;animation:fadeUp .3s ease both;}
-.section-title{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;}
-.section-sub{font-size:14px;color:var(--text-mid);line-height:1.5;}
-
-/* INPUTS */
-.field{margin-bottom:14px;}.field:last-child{margin-bottom:0;}
-.field-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lbl);margin-bottom:8px;display:block;}
-input[type=text],textarea,select{
-  width:100%;background:rgba(0,0,0,.4);border:1.5px solid var(--border2);
-  border-radius:var(--r-sm);padding:14px 16px;
-  font-family:'Exo 2',sans-serif;font-size:18px;color:var(--text);
-  outline:none;transition:border-color .15s,box-shadow .15s;
-  -webkit-appearance:none;caret-color:var(--accent);
-}
-input[type=text]:focus,textarea:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(0,212,255,.1);}
-input::placeholder,textarea::placeholder{color:var(--text-dim);}
-textarea{resize:none;min-height:88px;line-height:1.6;font-size:15px;}
-select{color:var(--text-mid);}
-select option{background:var(--panel2);color:var(--text);}
-
-/* SCAN ROW */
-.scan-wrap{position:relative;}
-.scan-wrap input{padding-right:52px;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;text-transform:uppercase;}
-.scan-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:6px;color:var(--text-mid);display:flex;align-items:center;transition:color .15s;}
-.scan-btn:active{color:var(--accent);}
-.scan-btn svg{width:22px;height:22px;}
-
-/* ITEM CONFIRM CARD */
-.item-confirm{background:var(--panel2);border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:16px;margin-top:12px;animation:fadeUp .2s ease both;}
-.item-confirm.ok      {border-color:rgba(0,255,157,.4);  background:rgba(0,255,157,.05);}
-.item-confirm.warn    {border-color:rgba(255,204,0,.4);  background:rgba(255,204,0,.05);}
-.item-confirm.err     {border-color:rgba(255,59,92,.4);  background:rgba(255,59,92,.05);}
-.item-confirm.vault-ok{border-color:rgba(192,132,252,.4);background:rgba(192,132,252,.05);}
-.ic-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
-.ic-icon{font-size:28px;flex-shrink:0;}
-.ic-title{font-weight:600;font-size:16px;color:var(--text);margin-bottom:4px;}
-.ic-meta {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);}
-.ic-tags {display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
-.ic-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.08em;padding:3px 8px;border-radius:3px;border:1px solid;}
-.ic-tag-ok   {color:var(--success);border-color:rgba(0,255,157,.3);  background:rgba(0,255,157,.08);}
-.ic-tag-warn {color:var(--warning);border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.08);}
-.ic-tag-err  {color:var(--danger); border-color:rgba(255,59,92,.3);  background:rgba(255,59,92,.08);}
-.ic-tag-vault{color:var(--vault);  border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.08);}
-.ic-tag-gen  {color:var(--text-mid);border-color:var(--border2);     background:rgba(0,0,0,.2);}
-.ic-msg{font-size:13px;color:var(--text-mid);margin-top:8px;line-height:1.5;}
-
-/* RENTAL LIST */
-.rental-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
-.rental-item:last-child{border-bottom:none;}
-.ri-disc{font-size:22px;flex-shrink:0;padding-top:2px;}
-.ri-info{flex:1;min-width:0;}
-.ri-title{font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.ri-meta {font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);margin-bottom:5px;}
-.ri-due  {font-family:'Share Tech Mono',monospace;font-size:11px;}
-.due-ok     {color:var(--text-dim);}
-.due-soon   {color:var(--warning);}
-.due-overdue{color:var(--danger);}
-.ri-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px;}
-.ri-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.06em;padding:2px 7px;border-radius:3px;border:1px solid;display:inline-block;}
-.ri-tag-out    {color:var(--accent);  border-color:rgba(0,212,255,.3);  background:rgba(0,212,255,.06);}
-.ri-tag-pending{color:var(--warning); border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.06);}
-.ri-tag-vault  {color:var(--vault);   border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.06);}
-
-/* RETURN SELECTABLE */
-.return-item{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;transition:all .2s;}
-.return-item:active{border-color:var(--accent2);background:rgba(255,107,53,.05);}
-.return-item.selected{border-color:var(--accent2);background:rgba(255,107,53,.06);}
-.ri-check{width:22px;height:22px;border:2px solid var(--border2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;transition:all .2s;}
-.return-item.selected .ri-check{border-color:var(--accent2);background:var(--accent2);color:var(--bg);}
-
-/* NOTE SECTION */
-.note-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:4px 0;margin-bottom:4px;}
-.note-toggle-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-lbl);}
-.note-chevron{color:var(--text-dim);font-size:18px;transition:transform .2s;line-height:1;}
-.note-fields{display:none;margin-top:12px;animation:fadeUp .2s ease both;}
-.note-fields.open{display:block;}
-.note-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
-
-/* PIPS */
-.pip-row{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
-.pip{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .25s;}
-.pip.on      {background:var(--accent);box-shadow:0 0 6px rgba(0,212,255,.4);}
-.pip.overdue {background:var(--danger);box-shadow:0 0 6px rgba(255,59,92,.4);}
-.pip.pending {background:var(--warning);}
-.pip-lbl{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);white-space:nowrap;margin-left:2px;}
-
-.ab-browse .ab-label{color:var(--text-mid);}
-.ab-browse:active{border-color:rgba(168,200,232,.4);box-shadow:0 4px 20px rgba(168,200,232,.1);}
-.ab-browse::before{background:var(--text-mid);}
-
-.ab-account .ab-label{color:var(--text-mid);}
-.ab-account::before{background:var(--text-mid);}
-.ab-account:active{border-color:rgba(168,200,232,.4);}
-
-/* HISTORY */
-.history-toggle{display:flex;gap:8px;margin-bottom:14px;}
-.hist-btn{
-  padding:7px 14px;border-radius:20px;cursor:pointer;
-  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
-  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
-  transition:all .15s;
-}
-.hist-btn.active{background:var(--panel2);border-color:var(--accent);color:var(--accent);}
-.hist-item{padding:14px 0;border-bottom:1px solid var(--border);}
-.hist-item:last-child{border-bottom:none;}
-.hist-title{font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;}
-.hist-meta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);margin-bottom:8px;}
-.hist-actions{display:flex;gap:8px;}
-.hist-action{
-  padding:6px 12px;border-radius:var(--r-sm);cursor:pointer;
-  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;font-weight:700;
-  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
-  transition:all .15s;
-}
-.hist-action:active{border-color:var(--accent);color:var(--accent);}
-.hist-action.done{color:var(--success);border-color:rgba(0,255,157,.3);pointer-events:none;}
-
-/* STAR */
-.star-btn{
-  background:none;border:none;cursor:pointer;font-size:20px;
-  padding:4px 8px;flex-shrink:0;align-self:center;
-  transition:transform .15s;color:var(--text-dim);
-}
-.star-btn:active{transform:scale(1.3);}
-.star-btn.starred{color:var(--warning);}
-
-/* MEMBERSHIP SCREEN */
-.billing-box{
-  background:var(--panel2);border:1px solid var(--border2);
-  border-radius:var(--r);padding:20px;margin:0 16px 14px;
-  text-align:center;
-}
-.billing-date{
-  font-family:'Orbitron',monospace;font-size:22px;font-weight:700;
-  color:var(--accent);margin-bottom:6px;
-}
-.billing-label{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.1em;text-transform:uppercase;}
-.mgmt-btn{
-  display:block;width:calc(100% - 32px);margin:0 16px 12px;padding:16px;
-  border-radius:var(--r);font-family:'Orbitron',monospace;
-  font-size:11px;font-weight:700;letter-spacing:2px;
-  cursor:pointer;transition:all .15s;text-align:center;text-decoration:none;
-}
-.mgmt-change{background:var(--panel2);border:1px solid var(--accent);color:var(--accent);}
-.mgmt-cancel{background:var(--panel2);border:1px solid var(--border2);color:var(--text-dim);}
-.mgmt-note{text-align:center;font-size:12px;color:var(--text-dim);margin:0 16px 14px;line-height:1.6;}
-
-/* BROWSE FILTER */
-.browse-filters{display:flex;gap:8px;margin:0 16px 14px;}
-.filter-btn{
-  padding:8px 16px;border-radius:20px;cursor:pointer;
-  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
-  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
-  transition:all .15s;
-}
-.filter-btn.active{background:var(--panel2);border-color:var(--accent);color:var(--accent);}
-.filter-btn:active{opacity:.7;}
-
-/* BROWSE ITEM ACTION */
-.browse-action{
-  flex-shrink:0;padding:8px 12px;border-radius:var(--r-sm);cursor:pointer;
-  font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1.5px;font-weight:700;
-  border:1px solid var(--border2);background:transparent;color:var(--text-dim);
-  transition:all .2s;white-space:nowrap;align-self:center;
-}
-.browse-action:active{border-color:var(--accent);color:var(--accent);}
-.browse-action.done{border-color:var(--success);color:var(--success);pointer-events:none;}
-
-/* INLINE FEEDBACK */
-.inline-confirm{
-  font-family:'Share Tech Mono',monospace;font-size:11px;
-  color:var(--success);padding:8px 12px;white-space:nowrap;
-  align-self:center;flex-shrink:0;
-}
-
-/* BUTTONS */
-.btn-primary{
-  display:block;width:calc(100% - 32px);margin:0 16px;padding:18px;
-  background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);
-  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:2px;
-  cursor:pointer;transition:all .15s;
-}
-.btn-primary:active{opacity:.85;transform:scale(.99);}
-.btn-primary:disabled{opacity:.25;cursor:not-allowed;transform:none;}
-.btn-primary.return-btn{background:var(--accent2);}
-.btn-ghost{
-  display:block;width:calc(100% - 32px);margin:12px 16px 0;padding:15px;
-  background:transparent;border:1px solid var(--border2);border-radius:var(--r);
-  font-family:'Orbitron',monospace;font-size:11px;letter-spacing:1.5px;
-  color:var(--text-mid);cursor:pointer;transition:all .15s;
-}
-.btn-ghost:active{background:rgba(255,255,255,.05);color:var(--text);}
-
-/* TERMS */
-.terms-line{text-align:center;font-size:12px;color:var(--text-mid);line-height:1.6;margin:14px 16px 0;}
-.terms-line a{color:var(--accent);text-decoration:underline;text-underline-offset:3px;}
-
-/* SUCCESS */
-.success-wrap{padding:40px 16px 32px;animation:fadeUp .4s ease both;}
-.suc-glyph{width:72px;height:72px;border-radius:50%;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;font-size:30px;animation:popIn .45s cubic-bezier(.175,.885,.32,1.275) .1s both;}
-.suc-glyph.co{background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);}
-.suc-glyph.rt{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.3);}
-.suc-title{font-family:'Orbitron',monospace;font-size:20px;font-weight:700;text-align:center;margin-bottom:10px;}
-.suc-title.co{color:var(--accent);text-shadow:var(--glow);}
-.suc-title.rt{color:var(--accent2);}
-.suc-sub{font-size:15px;color:var(--text-mid);text-align:center;line-height:1.6;margin-bottom:28px;}
-.receipt{background:var(--panel);border:1px solid var(--border2);border-radius:var(--r);padding:4px 0;margin-bottom:24px;}
-.r-row{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 18px;gap:12px;border-bottom:1px solid var(--border);}
-.r-row:last-child{border-bottom:none;}
-.r-key{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-lbl);letter-spacing:.1em;flex-shrink:0;padding-top:1px;}
-.r-val{font-size:14px;color:var(--text);text-align:right;line-height:1.5;word-break:break-word;}
-
-/* ACCESS CABINET -- FIX 4: built-in screen, FIX 10: tighter language */
-.code-display{
-  background:var(--panel2);border:1.5px solid rgba(192,132,252,.3);
-  border-radius:var(--r);padding:28px 20px;text-align:center;margin:0 16px 14px;
-}
-.code-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--vault);margin-bottom:16px;opacity:.8;}
-.code-value{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--vault);letter-spacing:12px;text-shadow:0 0 24px rgba(192,132,252,.5);margin-bottom:12px;}
-.code-expires{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
-
-/* CAMERA */
-.cam-overlay{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
-.cam-overlay.hidden{display:none;}
-.cam-lbl{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;color:var(--text-mid);text-transform:uppercase;margin-bottom:24px;}
-.cam-vp{width:280px;height:280px;position:relative;margin-bottom:24px;}
-#camVideo{width:280px;height:280px;object-fit:cover;border-radius:12px;display:block;background:var(--panel);}
-.cam-vp::before,.cam-vp::after,.cam-br::before,.cam-br::after{content:'';position:absolute;width:32px;height:32px;border-color:var(--accent);border-style:solid;}
-.cam-vp::before{top:-2px;left:-2px;  border-width:3px 0 0 3px;border-radius:4px 0 0 0;box-shadow:-2px -2px 12px rgba(0,212,255,.3);}
-.cam-vp::after {top:-2px;right:-2px; border-width:3px 3px 0 0;border-radius:0 4px 0 0;box-shadow:2px -2px 12px rgba(0,212,255,.3);}
-.cam-br::before{bottom:-2px;left:-2px; border-width:0 0 3px 3px;border-radius:0 0 0 4px;box-shadow:-2px 2px 12px rgba(0,212,255,.3);}
-.cam-br::after {bottom:-2px;right:-2px;border-width:0 3px 3px 0;border-radius:0 0 4px 0;box-shadow:2px 2px 12px rgba(0,212,255,.3);}
-.cam-scan{position:absolute;left:8px;right:8px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);top:0;animation:scanLine 2s ease-in-out infinite;box-shadow:0 0 10px var(--accent);}
-@keyframes scanLine{0%{top:8px;opacity:0}10%{opacity:1}90%{opacity:1}100%{top:272px;opacity:0}}
-.cam-hint{font-size:15px;color:var(--text-mid);text-align:center;line-height:1.6;margin-bottom:20px;}
-.cam-manual{display:flex;gap:8px;width:100%;max-width:340px;margin-bottom:20px;}
-.cam-manual input{flex:1;background:rgba(255,255,255,.1);border:1.5px solid var(--border2);border-radius:var(--r-sm);padding:14px 16px;color:white;font-family:'Share Tech Mono',monospace;font-size:16px;outline:none;letter-spacing:.06em;text-transform:uppercase;-webkit-appearance:none;}
-.cam-manual input:focus{border-color:var(--accent);}
-.cam-manual input::placeholder{color:rgba(255,255,255,.35);text-transform:none;letter-spacing:0;}
-.cam-manual button{padding:14px 20px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--r-sm);font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1.5px;cursor:pointer;white-space:nowrap;}
-.cam-close{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--text-mid);background:none;border:1px solid var(--border2);border-radius:6px;padding:10px 20px;cursor:pointer;}
-.cam-scan-btn{
-  font-family:'Orbitron',monospace;font-size:13px;font-weight:700;letter-spacing:3px;
-  background:var(--accent);color:var(--bg);border:none;border-radius:var(--r);
-  padding:16px 48px;cursor:pointer;margin-bottom:4px;
-  transition:opacity .15s;
-}
-.cam-scan-btn:active{opacity:.8;}
-
-/* ANIMATIONS */
-@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
-@keyframes fadeUp   {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
-@keyframes popIn    {from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
-.d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}
-/* CATALOG STATUS INDICATOR */
-.catalog-status{
-  margin:0 16px 14px;padding:8px 14px;
-  display:flex;align-items:center;gap:8px;
-  font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;
-  cursor:default;
-}
-.catalog-status.clickable{cursor:pointer;}
-.catalog-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;transition:background .3s;}
-.catalog-dot.loading{background:var(--warning);box-shadow:0 0 6px var(--warning);animation:blink 1s ease-in-out infinite;}
-.catalog-dot.ready  {background:var(--success);box-shadow:0 0 6px var(--success);}
-.catalog-dot.failed {background:var(--danger); box-shadow:0 0 6px var(--danger);}
-.catalog-status-text{color:var(--text-dim);}
-.catalog-status.clickable .catalog-status-text{color:var(--danger);}
-
-.spacer{height:32px;}
-</style>
-</head>
-<body>
-
-<!-- CAMERA -->
-<div class="cam-overlay hidden" id="camOverlay">
-  <div class="cam-lbl">Scan Item QR Code</div>
-  <div class="cam-vp">
-    <video id="camVideo" autoplay playsinline webkit-playsinline muted></video>
-    <canvas id="camCanvas" style="display:none;"></canvas>
-    <div class="cam-br"></div>
-  </div>
-  <p class="cam-hint">Frame the QR code, then tap Scan</p>
-  <button class="cam-scan-btn" onclick="captureQRFrame()">SCAN</button>
-  <div id="camFeedback" style="font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.1em;color:var(--danger);min-height:20px;margin:8px 0;text-align:center;"></div>
-  <div class="cam-manual">
-    <input type="text" id="camInput" placeholder="Or type item code..." />
-    <button onclick="submitCamManual()">Use</button>
-  </div>
-  <button class="cam-close" onclick="closeCamera()">CANCEL</button>
-</div>
-
-<div class="page">
-  <header class="header">
-    <div class="logo">SCI-FI <span>DOJO</span></div>
-    <div class="hdr-r"><div class="live-dot"></div>Member Portal</div>
-  </header>
-
-  <!-- LOADING -->
-  <div class="screen active" id="screen-loading">
-    <div class="loading-wrap">
-      <div class="loading-logo">SCI-FI <span>DOJO</span></div>
-      <div class="spin-lg"></div>
-      <div class="loading-msg">Verifying membership...</div>
-    </div>
-  </div>
-
-  <!-- ERROR -->
-  <div class="screen" id="screen-error">
-    <div class="error-wrap">
-      <div class="error-icon">&#128683;</div>
-      <div class="error-title" id="errorTitle">Access Error</div>
-      <div class="error-msg" id="errorMsg">Something went wrong. Please scan your membership card again or contact us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1b6878727d727f7471745b7a747735787476">[email&#160;protected]</a>.</div>
-    </div>
-  </div>
-
-  <!-- STATUS -->
-  <div class="screen" id="screen-status">
-    <div class="member-hero">
-      <div class="member-eyebrow">Member Portal</div>
-      <div class="member-name" id="statusName">--</div>
-      <div id="systemStatusLine" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:12px;display:none;">SYSTEM STATUS: ACTIVE</div>
-      <div class="member-tier" id="statusTier"><div class="tier-dot"></div>--</div>
-    </div>
-    <!-- FIX 2: single dedicated containers, cleared on every render -->
-    <div id="statusNotifSection"></div>
-    <div id="sectionHdrStatus" class="section-hdr" style="display:none;">ACCOUNT STATUS<div class="section-hdr-line"></div></div>
-    <div class="status-grid" id="statusGrid"></div>
-    <!-- FIX 8: persistent slot clarification note -->
-    <div class="slot-note" id="slotNote" style="display:none;">
-      Items in the Return Bin do not count against your rental limit --
-      your slot is freed as soon as you log a return.
-    </div>
-    <div id="statusHints"></div>
-    <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
-    <div class="action-grid" id="actionGrid"></div>
-    <div id="catalogStatusBar"></div>
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v0.8.2</div>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- CHECKOUT -->
-  <div class="screen" id="screen-checkout">
-    <div class="back-nav" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Check Out</div>
-      <div class="section-sub" id="checkoutSubtitle">Scan or enter an item code to rent it.</div>
-    </div>
-    <div class="pip-row" style="margin:0 16px 14px;" id="checkoutPips"></div>
-    <div class="card d2">
-      <div class="card-hdr">Item Code<div class="card-hdr-line"></div></div>
-      <div class="card-body">
-        <div class="field">
-          <div class="scan-wrap">
-            <input type="text" id="checkoutCodeInput"
-              placeholder="SFD-0000" value="SFD-"
-              autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
-              oninput="onCheckoutCodeInput(this)"
-              style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;" />
-            <button class="scan-btn" onclick="openCamera('checkout')" aria-label="Scan">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
-                <rect x="7" y="7" width="3" height="3" rx=".5"/><rect x="14" y="7" width="3" height="3" rx=".5"/>
-                <rect x="7" y="14" width="3" height="3" rx=".5"/><rect x="14" y="14" width="3" height="3" rx=".5"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div id="itemConfirmArea"></div>
-      </div>
-    </div>
-    <div class="card d3" id="checkoutQueueCard" style="display:none;">
-      <div class="card-hdr">Selected Items<div class="card-hdr-line"></div></div>
-      <div class="card-body" id="checkoutQueue"></div>
-    </div>
-    <div class="card d4">
-      <div class="card-body">
-        <div class="note-toggle" onclick="toggleNote('Checkout')">
-          <span class="note-toggle-lbl">Add a Note</span>
-          <span class="note-chevron" id="noteChevronCheckout">+</span>
-        </div>
-        <div class="note-fields" id="noteFieldsCheckout">
-          <hr class="note-divider">
-          <div class="field">
-            <label class="field-lbl">Note Type</label>
-            <select id="noteTypeCheckout">
-              <option value="">Select type...</option>
-              <option value="Request">Request</option>
-              <option value="General Note">General Note</option>
-              <option value="Disc Issue">Disc Issue</option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="field-lbl">Note</label>
-            <textarea id="noteTextCheckout" placeholder="What would you like to share?"></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="checkoutAlert"></div>
-    <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitCheckout()" disabled>CONFIRM CHECKOUT</button>
-    <p class="terms-line">By submitting, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a> and accept responsibility for all items while checked out.</p>
-    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- RETURN LOG -->
-  <div class="screen" id="screen-return">
-    <div class="back-nav" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Return Items</div>
-      <div class="section-sub">Select items to return. Slots free immediately. Items stay in Return Bin until processed.</div>
-    </div>
-    <div class="card d2">
-      <div class="card-hdr">Items to Return<div class="card-hdr-line"></div></div>
-      <div class="card-body" id="returnList"></div>
-    </div>
-    <div class="card d3">
-      <div class="card-body">
-        <div class="note-toggle" onclick="toggleNote('Return')">
-          <span class="note-toggle-lbl">Add a Note</span>
-          <span class="note-chevron" id="noteChevronReturn">+</span>
-        </div>
-        <div class="note-fields" id="noteFieldsReturn">
-          <hr class="note-divider">
-          <div class="field">
-            <label class="field-lbl">Note Type</label>
-            <select id="noteTypeReturn">
-              <option value="">Select type...</option>
-              <option value="Review">Review</option>
-              <option value="Disc Issue">Disc Issue</option>
-              <option value="General Note">General Note</option>
-            </select>
-          </div>
-          <div class="field">
-            <label class="field-lbl">Note</label>
-            <textarea id="noteTextReturn" placeholder="Review, disc condition, or anything else..."></textarea>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="returnAlert"></div>
-    <button class="btn-primary return-btn d4" id="returnSubmitBtn" onclick="submitReturn()" disabled>RETURN ITEMS</button>
-    
-    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- RENTALS -->
-  <div class="screen" id="screen-rentals">
-    <div class="back-nav" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Rentals</div>
-      <div class="section-sub" id="rentalsSubtitle">Your currently checked-out and return-pending items.</div>
-    </div>
-    <div class="card d2">
-      <div class="card-body" id="rentalsList"></div>
-    </div>
-    <div class="slot-note" style="display:block;">
-      Items in the Return Bin do not count against your rental limit -- your slot is freed as soon as you log a return.
-    </div>
-    <!-- RENTAL HISTORY -->
-    <div class="section-hdr" style="margin-top:8px;">RENTAL HISTORY<div class="section-hdr-line"></div></div>
-    <div class="history-toggle" style="margin:0 16px 14px;">
-      <button class="hist-btn active" id="hist-30"  onclick="setHistFilter(30)">30 Days</button>
-      <button class="hist-btn"        id="hist-90"  onclick="setHistFilter(90)">90 Days</button>
-      <button class="hist-btn"        id="hist-all" onclick="setHistFilter(0)">All</button>
-    </div>
-    <div class="card">
-      <div class="card-body" id="historyList"></div>
-    </div>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- FIX 4: ACCESS CABINET as a built-in screen -->
-  <div class="screen" id="screen-code">
-    <div class="back-nav" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Access Cabinet</div>
-      <!-- FIX 10: tighter, member-only language -->
-      <div class="section-sub">Personal to your account. Do not share. Rotates weekly.</div>
-    </div>
-    <div id="codeContent"></div>
-    <div class="banner banner-warn" style="margin-top:4px;">
-      <span class="banner-icon">&#128274;</span>
-      <div>This code is unique to your membership. Do not share.</div>
-    </div>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- BROWSE COLLECTION -->
-  <div class="screen" id="screen-browse">
-    <div class="back-nav" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Browse Collection</div>
-      <div class="section-sub">Explore available titles and request items.</div>
-    </div>
-    <div style="margin:0 16px 14px;">
-      <input type="text" id="browseSearch"
-        placeholder="Search title, format, or code..."
-        autocomplete="off" autocorrect="off" spellcheck="false"
-        oninput="renderBrowseList()" />
-    </div>
-    <div class="browse-filters">
-      <button class="filter-btn active" id="filter-all"       onclick="setBrowseFilter('all')">All</button>
-      <button class="filter-btn"        id="filter-available" onclick="setBrowseFilter('available')">Available Only</button>
-      <button class="filter-btn"        id="filter-starred"   onclick="setBrowseFilter('starred')">&#9733; Starred</button>
-    </div>
-    <div class="card">
-      <div class="card-body" id="browseList"></div>
-    </div>
-    <div class="card">
-      <div class="card-body">
-        <div class="field">
-          <input type="text" id="requestInput" placeholder="What would you like to see?" autocomplete="off" />
-        </div>
-        <div id="requestFeedback" style="min-height:18px;margin-bottom:10px;"></div>
-        <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="submitTitleRequest()">SUBMIT REQUEST</button>
-      </div>
-    </div>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- MEMBERSHIP MANAGEMENT -->
-  <div class="screen" id="screen-account">
-    <div class="back-nav" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Membership</div>
-      <div class="section-sub" id="accountSubtitle">Manage your Sci-Fi Dojo membership.</div>
-    </div>
-    <div class="billing-box">
-      <div class="billing-label">Next Billing Date</div>
-      <div class="billing-date" id="accountBillingDate">--</div>
-      <div id="accountTierLine" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);margin-top:4px;"></div>
-    </div>
-    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">CHANGE PLAN</a>
-    <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="/cdn-cgi/l/email-protection#4635252f202f22292c290627292a6825292b793533242c2325327b150002660b232b242334352e2f366605272825232a">CANCEL MEMBERSHIP</a>
-    <p class="mgmt-note">Tap above to send us an email. We will get back to you as soon as possible. Your membership continues until the end of your current billing period.</p>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- SUCCESS -->
-  <div class="screen" id="screen-success">
-    <div class="success-wrap">
-      <div class="suc-glyph" id="sucGlyph">&#10003;</div>
-      <div class="suc-title" id="sucTitle"></div>
-      <div class="suc-sub"   id="sucSub"></div>
-      <div class="receipt"   id="sucReceipt"></div>
-      <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
-    </div>
-  </div>
-
-</div><!-- /page -->
-
 <script>
 
 // ================================================================
@@ -10907,7 +10911,11 @@ function isOverdue(iso) {
 function dueDateFromNow(days) {
   var d = getToday();
   d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+  // Format from local date parts -- toISOString() converts to UTC and
+  // returns the previous calendar day in timezones ahead of UTC.
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  return d.getFullYear() + '-' + mm + '-' + dd;
 }
 
 function fmtDate(iso) {
@@ -10918,6 +10926,36 @@ function fmtDate(iso) {
 function fmtTs(iso) {
   if (!iso) return '--';
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+// ================================================================
+// HTML ESCAPING
+// Every backend-supplied or user-typed value must pass through
+// esc() before being concatenated into an innerHTML string.
+// ================================================================
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ================================================================
+// FETCH TIMEOUT
+// Backend calls abort after FETCH_TIMEOUT_MS so the UI never hangs
+// on an unresponsive server. Aborts surface as errors in the
+// existing catch blocks, which already render retry UI.
+// ================================================================
+var FETCH_TIMEOUT_MS = 20000;
+
+function fetchWithTimeout(url, opts) {
+  var controller = new AbortController();
+  var timer = setTimeout(function() { controller.abort(); }, FETCH_TIMEOUT_MS);
+  opts = opts || {};
+  opts.signal = controller.signal;
+  return fetch(url, opts).finally(function() { clearTimeout(timer); });
 }
 
 // ================================================================
@@ -11031,15 +11069,15 @@ var token         = null;
 var checkoutItems = [];   // confirmed items in queue (item objects)
 var returnSelected = [];  // item_ids selected for return
 var cameraStream  = null;
-var scanInterval  = null;
 
 // ================================================================
 // INIT
 // ================================================================
 // Top-level error handler -- surfaces any init failure on screen
 window.onerror = function(msg, src, line, col, err) {
+  console.error('Unhandled error:', msg, 'at line', line, err);
   var el = document.getElementById('screen-loading');
-  if (el) el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#ff3b5c;font-family:monospace;font-size:13px;">JS ERROR: ' + msg + ' (line ' + line + ')</div>';
+  if (el) el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#ff3b5c;font-family:monospace;font-size:13px;">JS ERROR: ' + esc(msg) + ' (line ' + esc(line) + ')</div>';
   return true;
 };
 
@@ -11064,7 +11102,7 @@ async function loadMember(tok) {
 
   try {
     setMsg('Verifying membership...');
-    var res  = await fetch(BACKEND_URL + '?action=member&token=' + encodeURIComponent(tok));
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=member&token=' + encodeURIComponent(tok));
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
     member = data.member;
@@ -11100,7 +11138,7 @@ async function loadMember(tok) {
 async function loadCatalog(tok) {
   setCatalogStatus('loading');
   try {
-    var res  = await fetch(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(tok));
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(tok));
     var data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Catalog unavailable');
     catalogCache     = data.catalog || [];
@@ -11121,6 +11159,18 @@ function setCatalogStatus(status) {
   var statusScreen = document.getElementById('screen-status');
   if (member && statusScreen && statusScreen.classList.contains('active')) {
     renderStatus();
+  }
+  // Same for the browse screen -- it may be showing a loading spinner
+  // that nothing else will ever replace.
+  var browseScreen = document.getElementById('screen-browse');
+  if (browseScreen && browseScreen.classList.contains('active')) {
+    if (status === 'ready') {
+      renderBrowseList();
+    } else if (status === 'failed') {
+      document.getElementById('browseList').innerHTML =
+        '<div style="color:var(--text-mid);text-align:center;padding:24px 0;font-size:14px;">' +
+        'Catalog unavailable. <a href="javascript:goBrowse()" style="color:var(--accent);">Tap to retry</a>.</div>';
+    }
   }
   var bar = document.getElementById('catalogStatusBar');
   if (!bar) return;
@@ -11195,7 +11245,7 @@ function renderStatus() {
                 member.tier === 'Donor' ? 'tier-pre' : 'tier-mat';
   tierEl.className   = 'member-tier ' + tierCls;
   tierEl.style.display = '';
-  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>' + member.tier + '</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">' + member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' at a time &bull; ' + member.loan_days + ' day limit</div></div>';
+  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>' + esc(member.tier) + '</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">' + esc(member.tier_limit) + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' at a time &bull; ' + esc(member.loan_days) + ' day limit</div></div>';
 
   // Banners
   var banners = '';
@@ -11204,10 +11254,10 @@ function renderStatus() {
   }
   // FIX 9: overdue is warning only
   if (st.overdueItems.length > 0) {
-    var titles = st.overdueItems.map(function(r) { return r.title; }).join(', ');
+    var titles = st.overdueItems.map(function(r) { return esc(r.title); }).join(', ');
     banners += banner('warn', '&#9200;', 'Overdue items. Return soon. Checkout available. Items: ' + titles + '.');
   } else if (st.dueSoonItems.length > 0) {
-    var dueList = st.dueSoonItems.map(function(r) { return r.title + ' (' + dueLabelStr(r.due) + ')'; }).join(', ');
+    var dueList = st.dueSoonItems.map(function(r) { return esc(r.title) + ' (' + dueLabelStr(r.due) + ')'; }).join(', ');
     banners += banner('warn', '&#9200;', 'Due soon: ' + dueList + '.');
   }
   if (member.return_pending.length > 0) {
@@ -11227,11 +11277,10 @@ function renderStatus() {
   var vaultText  = 'Granted';
   var vaultCls   = 'vault';
 
-  var tierDetails = member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' &middot; ' + member.loan_days + '-day loans &middot; Perks';
   document.getElementById('sectionHdrStatus').style.display = '';
   document.getElementById('statusGrid').innerHTML =
-    statCard('Access',      statusText,  statusCls, member.tier) +
-    statCard('Available',   st.slotsLeft + ' of ' + member.tier_limit, slotsCls, st.slotsUsed + ' checked out') +
+    statCard('Access',      statusText,  statusCls, esc(member.tier)) +
+    statCard('Available',   st.slotsLeft + ' of ' + esc(member.tier_limit), slotsCls, st.slotsUsed + ' checked out') +
     statCard('Return Bin',  String(member.return_pending.length), member.return_pending.length > 0 ? 'warning' : 'dim', 'awaiting processing') +
     (member.vault_access ? statCard('Vault Access', vaultText, vaultCls, 'Premiere members only') : '');
 
@@ -11339,7 +11388,7 @@ function lookupItem(code) {
   var item     = result.item;
   var cardType = result.vaultItem ? 'vault-ok' : 'ok';
   var tags     = formatTags(item);
-  var addBtn   = '<button onclick="addToQueue(\'' + item.item_id + '\')" style="width:100%;margin-top:10px;padding:13px;background:var(--success);color:var(--bg);border:none;border-radius:var(--r-sm);font-family:\'Orbitron\',monospace;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;">+ ADD THIS ITEM</button>';
+  var addBtn   = '<button data-id="' + esc(item.item_id) + '" onclick="addToQueue(this.dataset.id)" style="width:100%;margin-top:10px;padding:13px;background:var(--success);color:var(--bg);border:none;border-radius:var(--r-sm);font-family:\'Orbitron\',monospace;font-size:11px;font-weight:700;letter-spacing:2px;cursor:pointer;">+ ADD THIS ITEM</button>';
 
   area.innerHTML = itemConfirmCard(cardType, 'This item is available and ready to check out.', item) + addBtn;
 }
@@ -11377,10 +11426,10 @@ function renderCheckoutQueue() {
     return '<div class="rental-item">' +
       '<div class="ri-disc">&#128192;</div>' +
       '<div class="ri-info">' +
-        '<div class="ri-title">' + it.title + '</div>' +
-        '<div class="ri-meta">' + it.item_id + ' &middot; ' + it.format + ' &middot; ' + (it.collection === 'vault' ? 'Vault' : 'General') + '</div>' +
+        '<div class="ri-title">' + esc(it.title) + '</div>' +
+        '<div class="ri-meta">' + esc(it.item_id) + ' &middot; ' + esc(it.format) + ' &middot; ' + (it.collection === 'vault' ? 'Vault' : 'General') + '</div>' +
       '</div>' +
-      '<button onclick="removeFromQueue(\'' + it.item_id + '\')" style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;">&times;</button>' +
+      '<button data-id="' + esc(it.item_id) + '" onclick="removeFromQueue(this.dataset.id)" style="background:none;border:none;color:var(--text-dim);font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;">&times;</button>' +
       '</div>';
   }).join('');
 }
@@ -11400,7 +11449,7 @@ function itemConfirmCard(status, msg, item) {
   var icons  = { ok: '&#10003;', warn: '&#9888;', err: '&#10007;', 'vault-ok': '&#128272;' };
   var icon   = icons[status] || '&#128192;';
   var tags   = item ? formatTags(item) : '';
-  var title  = item ? item.title : (status === 'err' ? 'Cannot Add Item' : 'Item');
+  var title  = item ? esc(item.title) : (status === 'err' ? 'Cannot Add Item' : 'Item');
   return '<div class="item-confirm ' + status + '">' +
     '<div class="ic-top">' +
       '<div class="ic-icon">' + icon + '</div>' +
@@ -11414,7 +11463,7 @@ function formatTags(item) {
   var colTag = item.collection === 'vault'
     ? '<span class="ic-tag ic-tag-vault">VAULT</span>'
     : '<span class="ic-tag ic-tag-gen">GENERAL</span>';
-  var fmtTag = item.format ? '<span class="ic-tag ic-tag-gen">' + item.format + '</span>' : '';
+  var fmtTag = item.format ? '<span class="ic-tag ic-tag-gen">' + esc(item.format) + '</span>' : '';
   return fmtTag + colTag;
 }
 
@@ -11456,7 +11505,7 @@ async function submitCheckout() {
   };
 
   try {
-    var res  = await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
+    var res  = await fetchWithTimeout(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
 
@@ -11519,11 +11568,11 @@ function renderReturnList() {
     var soon = !ov && daysUntil(r.due) <= 3;
     var dueCls = ov ? 'due-overdue' : (soon ? 'due-soon' : 'due-ok');
     var dueText = ov ? ('Overdue since ' + fmtDate(r.due)) : ('Due ' + fmtDate(r.due));
-    return '<div class="return-item' + (sel ? ' selected' : '') + '" onclick="toggleReturn(\'' + r.item_id + '\')">' +
+    return '<div class="return-item' + (sel ? ' selected' : '') + '" data-id="' + esc(r.item_id) + '" onclick="toggleReturn(this.dataset.id)">' +
       '<div class="ri-check">' + (sel ? '&#10003;' : '') + '</div>' +
       '<div style="flex:1;min-width:0;">' +
-        '<div style="font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + r.title + '</div>' +
-        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-mid);margin-bottom:4px;">' + r.item_id + ' &middot; ' + r.format + '</div>' +
+        '<div style="font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(r.title) + '</div>' +
+        '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-mid);margin-bottom:4px;">' + esc(r.item_id) + ' &middot; ' + esc(r.format) + '</div>' +
         '<div class="ri-due ' + dueCls + '">' + dueText + '</div>' +
       '</div>' +
       '</div>';
@@ -11577,7 +11626,7 @@ async function submitReturn() {
   };
 
   try {
-    var res  = await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
+    var res  = await fetchWithTimeout(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
 
@@ -11640,8 +11689,8 @@ function goRentals() {
       return '<div class="rental-item">' +
         '<div class="ri-disc">' + (r.state === 'return_pending' ? '&#128236;' : '&#128192;') + '</div>' +
         '<div class="ri-info">' +
-          '<div class="ri-title">' + r.title + '</div>' +
-          '<div class="ri-meta">' + r.item_id + ' &middot; ' + r.format + '</div>' +
+          '<div class="ri-title">' + esc(r.title) + '</div>' +
+          '<div class="ri-meta">' + esc(r.item_id) + ' &middot; ' + esc(r.format) + '</div>' +
           '<div class="ri-tags">' + stateTag + vaultTag + '</div>' +
           dueBlock +
         '</div>' +
@@ -11664,7 +11713,7 @@ function goCode() {
   var html =
     '<div class="code-display">' +
       '<div class="code-label">General Collection</div>' +
-      '<div class="code-value">' + (member.cabinet_code || '----') + '</div>' +
+      '<div class="code-value">' + esc(member.cabinet_code || '----') + '</div>' +
       '<div class="code-expires">Rotates weekly. Personal to your account.</div>' +
     '</div>';
 
@@ -11672,7 +11721,7 @@ function goCode() {
     html +=
       '<div class="code-display" style="border-color:rgba(192,132,252,.4);">' +
         '<div class="code-label">Vault Collection</div>' +
-        '<div class="code-value" style="text-shadow:0 0 24px rgba(192,132,252,.5);">' + member.vault_code + '</div>' +
+        '<div class="code-value" style="text-shadow:0 0 24px rgba(192,132,252,.5);">' + esc(member.vault_code) + '</div>' +
         '<div class="code-expires">Rotates weekly. Personal to your account.</div>' +
       '</div>';
   }
@@ -11692,7 +11741,8 @@ function showSuccess(type, title, sub, rows) {
   t.textContent = title; t.className = 'suc-title ' + type;
   document.getElementById('sucSub').textContent = sub;
   document.getElementById('sucReceipt').innerHTML = rows.map(function(r) {
-    return '<div class="r-row"><span class="r-key">' + r.k + '</span><span class="r-val">' + r.v + '</span></div>';
+    // r.v can contain member names, item titles, and user-typed notes
+    return '<div class="r-row"><span class="r-key">' + esc(r.k) + '</span><span class="r-val">' + esc(r.v) + '</span></div>';
   }).join('');
   showScreen('screen-success');
 }
@@ -11711,10 +11761,24 @@ function toggleNote(ctx) {
 // CAMERA
 // ================================================================
 function openCamera(ctx) {
+  var fb = document.getElementById('camFeedback');
   document.getElementById('camInput').value = '';
-  document.getElementById('camFeedback').textContent = '';
+  fb.textContent = '';
   document.getElementById('camOverlay').classList.remove('hidden');
-  navigator.mediaDevices && navigator.mediaDevices.getUserMedia({
+
+  function cameraUnavailable(err) {
+    console.log('Camera error:', err);
+    document.getElementById('camVideo').style.display = 'none';
+    fb.style.color = 'var(--danger)';
+    fb.textContent = 'Camera unavailable. Check camera permissions, or use manual entry below.';
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    cameraUnavailable('mediaDevices not supported');
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({
     video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
   })
     .then(function(stream) {
@@ -11727,10 +11791,7 @@ function openCamera(ctx) {
       v.style.display = 'block';
       v.play();
     })
-    .catch(function(err) {
-      console.log('Camera error:', err);
-      document.getElementById('camVideo').style.display = 'none';
-    });
+    .catch(cameraUnavailable);
 }
 
 function captureQRFrame() {
@@ -11777,7 +11838,6 @@ function captureQRFrame() {
 }
 
 function closeCamera() {
-  if (scanInterval) { clearInterval(scanInterval); scanInterval = null; }
   if (cameraStream) { cameraStream.getTracks().forEach(function(t) { t.stop(); }); cameraStream = null; }
   document.getElementById('camOverlay').classList.add('hidden');
   document.getElementById('camVideo').style.display = 'block';
@@ -11848,6 +11908,14 @@ async function goBrowse() {
     '<div class="spin-lg" style="margin:0 auto 14px;"></div>LOADING CATALOG...</div>';
 }
 
+// Debounce search input so the catalog is not re-filtered and
+// re-sorted on every keystroke.
+var browseSearchTimer = null;
+function onBrowseSearchInput() {
+  clearTimeout(browseSearchTimer);
+  browseSearchTimer = setTimeout(renderBrowseList, 200);
+}
+
 function setBrowseFilter(f) {
   browseFilter = f;
   document.getElementById('filter-all').classList.toggle('active',      f === 'all');
@@ -11864,11 +11932,13 @@ function renderBrowseList() {
 
   var items = catalogCache.slice();
 
-  var sIds = getStarred();
+  // Read starred IDs from localStorage once per render -- per-item
+  // isStarred() lookups re-parse the JSON for every row.
+  var starredSet = new Set(getStarred());
   if (browseFilter === 'available') {
     items = items.filter(function(it) { return it.status === 'available'; });
   } else if (browseFilter === 'starred') {
-    items = items.filter(function(it) { return sIds.indexOf(it.item_id) !== -1; });
+    items = items.filter(function(it) { return starredSet.has(it.item_id); });
   }
 
   if (query) {
@@ -11883,10 +11953,9 @@ function renderBrowseList() {
   }
 
   // Sort: starred first, then available, then alpha by sort_title (falls back to title)
-  var starredIds = getStarred();
   items.sort(function(a, b) {
-    var aStarred = starredIds.indexOf(a.item_id) !== -1;
-    var bStarred = starredIds.indexOf(b.item_id) !== -1;
+    var aStarred = starredSet.has(a.item_id);
+    var bStarred = starredSet.has(b.item_id);
     if (aStarred && !bStarred) return -1;
     if (!aStarred && bStarred) return 1;
     if (a.status === 'available' && b.status !== 'available') return -1;
@@ -11904,9 +11973,9 @@ function renderBrowseList() {
   list.innerHTML = items.map(function(it) {
     var statusTag = getBrowseStatusTag(it);
     var vaultTag  = it.collection === 'vault' ? '<span class="ri-tag ri-tag-vault">VAULT</span>' : '';
-    var action    = getBrowseAction(it);
-    var titleStr  = it.title + (it.year    ? ' (' + it.year + ')' : '');
-    var metaStr   = it.item_id + ' &middot; ' + it.format + (it.edition ? ' &middot; ' + it.edition : '');
+    var action    = getBrowseAction(it, starredSet);
+    var titleStr  = esc(it.title) + (it.year    ? ' (' + esc(it.year) + ')' : '');
+    var metaStr   = esc(it.item_id) + ' &middot; ' + esc(it.format) + (it.edition ? ' &middot; ' + esc(it.edition) : '');
     return '<div class="rental-item">' +
       '<div class="ri-disc">' + getFormatEmoji(it.format) + '</div>' +
       '<div class="ri-info">' +
@@ -11936,10 +12005,10 @@ function getBrowseStatusTag(it) {
   return '';
 }
 
-function getBrowseAction(it) {
+function getBrowseAction(it, starredSet) {
   // Star + Notify Me for unavailable. FUTURE: wire to Sheets.
-  var id      = it.item_id;
-  var starred = isStarred(id);
+  var id      = esc(it.item_id);
+  var starred = starredSet ? starredSet.has(it.item_id) : isStarred(it.item_id);
   var starBtn = '<button class="star-btn' + (starred ? ' starred' : '') + '" data-id="' + id + '" onclick="toggleStar(this.dataset.id)">' + (starred ? '&#9733;' : '&#9734;') + '</button>';
   if (it.status !== 'available') {
     return starBtn + '<button class="browse-action" id="bact-' + id + '" data-id="' + id + '" onclick="notifyMe(this.dataset.id)">NOTIFY ME</button>';
@@ -12044,14 +12113,14 @@ function renderHistory() {
     var safeDate  = h.checked_out.replace(/[^0-9]/g, '');
     var rid       = 'hist-' + safeId + '-' + safeDate;
     return '<div class="hist-item">' +
-      '<div class="hist-title">' + h.title + '</div>' +
-      '<div class="hist-meta">' + h.format + ' &middot; Out: ' + fmtDate(h.checked_out) + ' &middot; Returned: ' + fmtDate(h.returned) + '</div>' +
+      '<div class="hist-title">' + esc(h.title) + '</div>' +
+      '<div class="hist-meta">' + esc(h.format) + ' &middot; Out: ' + fmtDate(h.checked_out) + ' &middot; Returned: ' + fmtDate(h.returned) + '</div>' +
       '<div class="hist-actions">' +
         '<button class="hist-action" id="' + rid + '-rev"' +
-          ' data-rid="' + rid + '" data-type="review" data-itemid="' + h.item_id + '"' +
+          ' data-rid="' + rid + '" data-type="review" data-itemid="' + esc(h.item_id) + '"' +
           ' onclick="histAction(this)">LEAVE REVIEW</button>' +
         '<button class="hist-action" id="' + rid + '-flag"' +
-          ' data-rid="' + rid + '" data-type="flag" data-itemid="' + h.item_id + '"' +
+          ' data-rid="' + rid + '" data-type="flag" data-itemid="' + esc(h.item_id) + '"' +
           ' onclick="histAction(this)">FLAG ISSUE</button>' +
       '</div>' +
       '</div>';
