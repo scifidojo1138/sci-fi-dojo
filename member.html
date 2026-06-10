@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/x-icon" href="favicon-member-favicon.ico">
 <link rel="icon" type="image/png" sizes="96x96" href="favicon-member-favicon-96x96.png">
 <link rel="icon" type="image/svg+xml" href="favicon-member-favicon.svg">
@@ -464,12 +465,16 @@ select option{background:var(--panel2);color:var(--text);}
 .catalog-status.clickable .catalog-status-text{color:var(--danger);}
 
 .spacer{height:32px;}
+
+/* Screens receive programmatic focus on navigation for screen readers;
+   suppress the visual outline on the container itself. */
+.screen:focus{outline:none;}
 </style>
 </head>
 <body>
 
 <!-- CAMERA -->
-<div class="cam-overlay hidden" id="camOverlay">
+<div class="cam-overlay hidden" id="camOverlay" role="dialog" aria-modal="true" aria-label="QR code scanner">
   <div class="cam-lbl">Scan Item QR Code</div>
   <div class="cam-vp">
     <video id="camVideo" autoplay playsinline webkit-playsinline muted></video>
@@ -506,7 +511,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="error-wrap">
       <div class="error-icon">&#128683;</div>
       <div class="error-title" id="errorTitle">Access Error</div>
-      <div class="error-msg" id="errorMsg">Something went wrong. Please scan your membership card again or contact us at <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1b6878727d727f7471745b7a747735787476">[email&#160;protected]</a>.</div>
+      <div class="error-msg" id="errorMsg">Something went wrong. Please scan your membership card again or <a href="mailto:scifidojo@aol.com?subject=SFD - Support" style="color:var(--accent);">email support</a>.</div>
     </div>
   </div>
 
@@ -537,7 +542,7 @@ select option{background:var(--panel2);color:var(--text);}
 
   <!-- CHECKOUT -->
   <div class="screen" id="screen-checkout">
-    <div class="back-nav" onclick="goStatus()">
+    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Back to Account
     </div>
@@ -574,7 +579,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div class="card d4">
       <div class="card-body">
-        <div class="note-toggle" onclick="toggleNote('Checkout')">
+        <div class="note-toggle" id="noteToggleCheckout" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsCheckout" onclick="toggleNote('Checkout')">
           <span class="note-toggle-lbl">Add a Note</span>
           <span class="note-chevron" id="noteChevronCheckout">+</span>
         </div>
@@ -605,7 +610,7 @@ select option{background:var(--panel2);color:var(--text);}
 
   <!-- RETURN LOG -->
   <div class="screen" id="screen-return">
-    <div class="back-nav" onclick="goStatus()">
+    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Back to Account
     </div>
@@ -619,7 +624,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div class="card d3">
       <div class="card-body">
-        <div class="note-toggle" onclick="toggleNote('Return')">
+        <div class="note-toggle" id="noteToggleReturn" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsReturn" onclick="toggleNote('Return')">
           <span class="note-toggle-lbl">Add a Note</span>
           <span class="note-chevron" id="noteChevronReturn">+</span>
         </div>
@@ -650,7 +655,7 @@ select option{background:var(--panel2);color:var(--text);}
 
   <!-- RENTALS -->
   <div class="screen" id="screen-rentals">
-    <div class="back-nav" onclick="goStatus()">
+    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Back to Account
     </div>
@@ -667,9 +672,9 @@ select option{background:var(--panel2);color:var(--text);}
     <!-- RENTAL HISTORY -->
     <div class="section-hdr" style="margin-top:8px;">RENTAL HISTORY<div class="section-hdr-line"></div></div>
     <div class="history-toggle" style="margin:0 16px 14px;">
-      <button class="hist-btn active" id="hist-30"  onclick="setHistFilter(30)">30 Days</button>
-      <button class="hist-btn"        id="hist-90"  onclick="setHistFilter(90)">90 Days</button>
-      <button class="hist-btn"        id="hist-all" onclick="setHistFilter(0)">All</button>
+      <button class="hist-btn active" id="hist-30"  aria-pressed="true"  onclick="setHistFilter(30)">30 Days</button>
+      <button class="hist-btn"        id="hist-90"  aria-pressed="false" onclick="setHistFilter(90)">90 Days</button>
+      <button class="hist-btn"        id="hist-all" aria-pressed="false" onclick="setHistFilter(0)">All</button>
     </div>
     <div class="card">
       <div class="card-body" id="historyList"></div>
@@ -679,7 +684,7 @@ select option{background:var(--panel2);color:var(--text);}
 
   <!-- FIX 4: ACCESS CABINET as a built-in screen -->
   <div class="screen" id="screen-code">
-    <div class="back-nav" onclick="goStatus()">
+    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Back to Account
     </div>
@@ -698,7 +703,7 @@ select option{background:var(--panel2);color:var(--text);}
 
   <!-- BROWSE COLLECTION -->
   <div class="screen" id="screen-browse">
-    <div class="back-nav" onclick="goStatus()">
+    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Back to Account
     </div>
@@ -713,9 +718,9 @@ select option{background:var(--panel2);color:var(--text);}
         oninput="onBrowseSearchInput()" />
     </div>
     <div class="browse-filters">
-      <button class="filter-btn active" id="filter-all"       onclick="setBrowseFilter('all')">All</button>
-      <button class="filter-btn"        id="filter-available" onclick="setBrowseFilter('available')">Available Only</button>
-      <button class="filter-btn"        id="filter-starred"   onclick="setBrowseFilter('starred')">&#9733; Starred</button>
+      <button class="filter-btn active" id="filter-all"       aria-pressed="true"  onclick="setBrowseFilter('all')">All</button>
+      <button class="filter-btn"        id="filter-available" aria-pressed="false" onclick="setBrowseFilter('available')">Available Only</button>
+      <button class="filter-btn"        id="filter-starred"   aria-pressed="false" onclick="setBrowseFilter('starred')">&#9733; Starred</button>
     </div>
     <div class="card">
       <div class="card-body" id="browseList"></div>
@@ -726,7 +731,7 @@ select option{background:var(--panel2);color:var(--text);}
           <input type="text" id="requestInput" placeholder="What would you like to see?" autocomplete="off" />
         </div>
         <div id="requestFeedback" style="min-height:18px;margin-bottom:10px;"></div>
-        <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="submitTitleRequest()">SUBMIT REQUEST</button>
+        <button class="btn-primary" id="requestSubmitBtn" style="display:block;width:100%;margin:0;" onclick="submitTitleRequest()">SUBMIT REQUEST</button>
       </div>
     </div>
     <div class="spacer"></div>
@@ -734,7 +739,7 @@ select option{background:var(--panel2);color:var(--text);}
 
   <!-- MEMBERSHIP MANAGEMENT -->
   <div class="screen" id="screen-account">
-    <div class="back-nav" onclick="goStatus()">
+    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Back to Account
     </div>
@@ -748,7 +753,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div id="accountTierLine" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);margin-top:4px;"></div>
     </div>
     <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">CHANGE PLAN</a>
-    <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="/cdn-cgi/l/email-protection#4635252f202f22292c290627292a6825292b793533242c2325327b150002660b232b242334352e2f366605272825232a">CANCEL MEMBERSHIP</a>
+    <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">CANCEL MEMBERSHIP</a>
     <p class="mgmt-note">Tap above to send us an email. We will get back to you as soon as possible. Your membership continues until the end of your current billing period.</p>
     <div class="spacer"></div>
   </div>
@@ -10884,6 +10889,12 @@ function findAlignmentPattern(matrix, alignmentPatternQuads, topRight, topLeft, 
 // ================================================================
 var BACKEND_URL = 'https://script.google.com/macros/s/AKfycbynCT6h4SRl2tq_DWUJeSZCI2Yl4UM5oQ0RGtVG0XllIfvngH7CL14l7MztpyFhOymxDw/exec';
 
+// Shared secret sent with every backend call -- must match API_KEY in the
+// Apps Script backend (see BACKEND-UPDATE.md). This page is public, so the
+// key is visible in source: it deters bots and casual abuse of the backend
+// URL, but per-member authorization still rests on the membership token.
+var API_KEY = '27268cf583e78fcdb9e5eb2d5bada419';
+
 // ================================================================
 // FIX 3: Date helpers -- never use a frozen TODAY constant.
 // Always call getToday() so comparisons stay accurate throughout
@@ -11069,6 +11080,32 @@ var token         = null;
 var checkoutItems = [];   // confirmed items in queue (item objects)
 var returnSelected = [];  // item_ids selected for return
 var cameraStream  = null;
+var memberFromCache = false; // true while showing cached data, before fresh fetch lands
+var memberStale     = false; // true when fetch failed and cached data is all we have
+var lastMemberFetch = 0;     // throttle for visibility-change refreshes
+
+// ----------------------------------------------------------------
+// Member data cache (localStorage, keyed by token).
+// Apps Script cold starts take seconds; rendering the last known
+// account data immediately makes revisits feel instant. A fresh
+// fetch always follows and replaces it.
+// ----------------------------------------------------------------
+function memberCacheKey() { return 'sfd_member_cache_' + token; }
+
+function readMemberCache() {
+  try {
+    var raw = localStorage.getItem(memberCacheKey());
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+function writeMemberCache(m) {
+  try { localStorage.setItem(memberCacheKey(), JSON.stringify(m)); } catch(e) {}
+}
+
+function clearMemberCache() {
+  try { localStorage.removeItem(memberCacheKey()); } catch(e) {}
+}
 
 // ================================================================
 // INIT
@@ -11100,12 +11137,26 @@ async function loadMember(tok) {
   var msgEl = document.getElementById('loadingMsg');
   function setMsg(m) { if (msgEl) msgEl.textContent = m; }
 
+  // Render the last known account data immediately while the real
+  // fetch (often a multi-second Apps Script cold start) completes.
+  var cached = readMemberCache();
+  if (cached) {
+    member = cached;
+    memberFromCache = true;
+    catalogStatus = 'loading';
+    renderStatus();
+  }
+
   try {
     setMsg('Verifying membership...');
-    var res  = await fetchWithTimeout(BACKEND_URL + '?action=member&token=' + encodeURIComponent(tok));
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=member&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
     member = data.member;
+    memberFromCache = false;
+    memberStale     = false;
+    lastMemberFetch = Date.now();
+    writeMemberCache(member);
 
     // Render dashboard immediately -- don't wait for catalog
     catalogStatus = 'loading';
@@ -11120,10 +11171,19 @@ async function loadMember(tok) {
                       msg.indexOf('invalid') !== -1 || msg.indexOf('not found') !== -1 ||
                       msg.indexOf('expired') !== -1 || msg.indexOf('unauthorized') !== -1;
     if (isAuthError) {
+      // Token rejected -- cached data for it must not be reused
+      clearMemberCache();
+      member = null;
       showError('Membership Link Invalid',
         'This membership link is not valid or has expired. Please scan the QR code on your current membership card.' +
         '<br><br>' +
         'If this keeps happening, <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-AUTH" style="color:var(--accent);">email support</a>.');
+    } else if (memberFromCache) {
+      // Connection failed but we have cached data -- keep the dashboard
+      // usable and flag it as stale instead of dead-ending on an error.
+      memberStale = true;
+      renderStatus();
+      loadCatalog(tok);
     } else {
       showError('Connection Interrupted',
         'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
@@ -11135,10 +11195,54 @@ async function loadMember(tok) {
   }
 }
 
+// ----------------------------------------------------------------
+// Silent re-fetch of account data, used when the tab regains focus
+// so a long-open page does not drift from server truth.
+// ----------------------------------------------------------------
+var MEMBER_REFRESH_MIN_MS = 60000;
+
+async function refreshMember() {
+  if (!token || !member) return;
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=member&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(token));
+    var data = await res.json();
+    if (!data.ok) return; // auth problems are handled on the next full load
+    member = data.member;
+    memberStale     = false;
+    lastMemberFetch = Date.now();
+    writeMemberCache(member);
+    var s = document.getElementById('screen-status');
+    if (s && s.classList.contains('active')) renderStatus();
+  } catch(e) {
+    console.warn('Member refresh failed:', e.message);
+  }
+}
+
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && member && token &&
+      Date.now() - lastMemberFetch > MEMBER_REFRESH_MIN_MS) {
+    refreshMember();
+  }
+});
+
+// ----------------------------------------------------------------
+// Keyboard activation for non-native controls (divs carrying
+// role="button" / role="checkbox") -- Enter and Space trigger click,
+// matching native button behavior.
+// ----------------------------------------------------------------
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var t = e.target;
+  if (t && t.matches && t.matches('[role="button"], [role="checkbox"]')) {
+    e.preventDefault();
+    t.click();
+  }
+});
+
 async function loadCatalog(tok) {
   setCatalogStatus('loading');
   try {
-    var res  = await fetchWithTimeout(BACKEND_URL + '?action=catalog&token=' + encodeURIComponent(tok));
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=catalog&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
     var data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Catalog unavailable');
     catalogCache     = data.catalog || [];
@@ -11180,7 +11284,7 @@ function setCatalogStatus(status) {
   } else if (status === 'loading') {
     bar.innerHTML = '<div class="catalog-status"><div class="catalog-dot loading"></div><span class="catalog-status-text">CATALOG: LOADING...</span></div>';
   } else if (status === 'failed') {
-    bar.innerHTML = '<div class="catalog-status clickable" onclick="retryCatalog()"><div class="catalog-dot failed"></div><span class="catalog-status-text">CATALOG: FAILED — TAP TO RETRY</span></div>';
+    bar.innerHTML = '<div class="catalog-status clickable" role="button" tabindex="0" onclick="retryCatalog()"><div class="catalog-dot failed"></div><span class="catalog-status-text">CATALOG: FAILED — TAP TO RETRY</span></div>';
   }
 }
 
@@ -11193,8 +11297,12 @@ function retryCatalog() {
 // ================================================================
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
-  document.getElementById(id).classList.add('active');
+  var scr = document.getElementById(id);
+  scr.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Move screen-reader/keyboard focus to the new screen
+  scr.setAttribute('tabindex', '-1');
+  scr.focus({ preventScroll: true });
 }
 
 function showError(title, msg) {
@@ -11208,6 +11316,14 @@ function goStatus() {
   returnSelected = [];
   renderStatus();
   showScreen('screen-status');
+}
+
+// Toggle-style filter buttons: keep the active class and aria-pressed in sync
+function setToggleBtn(id, on) {
+  var b = document.getElementById(id);
+  if (!b) return;
+  b.classList.toggle('active', on);
+  b.setAttribute('aria-pressed', on ? 'true' : 'false');
 }
 
 // ================================================================
@@ -11249,6 +11365,9 @@ function renderStatus() {
 
   // Banners
   var banners = '';
+  if (memberStale) {
+    banners += banner('warn', '&#9888;', 'Showing saved account data — the server could not be reached. <a href="javascript:location.reload()" style="color:inherit;">Tap to refresh</a>.');
+  }
   if (!member.active) {
     banners += banner('err', '&#9888;', 'Access restricted. New checkouts are paused. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-INACTIVE" style="color:inherit;">Email support</a> to resolve.');
   }
@@ -11330,7 +11449,7 @@ function statCardFull(label, value, cls, sub) {
 }
 
 function actionBtn(cls, icon, label, sub, enabled, onclick) {
-  return '<div class="action-btn ' + cls + (enabled ? '' : ' disabled') + '" onclick="' + (enabled ? onclick : '') + '">' +
+  return '<div class="action-btn ' + cls + (enabled ? '' : ' disabled') + '" role="button" tabindex="' + (enabled ? '0' : '-1') + '" aria-disabled="' + (enabled ? 'false' : 'true') + '" onclick="' + (enabled ? onclick : '') + '">' +
     '<span class="ab-icon">' + icon + '</span>' +
     '<div class="ab-label">' + label + '</div>' +
     '<div class="ab-sub">' + sub + '</div>' +
@@ -11497,6 +11616,7 @@ async function submitCheckout() {
     action:    'checkout',
     member_id: member.member_id,
     token:     token,
+    api_key:   API_KEY,
     item_ids:  ids,
     note_type: noteType || null,
     note_text: noteText || null,
@@ -11568,7 +11688,7 @@ function renderReturnList() {
     var soon = !ov && daysUntil(r.due) <= 3;
     var dueCls = ov ? 'due-overdue' : (soon ? 'due-soon' : 'due-ok');
     var dueText = ov ? ('Overdue since ' + fmtDate(r.due)) : ('Due ' + fmtDate(r.due));
-    return '<div class="return-item' + (sel ? ' selected' : '') + '" data-id="' + esc(r.item_id) + '" onclick="toggleReturn(this.dataset.id)">' +
+    return '<div class="return-item' + (sel ? ' selected' : '') + '" role="checkbox" tabindex="0" aria-checked="' + (sel ? 'true' : 'false') + '" data-id="' + esc(r.item_id) + '" onclick="toggleReturn(this.dataset.id)">' +
       '<div class="ri-check">' + (sel ? '&#10003;' : '') + '</div>' +
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(r.title) + '</div>' +
@@ -11618,6 +11738,7 @@ async function submitReturn() {
     action:    'return_log',
     member_id: member.member_id,
     token:     token,
+    api_key:   API_KEY,
     item_ids:  returnSelected,
     note_type: noteType || null,
     note_text: noteText || null,
@@ -11666,9 +11787,9 @@ function goRentals() {
   document.getElementById('rentalsSubtitle').textContent =
     member.rentals.length + ' checked out, ' + member.return_pending.length + ' return pending.';
   histFilter = 30;
-  document.getElementById('hist-30').classList.add('active');
-  document.getElementById('hist-90').classList.remove('active');
-  document.getElementById('hist-all').classList.remove('active');
+  setToggleBtn('hist-30',  true);
+  setToggleBtn('hist-90',  false);
+  setToggleBtn('hist-all', false);
   renderHistory();
 
   var list = document.getElementById('rentalsList');
@@ -11753,8 +11874,10 @@ function showSuccess(type, title, sub, rows) {
 function toggleNote(ctx) {
   var fields   = document.getElementById('noteFields' + ctx);
   var chevron  = document.getElementById('noteChevron' + ctx);
+  var toggle   = document.getElementById('noteToggle' + ctx);
   var isOpen   = fields.classList.toggle('open');
   chevron.style.transform = isOpen ? 'rotate(45deg)' : '';
+  if (toggle) toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 }
 
 // ================================================================
@@ -11881,9 +12004,9 @@ var browseFilter = 'all';
 async function goBrowse() {
   browseFilter = 'all';
   document.getElementById('browseSearch').value = '';
-  document.getElementById('filter-all').classList.add('active');
-  document.getElementById('filter-available').classList.remove('active');
-  document.getElementById('filter-starred').classList.remove('active');
+  setToggleBtn('filter-all',       true);
+  setToggleBtn('filter-available', false);
+  setToggleBtn('filter-starred',   false);
   showScreen('screen-browse');
 
   // If catalog failed, retry now
@@ -11918,9 +12041,9 @@ function onBrowseSearchInput() {
 
 function setBrowseFilter(f) {
   browseFilter = f;
-  document.getElementById('filter-all').classList.toggle('active',      f === 'all');
-  document.getElementById('filter-available').classList.toggle('active', f === 'available');
-  document.getElementById('filter-starred').classList.toggle('active',   f === 'starred');
+  setToggleBtn('filter-all',       f === 'all');
+  setToggleBtn('filter-available', f === 'available');
+  setToggleBtn('filter-starred',   f === 'starred');
   renderBrowseList();
 }
 
@@ -12006,22 +12129,48 @@ function getBrowseStatusTag(it) {
 }
 
 function getBrowseAction(it, starredSet) {
-  // Star + Notify Me for unavailable. FUTURE: wire to Sheets.
+  // Star + Notify Me for unavailable items
   var id      = esc(it.item_id);
   var starred = starredSet ? starredSet.has(it.item_id) : isStarred(it.item_id);
-  var starBtn = '<button class="star-btn' + (starred ? ' starred' : '') + '" data-id="' + id + '" onclick="toggleStar(this.dataset.id)">' + (starred ? '&#9733;' : '&#9734;') + '</button>';
+  var starBtn = '<button class="star-btn' + (starred ? ' starred' : '') + '" data-id="' + id + '" aria-pressed="' + (starred ? 'true' : 'false') + '" aria-label="' + (starred ? 'Unstar' : 'Star') + ' ' + esc(it.title) + '" onclick="toggleStar(this.dataset.id)">' + (starred ? '&#9733;' : '&#9734;') + '</button>';
   if (it.status !== 'available') {
     return starBtn + '<button class="browse-action" id="bact-' + id + '" data-id="' + id + '" onclick="notifyMe(this.dataset.id)">NOTIFY ME</button>';
   }
   return starBtn;
 }
 
-// wishlist removed
+// ----------------------------------------------------------------
+// Member requests -- notify-me, title requests, reviews, and issue
+// flags all post to the backend Requests sheet through this helper.
+// ----------------------------------------------------------------
+async function postMemberRequest(type, itemId, text) {
+  var payload = {
+    action:    'member_request',
+    type:      type,
+    member_id: member ? member.member_id : null,
+    token:     token,
+    api_key:   API_KEY,
+    item_id:   itemId || null,
+    text:      text || null,
+    timestamp: new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }),
+  };
+  var res  = await fetchWithTimeout(BACKEND_URL, { method: 'POST', body: JSON.stringify(payload) });
+  var data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
 
-function notifyMe(itemId) {
-  // FUTURE: wire to Google Sheets Requests tab
-  console.log('Notify request:', member.member_id, itemId);
-  confirmBrowseAction(itemId, 'We will notify you');
+async function notifyMe(itemId) {
+  var btn = document.getElementById('bact-' + itemId);
+  if (btn) { btn.disabled = true; btn.textContent = 'SENDING...'; }
+  try {
+    await postMemberRequest('notify', itemId);
+    if (btn) btn.disabled = false;
+    confirmBrowseAction(itemId, 'We will notify you');
+  } catch(e) {
+    console.warn('Notify request failed:', e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'TRY AGAIN'; }
+  }
 }
 
 function confirmBrowseAction(itemId, msg) {
@@ -12032,18 +12181,24 @@ function confirmBrowseAction(itemId, msg) {
   btn.removeAttribute('onclick');
 }
 
-function submitTitleRequest() {
+async function submitTitleRequest() {
   var input = document.getElementById('requestInput');
+  var btn   = document.getElementById('requestSubmitBtn');
+  var fb    = document.getElementById('requestFeedback');
   var val   = input.value.trim();
   if (!val) return;
 
-  // FUTURE: wire to Google Sheets requests tab
-  console.log('Title request:', member.member_id, val);
-
-  input.value = '';
-  var fb = document.getElementById('requestFeedback');
-  fb.innerHTML = '<span style="font-family:monospace;font-size:11px;color:var(--success);">Thanks -- we will review your request. &#10003;</span>';
-  setTimeout(function() { if (fb) fb.innerHTML = ''; }, 4000);
+  btn.disabled = true; btn.textContent = 'SENDING...';
+  try {
+    await postMemberRequest('title_request', null, val);
+    input.value = '';
+    fb.innerHTML = '<span style="font-family:monospace;font-size:11px;color:var(--success);">Thanks -- we will review your request. &#10003;</span>';
+    setTimeout(function() { if (fb) fb.innerHTML = ''; }, 4000);
+  } catch(e) {
+    console.warn('Title request failed:', e.message);
+    fb.innerHTML = '<span style="font-family:monospace;font-size:11px;color:var(--danger);">Could not send right now. Please try again.</span>';
+  }
+  btn.disabled = false; btn.textContent = 'SUBMIT REQUEST';
 }
 
 // ================================================================
@@ -12081,9 +12236,9 @@ var histFilter = 30;
 
 function setHistFilter(days) {
   histFilter = days;
-  document.getElementById('hist-30').classList.toggle('active',  days === 30);
-  document.getElementById('hist-90').classList.toggle('active',  days === 90);
-  document.getElementById('hist-all').classList.toggle('active', days === 0);
+  setToggleBtn('hist-30',  days === 30);
+  setToggleBtn('hist-90',  days === 90);
+  setToggleBtn('hist-all', days === 0);
   renderHistory();
 }
 
@@ -12109,8 +12264,9 @@ function renderHistory() {
   }
 
   list.innerHTML = history.map(function(h) {
-    var safeId    = h.item_id.replace(/[^a-zA-Z0-9]/g, '');
-    var safeDate  = h.checked_out.replace(/[^0-9]/g, '');
+    // Coerce -- a history row missing either field must not crash the screen
+    var safeId    = String(h.item_id || '').replace(/[^a-zA-Z0-9]/g, '');
+    var safeDate  = String(h.checked_out || '').replace(/[^0-9]/g, '');
     var rid       = 'hist-' + safeId + '-' + safeDate;
     return '<div class="hist-item">' +
       '<div class="hist-title">' + esc(h.title) + '</div>' +
@@ -12127,16 +12283,21 @@ function renderHistory() {
   }).join('');
 }
 
-function histAction(btn) {
-  if (!btn || btn.classList.contains('done')) return;
-  var rid    = btn.getAttribute('data-rid');
+async function histAction(btn) {
+  if (!btn || btn.classList.contains('done') || btn.disabled) return;
   var type   = btn.getAttribute('data-type');
   var itemId = btn.getAttribute('data-itemid');
   var isReview = type === 'review';
-  // FUTURE: submit to Google Sheets Transactions tab with note_type
-  console.log((isReview ? 'Review' : 'Disc Issue') + ':', member.member_id, itemId);
-  btn.textContent = isReview ? 'THANKS!' : 'FLAGGED';
-  btn.classList.add('done');
+  btn.disabled = true; btn.textContent = 'SENDING...';
+  try {
+    await postMemberRequest(isReview ? 'review' : 'flag', itemId);
+    btn.textContent = isReview ? 'THANKS!' : 'FLAGGED';
+    btn.classList.add('done');
+  } catch(e) {
+    console.warn('History action failed:', e.message);
+    btn.textContent = 'TRY AGAIN';
+  }
+  btn.disabled = false;
 }
 
 // ================================================================
@@ -12162,8 +12323,12 @@ function toggleStar(itemId) {
   if (sidx === -1) starred.push(itemId);
   else starred.splice(sidx, 1);
   try { localStorage.setItem(STAR_KEY, JSON.stringify(starred)); } catch(e) {}
-  // FUTURE: wire to Sheets
-  console.log('Star action:', member.member_id, itemId, type);
+  // Record new stars on the backend (fire-and-forget -- the star itself
+  // is local, so a failed send should not block the UI)
+  if (sidx === -1) {
+    postMemberRequest(type === 'saved' ? 'star' : 'notify', itemId)
+      .catch(function(e) { console.warn('Star sync failed:', e.message); });
+  }
   confirmBrowseAction(itemId, message);
   renderBrowseList();
 }
