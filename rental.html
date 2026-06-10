@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/x-icon" href="favicon-member-favicon.ico">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon-member-favicon-96x96.png">
+<link rel="icon" type="image/svg+xml" href="favicon-member-favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon-member-apple-touch-icon.png">
+<title>Sci-Fi Dojo — Rent a Movie</title>
+<meta name="description" content="Rent a disc from the Sci-Fi Dojo cabinet. Pay by the day. Full packaging, bonuses, and extras included.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+
+<style>
+/* ================================================================
+   ROOT & RESET — matches index.html visual language
+================================================================ */
+:root {
+  --bg:       #131412;
+  --bg2:      #181917;
+  --panel:    #1e1f1c;
+  --border:   #2e2e2a;
+  --border2:  #3e3e38;
+  --accent:   #e8c547;
+  --accent2:  #ff6b35;
+  --accent3:  #7ecfb3;
+  --text:     #f4f1e8;
+  --text-mid: #d8d4c8;
+  --text-dim: #888178;
+  --err:      #e06c5a;
+  --ok:       #7ecfb3;
+  --r:        2px;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Crimson Pro', Georgia, serif;
+  font-size: 17px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* grain + scan lines */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 100; opacity: .6;
+}
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.08) 2px, rgba(0,0,0,.08) 4px);
+  pointer-events: none; z-index: 99;
+}
+
+a { color: var(--accent); }
+
+/* ================================================================
+   LAYOUT
+================================================================ */
+header {
+  position: sticky; top: 0; z-index: 50;
+  padding: 14px 20px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  border-bottom: 1px solid rgba(232,197,71,.12);
+  background: rgba(10,10,8,.92);
+  backdrop-filter: blur(12px);
+}
+.logo {
+  font-family: 'Orbitron', monospace;
+  font-weight: 900; font-size: 15px; letter-spacing: 2px;
+  color: var(--accent); text-decoration: none; white-space: nowrap;
+}
+.logo span { color: var(--text-dim); font-weight: 400; }
+
+nav { display: flex; gap: 4px; }
+.navbtn {
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 1px;
+  background: none; border: 1px solid transparent; color: var(--text-dim);
+  padding: 7px 12px; border-radius: var(--r); cursor: pointer;
+}
+.navbtn:hover { color: var(--text); }
+.navbtn.active { color: var(--accent); border-color: var(--border2); background: var(--bg2); }
+
+main { max-width: 860px; margin: 0 auto; padding: 28px 20px 80px; }
+
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp .35s ease both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+h1.screen-title {
+  font-family: 'Orbitron', monospace; font-size: 20px; font-weight: 700;
+  letter-spacing: 2px; color: var(--text); margin-bottom: 4px;
+}
+.screen-sub { color: var(--text-dim); margin-bottom: 24px; font-size: 15px; }
+
+/* ================================================================
+   PANELS, BANNERS, BUTTONS, FORMS
+================================================================ */
+.panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px; margin-bottom: 16px;
+}
+
+.banner {
+  padding: 12px 14px; border-radius: var(--r); margin-bottom: 14px;
+  font-size: 15px; border: 1px solid;
+}
+.banner.err  { color: var(--err); border-color: rgba(224,108,90,.4); background: rgba(224,108,90,.08); }
+.banner.ok   { color: var(--ok); border-color: rgba(126,207,179,.4); background: rgba(126,207,179,.08); }
+.banner.warn { color: var(--accent); border-color: rgba(232,197,71,.4); background: rgba(232,197,71,.08); }
+
+.btn {
+  font-family: 'Share Tech Mono', monospace; font-size: 13px; letter-spacing: 1.5px;
+  padding: 12px 22px; border-radius: var(--r); cursor: pointer;
+  background: var(--accent); color: #131412; border: 1px solid var(--accent);
+  transition: opacity .15s ease;
+}
+.btn:hover { opacity: .85; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.ghost { background: none; color: var(--text-mid); border-color: var(--border2); }
+.btn.ghost:hover { color: var(--accent); border-color: var(--accent); opacity: 1; }
+.btn.danger { background: none; color: var(--err); border-color: rgba(224,108,90,.5); }
+.btn.full { width: 100%; }
+.btn.small { padding: 8px 14px; font-size: 12px; }
+
+label {
+  display: block; font-family: 'Share Tech Mono', monospace;
+  font-size: 11px; letter-spacing: 1.5px; color: var(--text-dim);
+  margin: 14px 0 6px; text-transform: uppercase;
+}
+input[type=text], input[type=email], input[type=password], select {
+  width: 100%; padding: 11px 12px;
+  background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r);
+  color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 14px;
+}
+input:focus, select:focus { outline: none; border-color: var(--accent); }
+
+.tabs { display: flex; border-bottom: 1px solid var(--border2); margin-bottom: 8px; }
+.tab {
+  flex: 1; background: none; border: none; cursor: pointer;
+  font-family: 'Orbitron', monospace; font-size: 12px; letter-spacing: 1.5px;
+  color: var(--text-dim); padding: 12px 0; border-bottom: 2px solid transparent;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ================================================================
+   CATALOG
+================================================================ */
+.catalog-tools { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.catalog-tools input { flex: 1; min-width: 180px; }
+.catalog-tools select { width: auto; }
+
+.movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+
+.movie-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 16px; display: flex; flex-direction: column; gap: 8px;
+  transition: border-color .15s ease;
+}
+.movie-card:hover { border-color: var(--border2); }
+.movie-card.unavailable { opacity: .55; }
+
+.movie-title { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; line-height: 1.4; }
+.movie-meta { font-family: 'Share Tech Mono', monospace; font-size: 12px; color: var(--text-dim); }
+.movie-desc { font-size: 14px; color: var(--text-mid); font-style: italic; flex: 1; }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.chip {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px;
+  padding: 3px 8px; border-radius: var(--r); border: 1px solid var(--border2); color: var(--text-mid);
+}
+.chip.rate1 { color: var(--accent3); border-color: rgba(126,207,179,.5); }
+.chip.rate2 { color: var(--accent);  border-color: rgba(232,197,71,.5); }
+.chip.rate3 { color: var(--accent2); border-color: rgba(255,107,53,.5); }
+.chip.out   { color: var(--err); border-color: rgba(224,108,90,.5); }
+
+/* ================================================================
+   CABINET CODE
+================================================================ */
+.code-box {
+  text-align: center; padding: 30px 20px; margin: 18px 0;
+  border: 1px dashed var(--accent); border-radius: var(--r);
+  background: rgba(232,197,71,.05);
+}
+.code-label {
+  font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  letter-spacing: 2px; color: var(--text-dim); text-transform: uppercase;
+}
+.code-value {
+  font-family: 'Orbitron', monospace; font-size: 38px; font-weight: 900;
+  letter-spacing: 8px; color: var(--accent); margin: 8px 0;
+  text-shadow: 0 0 30px rgba(232,197,71,.35);
+}
+.code-note { font-size: 14px; color: var(--text-dim); font-style: italic; }
+
+/* ================================================================
+   SHELF / RENTAL ROWS
+================================================================ */
+.rental-row {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px;
+  padding: 14px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.rental-row:last-child { border-bottom: none; }
+.rental-info { flex: 1; min-width: 200px; }
+.rental-charge { text-align: right; font-family: 'Share Tech Mono', monospace; }
+.charge-amt { font-size: 20px; color: var(--accent); }
+.charge-sub { font-size: 12px; color: var(--text-dim); }
+.charge-capped { color: var(--accent3); }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.stat {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 14px; text-align: center;
+}
+.stat-num { font-family: 'Orbitron', monospace; font-size: 22px; color: var(--accent); }
+.stat-label { font-family: 'Share Tech Mono', monospace; font-size: 11px; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; }
+
+/* ================================================================
+   MODAL
+================================================================ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(10,10,8,.85); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--panel); border: 1px solid var(--border2); border-radius: var(--r);
+  max-width: 440px; width: 100%; padding: 24px; max-height: 90vh; overflow-y: auto;
+}
+.price-line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 15px; }
+.price-line:last-of-type { border-bottom: none; }
+.price-line .v { font-family: 'Share Tech Mono', monospace; color: var(--text-mid); }
+
+/* ================================================================
+   DEMO BAR
+================================================================ */
+.demo-bar {
+  display: none; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  font-family: 'Share Tech Mono', monospace; font-size: 12px; letter-spacing: 1px;
+  color: var(--accent2); background: rgba(255,107,53,.08);
+  border-bottom: 1px solid rgba(255,107,53,.3); padding: 8px 14px;
+}
+.demo-bar.on { display: flex; }
+.demo-bar button {
+  font-family: inherit; font-size: 11px; cursor: pointer;
+  background: none; border: 1px solid rgba(255,107,53,.5); color: var(--accent2);
+  padding: 3px 10px; border-radius: var(--r);
+}
+
+@media (max-width: 560px) {
+  header { flex-wrap: wrap; }
+  .code-value { font-size: 28px; letter-spacing: 5px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html">SCI-FI DOJO <span>// RENTALS</span></a>
+  <nav id="mainNav" style="display:none">
+    <button class="navbtn" id="nav-browse"  onclick="go('browse')">BROWSE</button>
+    <button class="navbtn" id="nav-shelf"   onclick="go('shelf')">MY SHELF</button>
+    <button class="navbtn" id="nav-account" onclick="go('account')">ACCOUNT</button>
+  </nav>
+</header>
+
+<div class="demo-bar" id="demoBar">
+  &#9888; DEMO MODE — no backend configured; data lives in this browser
+  <button onclick="demoAdvanceDay()">+1 DAY</button>
+  <button onclick="demoReset()">RESET</button>
+</div>
+
+<main>
+
+  <!-- ============================================================
+       AUTH
+  ============================================================ -->
+  <section class="screen" id="screen-auth">
+    <h1 class="screen-title">THE CABINET AWAITS</h1>
+    <p class="screen-sub">Create an account to rent. Pay by the day — $1, $2, or $3 depending on the disc. Billing stops when you return it, or automatically after the cap.</p>
+
+    <div class="panel" style="max-width:440px">
+      <div class="tabs">
+        <button class="tab active" id="tab-login"  onclick="authTab('login')">SIGN IN</button>
+        <button class="tab" id="tab-signup" onclick="authTab('signup')">CREATE ACCOUNT</button>
+      </div>
+
+      <div id="authAlert"></div>
+
+      <form id="form-login" onsubmit="doLogin(event)">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" autocomplete="email" required>
+        <label for="loginPass">Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password" required>
+        <div style="margin-top:18px"><button class="btn full" id="loginBtn" type="submit">SIGN IN</button></div>
+      </form>
+
+      <form id="form-signup" style="display:none" onsubmit="doSignup(event)">
+        <label for="suName">Name</label>
+        <input type="text" id="suName" autocomplete="name" required>
+        <label for="suEmail">Email</label>
+        <input type="email" id="suEmail" autocomplete="email" required>
+        <label for="suPass">Password (8+ characters)</label>
+        <input type="password" id="suPass" autocomplete="new-password" minlength="8" required>
+        <div style="margin-top:18px"><button class="btn full" id="signupBtn" type="submit">CREATE ACCOUNT</button></div>
+        <p style="margin-top:12px;font-size:13px;color:var(--text-dim);font-style:italic">By creating an account you agree to the <a href="terms.html">house rules</a>.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       BROWSE
+  ============================================================ -->
+  <section class="screen" id="screen-browse">
+    <h1 class="screen-title">BROWSE THE CABINET</h1>
+    <p class="screen-sub">Full discs with packaging, bonuses, and extras. Rate is per day, capped — see each title.</p>
+    <div class="catalog-tools">
+      <input type="text" id="catalogSearch" placeholder="Search title or year..." oninput="renderCatalog()">
+      <select id="catalogFilter" onchange="renderCatalog()">
+        <option value="all">All titles</option>
+        <option value="available">Available now</option>
+        <option value="1">$1/day</option>
+        <option value="2">$2/day</option>
+        <option value="3">$3/day</option>
+      </select>
+    </div>
+    <div id="catalogStatus"></div>
+    <div class="movie-grid" id="movieGrid"></div>
+  </section>
+
+  <!-- ============================================================
+       RENT SUCCESS
+  ============================================================ -->
+  <section class="screen" id="screen-rented">
+    <h1 class="screen-title">YOU'RE SET</h1>
+    <p class="screen-sub" id="rentedSub"></p>
+    <div class="panel">
+      <div class="code-box">
+        <div class="code-label">Cabinet Combination</div>
+        <div class="code-value" id="rentedCode"></div>
+        <div class="code-note">Personal to your account. Rotates weekly — don't share it.</div>
+      </div>
+      <div id="rentedDetails"></div>
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+        <button class="btn" onclick="go('shelf')">VIEW MY SHELF</button>
+        <button class="btn ghost" onclick="go('browse')">KEEP BROWSING</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       MY SHELF
+  ============================================================ -->
+  <section class="screen" id="screen-shelf">
+    <h1 class="screen-title">MY SHELF</h1>
+    <p class="screen-sub">What you have out right now, and what it's costing you. Return a disc to the cabinet, then mark it returned here.</p>
+    <div id="shelfAlert"></div>
+    <div id="shelfContent"></div>
+  </section>
+
+  <!-- ============================================================
+       ACCOUNT
+  ============================================================ -->
+  <section class="screen" id="screen-account">
+    <h1 class="screen-title">ACCOUNT</h1>
+    <p class="screen-sub" id="accountSub"></p>
+    <div id="accountContent"></div>
+  </section>
+
+</main>
+
+<!-- ==============================================================
+     RENT CONFIRM MODAL
+============================================================== -->
+<div class="modal-overlay" id="rentModal">
+  <div class="modal">
+    <h2 style="font-family:'Orbitron',monospace;font-size:16px;letter-spacing:1.5px;margin-bottom:14px">CONFIRM RENTAL</h2>
+    <div id="rentModalBody"></div>
+    <div id="rentModalAlert"></div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <button class="btn" id="rentConfirmBtn" onclick="confirmRent()">RENT IT</button>
+      <button class="btn ghost" onclick="closeRentModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// CONFIG
+// Deploy apps-script/Code.gs as a web app and paste its URL here.
+// Leave empty to run in demo mode (localStorage, this browser only).
+// ================================================================
+var BACKEND_URL = '';
+
+var DEMO = !BACKEND_URL;
+var SESSION_KEY = 'sfd_rent_session';
+var DAY_MS = 86400000;
+
+// ================================================================
+// DATE & MONEY HELPERS
+// ================================================================
+function now() { return Date.now() + (DEMO ? demoClockOffset() : 0); }
+
+function fmtMoney(n) { return '$' + n.toFixed(2); }
+
+function fmtDateTime(ms) {
+  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+// Billing: day of rental counts as day 1; each calendar day after adds
+// one billed day, up to the cap. Same formula lives in Code.gs.
+function billedDays(rentedAtMs, asOfMs, capDays) {
+  var days = Math.floor((asOfMs - rentedAtMs) / DAY_MS) + 1;
+  if (days < 1) days = 1;
+  if (days > capDays) days = capDays;
+  return days;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+
+// ================================================================
+// API LAYER
+// Real mode: POST JSON to the Apps Script backend (text/plain body
+// avoids a CORS preflight, same pattern as member.html).
+// Demo mode: same actions served from a localStorage database.
+// ================================================================
+async function api(action, payload) {
+  if (DEMO) return demoApi(action, payload || {});
+  var body = Object.assign({ action: action }, payload || {});
+  var res = await fetch(BACKEND_URL, { method: 'POST', body: JSON.stringify(body) });
+  return res.json();
+}
+
+// ================================================================
+// DEMO BACKEND (localStorage)
+// ================================================================
+var DEMO_DB_KEY = 'sfd_rent_demo_db';
+var DEMO_CLOCK_KEY = 'sfd_rent_demo_clock';
+
+var DEMO_SEED = {
+  config: { cabinet_code: '42-17-08', cap_days: 14, max_active: 3 },
+  members: [],
+  rentals: [],
+  catalog: [
+    { item_id: 'SFD-101', title: 'Blade Runner: The Final Cut', year: 1982, format: '4K UHD',  edition: '4-Disc Collector Set', rate: 3, status: 'available', blurb: 'Every cut, every extra, the whole rabbit hole.' },
+    { item_id: 'SFD-102', title: '2001: A Space Odyssey',        year: 1968, format: '4K UHD',  edition: 'Premium Edition',      rate: 3, status: 'available', blurb: 'The monolith, in the resolution it deserves.' },
+    { item_id: 'SFD-103', title: 'Dune: Part One',               year: 2021, format: '4K UHD',  edition: 'Steelbook',            rate: 3, status: 'available', blurb: 'Spice-grade HDR. Bring a big screen.' },
+    { item_id: 'SFD-104', title: 'Alien',                        year: 1979, format: 'Blu-ray', edition: '45th Anniversary',     rate: 2, status: 'available', blurb: 'Commentary tracks worth the rental alone.' },
+    { item_id: 'SFD-105', title: 'The Thing',                    year: 1982, format: 'Blu-ray', edition: 'Collector Edition',    rate: 2, status: 'available', blurb: 'Carpenter at his paranoid best, loaded with extras.' },
+    { item_id: 'SFD-106', title: 'Akira',                        year: 1988, format: 'Blu-ray', edition: '30th Anniversary Box', rate: 2, status: 'available', blurb: 'Booklet, art cards, both dubs. The whole package.' },
+    { item_id: 'SFD-107', title: 'Stalker',                      year: 1979, format: 'Blu-ray', edition: 'Criterion',            rate: 2, status: 'available', blurb: 'Tarkovsky restored. Patience required, rewarded.' },
+    { item_id: 'SFD-108', title: 'Brazil',                       year: 1985, format: 'Blu-ray', edition: 'Criterion 3-Disc',     rate: 2, status: 'available', blurb: 'Includes the infamous "Love Conquers All" cut.' },
+    { item_id: 'SFD-109', title: 'Moon',                         year: 2009, format: 'DVD',     edition: 'Standard',             rate: 1, status: 'available', blurb: 'Small film, big ideas. Sam Rockwell x2.' },
+    { item_id: 'SFD-110', title: 'Primer',                       year: 2004, format: 'DVD',     edition: 'Standard',             rate: 1, status: 'available', blurb: 'You will need the rental period to understand it.' },
+    { item_id: 'SFD-111', title: 'Solaris',                      year: 1972, format: 'DVD',     edition: 'Criterion',            rate: 1, status: 'available', blurb: 'The thinking person\'s space station drama.' },
+    { item_id: 'SFD-112', title: 'Metropolis',                   year: 1927, format: 'DVD',     edition: 'Restored',             rate: 1, status: 'available', blurb: 'Where all of this started.' }
+  ]
+};
+
+function demoDb() {
+  var raw = localStorage.getItem(DEMO_DB_KEY);
+  if (!raw) {
+    var db = JSON.parse(JSON.stringify(DEMO_SEED));
+    localStorage.setItem(DEMO_DB_KEY, JSON.stringify(db));
+    return db;
+  }
+  return JSON.parse(raw);
+}
+function demoSave(db) { localStorage.setItem(DEMO_DB_KEY, JSON.stringify(db)); }
+function demoClockOffset() { return parseInt(localStorage.getItem(DEMO_CLOCK_KEY) || '0', 10); }
+
+function demoAdvanceDay() {
+  localStorage.setItem(DEMO_CLOCK_KEY, String(demoClockOffset() + DAY_MS));
+  refreshCurrentScreen();
+}
+
+function demoReset() {
+  localStorage.removeItem(DEMO_DB_KEY);
+  localStorage.removeItem(DEMO_CLOCK_KEY);
+  localStorage.removeItem(SESSION_KEY);
+  location.reload();
+}
+
+// Not real security — demo mode only. The real backend salts and
+// hashes with SHA-256 server-side (see apps-script/Code.gs).
+function demoHash(s) {
+  var h = 5381;
+  for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return 'demo-' + (h >>> 0).toString(16);
+}
+
+function demoMemberByToken(db, token) {
+  for (var i = 0; i < db.members.length; i++) {
+    if (db.members[i].session_token === token) return db.members[i];
+  }
+  return null;
+}
+
+function demoShelfPayload(db, m) {
+  var active = [], history = [], totalSpent = 0;
+  db.rentals.forEach(function(r) {
+    if (r.member_id !== m.member_id) return;
+    var item = db.catalog.filter(function(c) { return c.item_id === r.item_id; })[0];
+    var rec = Object.assign({}, r, { title: item.title, year: item.year, format: item.format, edition: item.edition });
+    if (r.status === 'active') {
+      rec.days_billed = billedDays(r.rented_at, now(), db.config.cap_days);
+      rec.accrued = rec.days_billed * r.rate;
+      active.push(rec);
+    } else {
+      history.push(rec);
+      totalSpent += r.amount;
+    }
+  });
+  history.sort(function(a, b) { return b.returned_at - a.returned_at; });
+  return {
+    ok: true,
+    member: { name: m.name, email: m.email, created_at: m.created_at },
+    active: active, history: history, total_spent: totalSpent,
+    cabinet_code: active.length ? db.config.cabinet_code : null,
+    cap_days: db.config.cap_days, max_active: db.config.max_active
+  };
+}
+
+function demoApi(action, p) {
+  var db = demoDb();
+
+  if (action === 'signup') {
+    var email = (p.email || '').trim().toLowerCase();
+    if (db.members.some(function(m) { return m.email === email; })) {
+      return { ok: false, error: 'An account with that email already exists. Sign in instead.' };
+    }
+    var m = {
+      member_id: 'M-' + Date.now().toString(36),
+      name: (p.name || '').trim(), email: email,
+      password_hash: demoHash(p.password),
+      session_token: 'tok-' + Math.random().toString(36).slice(2) + Date.now().toString(36),
+      created_at: now()
+    };
+    db.members.push(m); demoSave(db);
+    return { ok: true, token: m.session_token, member: { name: m.name, email: m.email } };
+  }
+
+  if (action === 'login') {
+    var email2 = (p.email || '').trim().toLowerCase();
+    var found = db.members.filter(function(m) { return m.email === email2; })[0];
+    if (!found || found.password_hash !== demoHash(p.password)) {
+      return { ok: false, error: 'Email or password did not match.' };
+    }
+    found.session_token = 'tok-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+    demoSave(db);
+    return { ok: true, token: found.session_token, member: { name: found.name, email: found.email } };
+  }
+
+  var m2 = demoMemberByToken(db, p.token);
+  if (!m2) return { ok: false, error: 'AUTH', auth: true };
+
+  if (action === 'catalog') {
+    return { ok: true, catalog: db.catalog, cap_days: db.config.cap_days };
+  }
+
+  if (action === 'rent') {
+    var item = db.catalog.filter(function(c) { return c.item_id === p.item_id; })[0];
+    if (!item) return { ok: false, error: 'That title was not found.' };
+    if (item.status !== 'available') return { ok: false, error: 'Sorry — that disc just went out. Check back soon.' };
+    var activeCount = db.rentals.filter(function(r) { return r.member_id === m2.member_id && r.status === 'active'; }).length;
+    if (activeCount >= db.config.max_active) {
+      return { ok: false, error: 'You already have ' + db.config.max_active + ' discs out. Return one first.' };
+    }
+    item.status = 'rented';
+    var rental = {
+      rental_id: 'R-' + Date.now().toString(36),
+      member_id: m2.member_id, item_id: item.item_id,
+      rate: item.rate, rented_at: now(), status: 'active',
+      returned_at: null, amount: null
+    };
+    db.rentals.push(rental); demoSave(db);
+    return {
+      ok: true, rental_id: rental.rental_id, title: item.title,
+      rate: item.rate, cap_days: db.config.cap_days,
+      max_charge: item.rate * db.config.cap_days,
+      cabinet_code: db.config.cabinet_code
+    };
+  }
+
+  if (action === 'return') {
+    var r2 = db.rentals.filter(function(r) { return r.rental_id === p.rental_id && r.member_id === m2.member_id; })[0];
+    if (!r2) return { ok: false, error: 'Rental not found on your account.' };
+    if (r2.status !== 'active') return { ok: false, error: 'That rental was already closed out.' };
+    var days = billedDays(r2.rented_at, now(), db.config.cap_days);
+    r2.status = 'returned';
+    r2.returned_at = now();
+    r2.days_billed = days;
+    r2.amount = days * r2.rate;
+    var item2 = db.catalog.filter(function(c) { return c.item_id === r2.item_id; })[0];
+    if (item2) item2.status = 'available';
+    demoSave(db);
+    return { ok: true, days_billed: days, amount: r2.amount };
+  }
+
+  if (action === 'shelf') return demoShelfPayload(db, m2);
+
+  if (action === 'logout') {
+    m2.session_token = null; demoSave(db);
+    return { ok: true };
+  }
+
+  return { ok: false, error: 'Unknown action.' };
+}
+
+// ================================================================
+// SESSION & GLOBAL STATE
+// ================================================================
+var session = null;       // { token, member: { name, email } }
+var catalogCache = [];
+var capDays = 14;
+var currentScreen = 'auth';
+var rentTarget = null;
+
+function loadSession() {
+  try { session = JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { session = null; }
+}
+function saveSession() { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
+function clearSession() { session = null; localStorage.removeItem(SESSION_KEY); }
+
+function banner(kind, msg) { return '<div class="banner ' + kind + '">' + msg + '</div>'; }
+
+// If the backend rejects the token (revoked, expired), drop to auth.
+function handleAuthFail(data) {
+  if (data && data.auth) { clearSession(); go('auth'); return true; }
+  return false;
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function go(name) {
+  currentScreen = name;
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(function(b) { b.classList.remove('active'); });
+  var nb = document.getElementById('nav-' + name);
+  if (nb) nb.classList.add('active');
+  document.getElementById('mainNav').style.display = session ? 'flex' : 'none';
+  if (name === 'browse')  loadBrowse();
+  if (name === 'shelf')   loadShelf();
+  if (name === 'account') loadAccount();
+  window.scrollTo(0, 0);
+}
+
+function refreshCurrentScreen() { go(currentScreen); }
+
+// ================================================================
+// AUTH SCREEN
+// ================================================================
+function authTab(which) {
+  document.getElementById('tab-login').classList.toggle('active', which === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', which === 'signup');
+  document.getElementById('form-login').style.display  = which === 'login'  ? 'block' : 'none';
+  document.getElementById('form-signup').style.display = which === 'signup' ? 'block' : 'none';
+  document.getElementById('authAlert').innerHTML = '';
+}
+
+async function doSignup(ev) {
+  ev.preventDefault();
+  var btn = document.getElementById('signupBtn');
+  var alertEl = document.getElementById('authAlert');
+  alertEl.innerHTML = '';
+  btn.disabled = true; btn.textContent = 'CREATING...';
+  try {
+    var data = await api('signup', {
+      name: document.getElementById('suName').value,
+      email: document.getElementById('suEmail').value,
+      password: document.getElementById('suPass').value
+    });
+    if (!data.ok) throw new Error(data.error);
+    session = { token: data.token, member: data.member };
+    saveSession();
+    go('browse');
+  } catch (e) {
+    alertEl.innerHTML = banner('err', escapeHtml(e.message || 'Could not create account. Try again.'));
+  }
+  btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
+}
+
+async function doLogin(ev) {
+  ev.preventDefault();
+  var btn = document.getElementById('loginBtn');
+  var alertEl = document.getElementById('authAlert');
+  alertEl.innerHTML = '';
+  btn.disabled = true; btn.textContent = 'SIGNING IN...';
+  try {
+    var data = await api('login', {
+      email: document.getElementById('loginEmail').value,
+      password: document.getElementById('loginPass').value
+    });
+    if (!data.ok) throw new Error(data.error);
+    session = { token: data.token, member: data.member };
+    saveSession();
+    go('browse');
+  } catch (e) {
+    alertEl.innerHTML = banner('err', escapeHtml(e.message || 'Sign in failed. Try again.'));
+  }
+  btn.disabled = false; btn.textContent = 'SIGN IN';
+}
+
+async function doLogout() {
+  try { await api('logout', { token: session.token }); } catch (e) { /* clearing locally regardless */ }
+  clearSession();
+  go('auth');
+}
+
+// ================================================================
+// BROWSE
+// ================================================================
+async function loadBrowse() {
+  var statusEl = document.getElementById('catalogStatus');
+  if (!catalogCache.length) statusEl.innerHTML = banner('warn', 'Loading the cabinet...');
+  try {
+    var data = await api('catalog', { token: session.token });
+    if (!data.ok) throw new Error(data.error);
+    if (handleAuthFail(data)) return;
+    catalogCache = data.catalog;
+    capDays = data.cap_days || capDays;
+    statusEl.innerHTML = '';
+    renderCatalog();
+  } catch (e) {
+    if (handleAuthFail(e)) return;
+    statusEl.innerHTML = banner('err', 'Could not load the catalog. ' + escapeHtml(e.message || ''));
+  }
+}
+
+function rateChip(rate) {
+  return '<span class="chip rate' + rate + '">$' + rate + '/DAY</span>';
+}
+
+function renderCatalog() {
+  var q = document.getElementById('catalogSearch').value.trim().toLowerCase();
+  var f = document.getElementById('catalogFilter').value;
+  var grid = document.getElementById('movieGrid');
+  grid.innerHTML = '';
+
+  var items = catalogCache.filter(function(it) {
+    if (q && (it.title + ' ' + it.year).toLowerCase().indexOf(q) === -1) return false;
+    if (f === 'available' && it.status !== 'available') return false;
+    if ((f === '1' || f === '2' || f === '3') && String(it.rate) !== f) return false;
+    return true;
+  });
+
+  if (!items.length) {
+    grid.innerHTML = '<p style="color:var(--text-dim);font-style:italic">Nothing matches. Try clearing the search.</p>';
+    return;
+  }
+
+  items.forEach(function(it) {
+    var avail = it.status === 'available';
+    var card = document.createElement('div');
+    card.className = 'movie-card' + (avail ? '' : ' unavailable');
+    card.innerHTML =
+      '<div class="movie-title">' + escapeHtml(it.title) + '</div>' +
+      '<div class="movie-meta">' + it.year + ' &bull; ' + escapeHtml(it.format) + ' &bull; ' + escapeHtml(it.edition || 'Standard') + '</div>' +
+      (it.blurb ? '<div class="movie-desc">' + escapeHtml(it.blurb) + '</div>' : '') +
+      '<div class="chips">' + rateChip(it.rate) +
+        (avail ? '' : '<span class="chip out">OUT</span>') +
+      '</div>' +
+      (avail
+        ? '<button class="btn small" onclick="openRentModal(\'' + it.item_id + '\')">RENT &bull; $' + it.rate + '/DAY</button>'
+        : '<button class="btn small ghost" disabled>CHECKED OUT</button>');
+    grid.appendChild(card);
+  });
+}
+
+// ================================================================
+// RENT FLOW
+// ================================================================
+function openRentModal(itemId) {
+  rentTarget = catalogCache.filter(function(it) { return it.item_id === itemId; })[0];
+  if (!rentTarget) return;
+  var maxCharge = rentTarget.rate * capDays;
+  document.getElementById('rentModalAlert').innerHTML = '';
+  document.getElementById('rentModalBody').innerHTML =
+    '<div class="movie-title" style="margin-bottom:4px">' + escapeHtml(rentTarget.title) + '</div>' +
+    '<div class="movie-meta" style="margin-bottom:14px">' + rentTarget.year + ' &bull; ' + escapeHtml(rentTarget.format) + ' &bull; ' + escapeHtml(rentTarget.edition || 'Standard') + '</div>' +
+    '<div class="price-line"><span>Daily rate</span><span class="v">$' + rentTarget.rate + '.00/day</span></div>' +
+    '<div class="price-line"><span>First day (billed today)</span><span class="v">$' + rentTarget.rate + '.00</span></div>' +
+    '<div class="price-line"><span>Billing stops after</span><span class="v">' + capDays + ' days</span></div>' +
+    '<div class="price-line"><span>Maximum total charge</span><span class="v">' + fmtMoney(maxCharge) + '</span></div>' +
+    '<p style="margin-top:12px;font-size:14px;color:var(--text-dim);font-style:italic">Return it any time to stop the meter. After ' + capDays + ' days the charge caps at ' + fmtMoney(maxCharge) + ' — but the disc still needs to come home.</p>';
+  document.getElementById('rentModal').classList.add('open');
+}
+
+function closeRentModal() {
+  document.getElementById('rentModal').classList.remove('open');
+  rentTarget = null;
+}
+
+async function confirmRent() {
+  if (!rentTarget) return;
+  var btn = document.getElementById('rentConfirmBtn');
+  var alertEl = document.getElementById('rentModalAlert');
+  btn.disabled = true; btn.textContent = 'RENTING...';
+  try {
+    var data = await api('rent', { token: session.token, item_id: rentTarget.item_id });
+    if (!data.ok) throw new Error(data.error);
+    closeRentModal();
+    catalogCache = []; // force refresh next browse
+    document.getElementById('rentedSub').textContent = 'Use the combination below to open the cabinet and grab your disc.';
+    document.getElementById('rentedCode').textContent = data.cabinet_code;
+    document.getElementById('rentedDetails').innerHTML =
+      '<div class="price-line"><span>' + escapeHtml(data.title) + '</span><span class="v">$' + data.rate + '.00/day</span></div>' +
+      '<div class="price-line"><span>Billed so far</span><span class="v">$' + data.rate + '.00 (day 1)</span></div>' +
+      '<div class="price-line"><span>Charge caps at</span><span class="v">' + fmtMoney(data.max_charge) + ' after ' + data.cap_days + ' days</span></div>';
+    go('rented');
+  } catch (e) {
+    if (handleAuthFail(e)) return;
+    alertEl.innerHTML = banner('err', escapeHtml(e.message || 'Rental failed. Try again.'));
+  }
+  btn.disabled = false; btn.textContent = 'RENT IT';
+}
+
+// ================================================================
+// MY SHELF
+// ================================================================
+async function loadShelf() {
+  var el = document.getElementById('shelfContent');
+  document.getElementById('shelfAlert').innerHTML = '';
+  el.innerHTML = '<p style="color:var(--text-dim)">Loading...</p>';
+  try {
+    var data = await api('shelf', { token: session.token });
+    if (!data.ok) throw new Error(data.error);
+    if (handleAuthFail(data)) return;
+    capDays = data.cap_days || capDays;
+    renderShelf(data);
+  } catch (e) {
+    if (handleAuthFail(e)) return;
+    el.innerHTML = banner('err', 'Could not load your shelf. ' + escapeHtml(e.message || ''));
+  }
+}
+
+function renderShelf(data) {
+  var el = document.getElementById('shelfContent');
+  var html = '';
+
+  if (data.cabinet_code) {
+    html += '<div class="panel"><div class="code-box" style="margin:0">' +
+      '<div class="code-label">Cabinet Combination</div>' +
+      '<div class="code-value">' + escapeHtml(data.cabinet_code) + '</div>' +
+      '<div class="code-note">Active while you have discs out. Rotates weekly.</div>' +
+      '</div></div>';
+  }
+
+  if (!data.active.length) {
+    html += '<div class="panel"><p style="color:var(--text-dim);font-style:italic">Nothing checked out. The cabinet misses you.</p>' +
+      '<div style="margin-top:14px"><button class="btn" onclick="go(\'browse\')">BROWSE THE CABINET</button></div></div>';
+  } else {
+    var accruedTotal = data.active.reduce(function(s, r) { return s + r.accrued; }, 0);
+    html += '<div class="stat-grid">' +
+      '<div class="stat"><div class="stat-num">' + data.active.length + '/' + data.max_active + '</div><div class="stat-label">Discs Out</div></div>' +
+      '<div class="stat"><div class="stat-num">' + fmtMoney(accruedTotal) + '</div><div class="stat-label">Accruing Now</div></div>' +
+      '</div>';
+
+    html += '<div class="panel">';
+    data.active.forEach(function(r) {
+      var capped = r.days_billed >= capDays;
+      html += '<div class="rental-row">' +
+        '<div class="rental-info">' +
+          '<div class="movie-title">' + escapeHtml(r.title) + '</div>' +
+          '<div class="movie-meta">' + escapeHtml(r.format) + ' &bull; out since ' + fmtDateTime(r.rented_at) + '</div>' +
+        '</div>' +
+        '<div class="rental-charge">' +
+          '<div class="charge-amt">' + fmtMoney(r.accrued) + '</div>' +
+          '<div class="charge-sub' + (capped ? ' charge-capped' : '') + '">' +
+            (capped
+              ? 'CAPPED &bull; billing stopped &bull; please return it'
+              : 'day ' + r.days_billed + ' of ' + capDays + ' &bull; $' + r.rate + '/day') +
+          '</div>' +
+        '</div>' +
+        '<button class="btn small ghost" onclick="doReturn(\'' + r.rental_id + '\', this)">MARK RETURNED</button>' +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+async function doReturn(rentalId, btn) {
+  btn.disabled = true; btn.textContent = 'RETURNING...';
+  var alertEl = document.getElementById('shelfAlert');
+  try {
+    var data = await api('return', { token: session.token, rental_id: rentalId });
+    if (!data.ok) throw new Error(data.error);
+    catalogCache = []; // item is available again
+    alertEl.innerHTML = banner('ok', 'Returned. Final charge: ' + fmtMoney(data.amount) +
+      ' (' + data.days_billed + ' day' + (data.days_billed === 1 ? '' : 's') + '). Billing on this disc has stopped.');
+    loadShelf();
+  } catch (e) {
+    if (handleAuthFail(e)) return;
+    alertEl.innerHTML = banner('err', escapeHtml(e.message || 'Return failed. Try again.'));
+    btn.disabled = false; btn.textContent = 'MARK RETURNED';
+  }
+}
+
+// ================================================================
+// ACCOUNT
+// ================================================================
+async function loadAccount() {
+  var el = document.getElementById('accountContent');
+  el.innerHTML = '<p style="color:var(--text-dim)">Loading...</p>';
+  document.getElementById('accountSub').textContent = '';
+  try {
+    var data = await api('shelf', { token: session.token });
+    if (!data.ok) throw new Error(data.error);
+    if (handleAuthFail(data)) return;
+
+    document.getElementById('accountSub').textContent =
+      data.member.name + ' — ' + data.member.email;
+
+    var accruedTotal = data.active.reduce(function(s, r) { return s + r.accrued; }, 0);
+    var html = '<div class="stat-grid">' +
+      '<div class="stat"><div class="stat-num">' + fmtMoney(accruedTotal) + '</div><div class="stat-label">Open Charges</div></div>' +
+      '<div class="stat"><div class="stat-num">' + fmtMoney(data.total_spent) + '</div><div class="stat-label">Total Spent</div></div>' +
+      '<div class="stat"><div class="stat-num">' + data.history.length + '</div><div class="stat-label">Rentals Completed</div></div>' +
+      '</div>';
+
+    html += '<div class="panel"><h3 style="font-family:\'Orbitron\',monospace;font-size:13px;letter-spacing:1.5px;margin-bottom:8px">RENTAL HISTORY</h3>';
+    if (!data.history.length) {
+      html += '<p style="color:var(--text-dim);font-style:italic">No completed rentals yet.</p>';
+    } else {
+      data.history.forEach(function(r) {
+        html += '<div class="rental-row">' +
+          '<div class="rental-info">' +
+            '<div class="movie-title" style="font-size:13px">' + escapeHtml(r.title) + '</div>' +
+            '<div class="movie-meta">returned ' + fmtDateTime(r.returned_at) + '</div>' +
+          '</div>' +
+          '<div class="rental-charge">' +
+            '<div class="charge-amt" style="font-size:15px">' + fmtMoney(r.amount) + '</div>' +
+            '<div class="charge-sub">' + r.days_billed + ' day' + (r.days_billed === 1 ? '' : 's') + ' @ $' + r.rate + '/day</div>' +
+          '</div></div>';
+      });
+    }
+    html += '</div>';
+
+    html += '<div class="panel"><p style="font-size:14px;color:var(--text-dim);font-style:italic;margin-bottom:14px">' +
+      'Charges are settled to your card on file' + (DEMO ? ' (simulated in demo mode)' : '') +
+      '. Questions about a charge? <a href="mailto:hello@scifidojo.com">Email us</a>.</p>' +
+      '<button class="btn danger small" onclick="doLogout()">SIGN OUT</button></div>';
+
+    el.innerHTML = html;
+  } catch (e) {
+    if (handleAuthFail(e)) return;
+    el.innerHTML = banner('err', 'Could not load your account. ' + escapeHtml(e.message || ''));
+  }
+}
+
+// ================================================================
+// INIT
+// ================================================================
+function init() {
+  if (DEMO) document.getElementById('demoBar').classList.add('on');
+  loadSession();
+  go(session ? 'browse' : 'auth');
+}
+
+init();
+</script>
+</body>
+</html>
