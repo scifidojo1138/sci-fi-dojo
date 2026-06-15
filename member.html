@@ -273,6 +273,24 @@ select option{background:var(--panel2);color:var(--text);}
 .note-fields.open{display:block;}
 .note-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
 
+/* FEED CARDS (events / perks) -- collapsible headline cards */
+.feed-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--r);margin:0 16px 10px;overflow:hidden;animation:fadeUp .35s ease both;}
+.feed-head{display:flex;align-items:center;justify-content:space-between;gap:12px;cursor:pointer;padding:14px 18px;}
+.feed-head:hover{background:var(--panel2);}
+.feed-title-wrap{min-width:0;}
+.feed-title{font-family:'Exo 2',sans-serif;font-size:15px;font-weight:600;color:var(--text);line-height:1.3;}
+.feed-meta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.04em;margin-top:3px;}
+.feed-chevron{color:var(--text-dim);font-size:18px;line-height:1;transition:transform .2s;flex-shrink:0;}
+.feed-card.open .feed-chevron{transform:rotate(45deg);}
+.feed-body{display:none;padding:0 18px 16px;animation:fadeUp .2s ease both;}
+.feed-card.open .feed-body{display:block;}
+.feed-text{font-size:14px;line-height:1.6;color:var(--text-mid);}
+.feed-img{width:100%;border-radius:var(--r-sm);border:1px solid var(--border);margin-bottom:12px;display:block;}
+.feed-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+.feed-btn{display:inline-flex;align-items:center;gap:7px;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--panel2);color:var(--text-mid);cursor:pointer;text-decoration:none;transition:border-color .2s,color .2s,background .2s;}
+.feed-btn:hover{border-color:var(--accent);color:var(--accent);}
+.feed-btn.rsvp-on{border-color:var(--success);color:var(--success);background:rgba(0,255,157,.08);}
+
 /* PIPS */
 .pip-row{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
 .pip{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .25s;}
@@ -535,9 +553,11 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
+    <div id="eventsSection"></div>
+    <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.10</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15</div>
     <div class="spacer"></div>
   </div>
 
@@ -10984,6 +11004,12 @@ var catalogCache     = null;
 var catalogByIdCache = {};
 var catalogStatus    = 'loading'; // 'loading' | 'ready' | 'failed'
 
+// Events / Perks feeds: live arrays after fetch; null = not yet loaded
+var eventsCache = null;
+var perksCache  = null;
+// localStorage key for "I'm going" RSVP state, set once member loads (mirrors STAR_KEY)
+var RSVP_KEY = 'sfd_rsvp_anon';
+
 // ----------------------------------------------------------------
 // Backend validation functions.
 // FIX 5: These are the sole source of truth for all business rules.
@@ -11163,8 +11189,10 @@ async function loadMember(tok) {
     catalogStatus = 'loading';
     renderStatus();
 
-    // Load catalog in background
+    // Load catalog + feeds in background
     loadCatalog(tok);
+    loadEvents(tok);
+    loadPerks(tok);
 
 } catch(e) {
     var msg = (e.message || '').toLowerCase();
@@ -11185,6 +11213,8 @@ async function loadMember(tok) {
       memberStale = true;
       renderStatus();
       loadCatalog(tok);
+      loadEvents(tok);
+      loadPerks(tok);
     } else {
       showError('Connection Interrupted',
         'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
@@ -11294,6 +11324,183 @@ function retryCatalog() {
 }
 
 // ================================================================
+// EVENTS / PERKS FEEDS
+// Read-only lists from the backend (Events / Perks sheet tabs),
+// rendered as collapsible cards on the dashboard. Events support a
+// single-tap RSVP (logged to Requests via member_request) and an
+// Add to Google Calendar link. Perks are headline + text + photo.
+// ================================================================
+async function loadEvents(tok) {
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=events&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Events unavailable');
+    eventsCache = data.events || [];
+    renderFeeds();
+  } catch(e) {
+    console.warn('Events load failed:', e.message);
+    // Leave eventsCache as-is (null = section stays hidden); feeds are non-critical
+  }
+}
+
+async function loadPerks(tok) {
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=perks&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Perks unavailable');
+    perksCache = data.perks || [];
+    renderFeeds();
+  } catch(e) {
+    console.warn('Perks load failed:', e.message);
+  }
+}
+
+// Selectively fill the two feed containers without re-running renderStatus
+function renderFeeds() {
+  var eventsEl = document.getElementById('eventsSection');
+  var perksEl  = document.getElementById('perksSection');
+  if (eventsEl) {
+    if (eventsCache && eventsCache.length) {
+      eventsEl.innerHTML =
+        '<div class="section-hdr">UPCOMING EVENTS<div class="section-hdr-line"></div></div>' +
+        eventsCache.map(renderEventCard).join('');
+    } else {
+      eventsEl.innerHTML = '';
+    }
+  }
+  if (perksEl) {
+    if (perksCache && perksCache.length) {
+      perksEl.innerHTML =
+        '<div class="section-hdr">MEMBER PERKS<div class="section-hdr-line"></div></div>' +
+        perksCache.map(renderPerkCard).join('');
+    } else {
+      perksEl.innerHTML = '';
+    }
+  }
+}
+
+function renderEventCard(ev) {
+  var id   = 'event-' + esc(ev.event_id);
+  var when = fmtEventWhen(ev.date_start, ev.date_end);
+  var metaBits = [];
+  if (when)        metaBits.push(esc(when));
+  if (ev.location) metaBits.push(esc(ev.location));
+  var meta = metaBits.join(' &bull; ');
+
+  var going  = getRsvped().indexOf(ev.event_id) !== -1;
+  var rsvpOn = ev.rsvp_enabled !== false && String(ev.rsvp_enabled).toLowerCase() !== 'false';
+
+  var actions = '';
+  if (rsvpOn) {
+    actions += '<button type="button" class="feed-btn rsvp-btn' + (going ? ' rsvp-on' : '') +
+      '" data-id="' + esc(ev.event_id) + '" aria-pressed="' + (going ? 'true' : 'false') +
+      '" onclick="toggleRsvp(this.dataset.id)">' + (going ? 'GOING &#10003;' : "I'M GOING") + '</button>';
+  }
+  var gcal = buildGCalUrl(ev);
+  if (gcal) {
+    actions += '<a class="feed-btn" href="' + esc(gcal) + '" target="_blank" rel="noopener">&#128197; ADD TO CALENDAR</a>';
+  }
+
+  return '<div class="feed-card" id="' + id + '">' +
+    '<div class="feed-head" role="button" tabindex="0" aria-expanded="false" aria-controls="' + id + '-body" data-id="' + id + '" onclick="toggleCollapse(this.dataset.id)">' +
+      '<div class="feed-title-wrap"><div class="feed-title">' + esc(ev.title) + '</div>' +
+        (meta ? '<div class="feed-meta">' + meta + '</div>' : '') + '</div>' +
+      '<span class="feed-chevron">+</span>' +
+    '</div>' +
+    '<div class="feed-body" id="' + id + '-body">' +
+      (ev.description ? '<div class="feed-text">' + esc(ev.description) + '</div>' : '') +
+      (actions ? '<div class="feed-actions">' + actions + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function renderPerkCard(pk) {
+  var id = 'perk-' + esc(pk.perk_id);
+  return '<div class="feed-card" id="' + id + '">' +
+    '<div class="feed-head" role="button" tabindex="0" aria-expanded="false" aria-controls="' + id + '-body" data-id="' + id + '" onclick="toggleCollapse(this.dataset.id)">' +
+      '<div class="feed-title-wrap"><div class="feed-title">' + esc(pk.title) + '</div></div>' +
+      '<span class="feed-chevron">+</span>' +
+    '</div>' +
+    '<div class="feed-body" id="' + id + '-body">' +
+      (pk.image_url ? '<img class="feed-img" src="' + esc(pk.image_url) + '" loading="lazy" alt="">' : '') +
+      (pk.description ? '<div class="feed-text">' + esc(pk.description) + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+// Generic accordion toggle for feed cards (keyed by card element id)
+function toggleCollapse(cardId) {
+  var card = document.getElementById(cardId);
+  if (!card) return;
+  var open = card.classList.toggle('open');
+  var head = card.querySelector('.feed-head');
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+function getRsvped() {
+  try { return JSON.parse(localStorage.getItem(RSVP_KEY) || '[]'); } catch(e) { return []; }
+}
+
+// Single-tap RSVP: toggles local state for the button and logs going /
+// cancel to the Requests tab (fire-and-forget, like the star sync).
+function toggleRsvp(eventId) {
+  var ev = (eventsCache || []).filter(function(e) { return String(e.event_id) === String(eventId); })[0];
+  var rsvped = getRsvped();
+  var idx    = rsvped.indexOf(eventId);
+  var going  = idx === -1;
+  if (going) rsvped.push(eventId);
+  else rsvped.splice(idx, 1);
+  try { localStorage.setItem(RSVP_KEY, JSON.stringify(rsvped)); } catch(e) {}
+
+  postMemberRequest(going ? 'rsvp' : 'rsvp_cancel', eventId, ev ? ev.title : '')
+    .catch(function(e) { console.warn('RSVP sync failed:', e.message); });
+
+  var btn = document.querySelector('.rsvp-btn[data-id="' + (window.CSS && CSS.escape ? CSS.escape(eventId) : eventId) + '"]');
+  if (btn) {
+    btn.classList.toggle('rsvp-on', going);
+    btn.setAttribute('aria-pressed', going ? 'true' : 'false');
+    btn.innerHTML = going ? 'GOING &#10003;' : "I'M GOING";
+  }
+}
+
+// Build a Google Calendar template link from an event row.
+// Returns '' when there is no usable start date.
+function buildGCalUrl(ev) {
+  var start = parseEventDate(ev.date_start);
+  if (!start) return '';
+  var end = parseEventDate(ev.date_end);
+  if (!end) end = new Date(start.getTime() + 2 * 3600 * 1000); // default 2h
+  var p = 'action=TEMPLATE' +
+    '&text='    + encodeURIComponent(ev.title || 'Sci-Fi Dojo Event') +
+    '&dates='   + gcalStamp(start) + '/' + gcalStamp(end) +
+    '&details=' + encodeURIComponent(ev.description || '') +
+    '&location=' + encodeURIComponent(ev.location || '');
+  return 'https://www.google.com/calendar/render?' + p;
+}
+
+function parseEventDate(v) {
+  if (!v) return null;
+  var d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// UTC stamp in Google Calendar's YYYYMMDDTHHMMSSZ format
+function gcalStamp(d) {
+  function p(n) { return (n < 10 ? '0' : '') + n; }
+  return d.getUTCFullYear() + p(d.getUTCMonth() + 1) + p(d.getUTCDate()) +
+    'T' + p(d.getUTCHours()) + p(d.getUTCMinutes()) + p(d.getUTCSeconds()) + 'Z';
+}
+
+// Human-friendly event date/time line; falls back to raw string if unparseable
+function fmtEventWhen(startStr, endStr) {
+  var d = parseEventDate(startStr);
+  if (!d) return startStr ? String(startStr) : '';
+  var opts = { weekday: 'short', month: 'short', day: 'numeric',
+               hour: 'numeric', minute: '2-digit' };
+  return d.toLocaleString('en-US', opts);
+}
+
+// ================================================================
 // NAVIGATION
 // ================================================================
 function showScreen(id) {
@@ -11337,8 +11544,9 @@ function setToggleBtn(id, on) {
 function renderStatus() {
   if (!member) return;
 
-  // Set STAR_KEY now that member is loaded
+  // Set STAR_KEY / RSVP_KEY now that member is loaded
   STAR_KEY = 'sfd_starred_' + member.member_id;
+  RSVP_KEY = 'sfd_rsvp_' + member.member_id;
 
   var st = backendGetMemberStatus(member);
 
@@ -11383,8 +11591,10 @@ function renderStatus() {
   if (member.return_pending.length > 0) {
     banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' item' + (member.return_pending.length > 1 ? 's' : '') + ' pending. Slots available.');
   }
-  // Persistent getting-started prompt -- always shown
-  banners += banner('info', '&#128161;', 'Tap Check Out or Return Items below to get started.');
+  // Getting-started prompt -- only for members with no active transactions
+  if (member.rentals.length === 0 && member.return_pending.length === 0) {
+    banners += banner('info', '&#128161;', 'Tap Check Out or Return Items below to get started.');
+  }
   if (banners) {
     document.getElementById('statusNotifSection').innerHTML =
       '<div class="section-hdr" style="padding-top:8px;">NOTIFICATIONS<div class="section-hdr-line"></div></div>' + banners;
@@ -11433,6 +11643,9 @@ function renderStatus() {
     actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'View inventory &amp; request titles', true, 'goBrowse()') +
     actionBtn('ab-account', '&#9881;',   'MEMBERSHIP',  member.next_billing_date ? 'Next bill: ' + fmtDate(member.next_billing_date) : 'Manage your plan', true, 'goAccount()');
   document.getElementById('sectionHdrActions').style.display = '';
+
+  // Events / perks feeds (paint from cache if already loaded)
+  renderFeeds();
 
   // Always navigate to status screen after render
   showScreen('screen-status');

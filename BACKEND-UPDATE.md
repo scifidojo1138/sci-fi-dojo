@@ -1,129 +1,62 @@
-# Apps Script Backend Update — Required for the New Member Portal Features
+# Apps Script Backend Update — Events & Perks Feeds
 
-The member portal (`member.html`) now sends two new things to your Google Apps
-Script backend:
+The member app now reads two new feeds from the spreadsheet: **upcoming
+events** (with RSVP + Add to Google Calendar) and **member perks** (with an
+optional photo). This requires two new Google Sheet tabs and two new backend
+GET endpoints.
 
-1. **A shared secret key** (`27268cf583e78fcdb9e5eb2d5bada419`) with every
-   request — GET requests carry it as `&key=...`, POST requests as `api_key`
-   in the JSON body. Requests without the correct key should be rejected.
-2. **A new action, `member_request`** — sent when a member taps NOTIFY ME,
-   stars a title, submits a title request, leaves a review, or flags a disc
-   issue. These used to go nowhere; now they expect the backend to record them.
+> Until this update is deployed, the events/perks sections simply do not
+> appear in the member app (the fetches fail quietly and the sections stay
+> hidden). Nothing else is affected.
 
-> **Important:** until you apply this update, the new request buttons
-> (NOTIFY ME, SUBMIT REQUEST, LEAVE REVIEW, FLAG ISSUE) will show
-> "TRY AGAIN" / "Could not send" because the backend doesn't recognize
-> `member_request` yet. Existing features (login, catalog, checkout,
-> return) keep working either way — the backend ignores the extra key
-> until you start checking it.
+## 1. Create the two new tabs
 
-## How to apply
+In **SciFiDojo_Sheet_v2**, add two tabs with these exact header rows (row 1):
 
-1. Open [script.google.com](https://script.google.com) and open the project
-   that backs the member portal.
-2. Make the code changes below.
-3. Click **Deploy → Manage deployments**, click the pencil ✏️ on your active
-   deployment, set **Version: New version**, and click **Deploy**. (The URL
-   stays the same — do *not* create a brand-new deployment, that would change
-   the URL.)
+**Events**
 
-## 1. Add the shared secret
+| event_id | title | date_start | date_end | location | description | rsvp_enabled | active |
+|---|---|---|---|---|---|---|---|
 
-At the top of your script, add:
+- `date_start` / `date_end`: a date-time the sheet recognizes (e.g. `2026-07-10 19:00`). `date_end` may be blank (the calendar link then defaults to a 2-hour event).
+- `rsvp_enabled`: `TRUE` to show the "I'm going" button, `FALSE` to hide it.
+- `active`: `TRUE` to publish. Events whose `date_start` is before today are hidden automatically, so you do not have to flip `active` off after an event passes.
 
-```javascript
-// Must match API_KEY in member.html. To rotate it, change it in BOTH places
-// and redeploy both the script (new version) and the website.
-var API_KEY = '27268cf583e78fcdb9e5eb2d5bada419';
+**Perks**
 
-function isAuthorized(key) {
-  return key === API_KEY;
-}
+| perk_id | title | description | image_url | active |
+|---|---|---|---|---|
+
+- `image_url`: optional. A root-relative path to an image committed in the repo, e.g. `/perks/popcorn.jpg` (see `perks/README.md`). Leave blank for a text-only perk.
+- `active`: `TRUE` to publish.
+
+`event_id` / `perk_id` just need to be unique and stable (e.g. `EV1`, `PK1`); the RSVP headcount in the Requests tab references `event_id`.
+
+## 2. Update the Apps Script
+
+Paste the updated backend (the `.gs` file delivered alongside this note) over
+the current code. The changes versus the previous version:
+
+- `TAB` gains `events: 'Events'` and `perks: 'Perks'`.
+- `doGet` requires the API key on the new `events` / `perks` actions and routes them.
+- New `getEvents(token)` / `getPerks(token)` functions (token-gated, key-checked, mirroring `getCatalog`).
+- No change to RSVP handling: RSVPs arrive through the existing `member_request` action and land in the **Requests** tab with `request_type` = `rsvp` (or `rsvp_cancel`), `item_id` = the event_id, and the event title in the text column.
+
+## 3. Deploy (same URL)
+
+**Deploy → Manage deployments → ✏️ on the active deployment → Version: New
+version → Deploy.** This keeps the existing URL. Saving the code in the editor
+does **not** deploy it.
+
+## 4. Verify
+
+With your token, in a browser (replace `YOUR_TOKEN`):
+
+```
+.../exec?action=events&key=27268cf583e78fcdb9e5eb2d5bada419&token=YOUR_TOKEN
+.../exec?action=perks&key=27268cf583e78fcdb9e5eb2d5bada419&token=YOUR_TOKEN
 ```
 
-## 2. Check the key in doGet and doPost
-
-At the very top of your existing `doGet(e)`:
-
-```javascript
-function doGet(e) {
-  if (!isAuthorized(e.parameter.key)) {
-    return jsonOut({ ok: false, error: 'unauthorized' });
-  }
-  // ... your existing doGet code continues unchanged ...
-}
-```
-
-At the very top of your existing `doPost(e)` (after parsing the body):
-
-```javascript
-function doPost(e) {
-  var body = JSON.parse(e.postData.contents);
-  if (!isAuthorized(body.api_key)) {
-    return jsonOut({ ok: false, error: 'unauthorized' });
-  }
-  if (body.action === 'member_request') {
-    return handleMemberRequest(body);
-  }
-  // ... your existing doPost code continues unchanged ...
-}
-```
-
-If you already have a helper that returns JSON, use it instead of `jsonOut`;
-otherwise add:
-
-```javascript
-function jsonOut(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-```
-
-## 3. Handle member requests
-
-This appends every request to a **Requests** sheet in your spreadsheet
-(created automatically the first time). Replace `findMemberByToken` with
-whatever lookup your existing actions use to validate the token.
-
-```javascript
-function handleMemberRequest(body) {
-  // Validate the member token the same way your other actions do
-  var member = findMemberByToken(body.token);
-  if (!member) return jsonOut({ ok: false, error: 'invalid token' });
-
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName('Requests');
-  if (!sheet) {
-    sheet = ss.insertSheet('Requests');
-    sheet.appendRow(['Timestamp', 'Member ID', 'Type', 'Item ID', 'Text', 'Status']);
-  }
-  sheet.appendRow([
-    new Date(),
-    body.member_id || '',
-    body.type || '',
-    body.item_id || '',
-    body.text || '',
-    'NEW',
-  ]);
-  return jsonOut({ ok: true });
-}
-```
-
-### Request types you'll see in the sheet
-
-| `type`          | Sent when a member...                          |
-|-----------------|------------------------------------------------|
-| `notify`        | taps NOTIFY ME on an unavailable title (or stars one) |
-| `star`          | stars an available title                       |
-| `title_request` | submits "What would you like to see?"          |
-| `review`        | taps LEAVE REVIEW in rental history            |
-| `flag`          | taps FLAG ISSUE in rental history              |
-
-## A note on what the key does (and doesn't do)
-
-`member.html` is a public page, so anyone who views its source can read the
-key. It is **not** a password — it stops bots and casual abuse of your backend
-URL, but the real per-member security is the membership token, which the
-backend must keep validating on every action. If the key ever leaks into spam
-traffic, rotate it: generate a new random string, update it in both
-`member.html` and the script, and redeploy both.
+Each should return `{"ok":true,"events":[...]}` / `{"ok":true,"perks":[...]}`.
+Then open the member app: events and perks appear as tappable cards on the
+dashboard. Tapping "I'm going" adds a row to the Requests tab.

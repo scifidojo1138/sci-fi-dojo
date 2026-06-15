@@ -58,13 +58,15 @@ The membership token rides in the member URL (`?token=`) by QR-card design; `mem
 ### GET
 - `?action=member&key=&token=` — full member object (rentals, return_pending, rental_history, cabinet/vault codes)
 - `?action=catalog&key=&token=` — filtered catalog (in_rotation=TRUE only; vault items only with vault_access; filtering is backend-side, never client-side)
+- `?action=events&key=&token=` — active, non-past events (Events tab); past events auto-hide by date so staff need not toggle them off
+- `?action=perks&key=&token=` — active perks (Perks tab)
 - `?action=all_members&pin=` — staff: full member list
 - `?action=active_checkouts&pin=` / `?action=return_bin&pin=` / `?action=catalog_staff&pin=` — staff lists
 
 ### POST (JSON body)
 - `checkout` — checks out items, updates catalog status, logs transaction (key)
 - `return_log` — member logs return, slot frees immediately, item → return_pending (key)
-- `member_request` — notify-me / star / title_request / review / flag from the member app; all append to the Requests tab with `request_type` (key). Note: review and flag land in **Requests** (triage queue), not Transactions.
+- `member_request` — notify-me / star / title_request / review / flag / rsvp / rsvp_cancel from the member app; all append to the Requests tab with `request_type` (key). Note: review and flag land in **Requests** (triage queue), not Transactions. `rsvp`/`rsvp_cancel` carry the event_id in `item_id` and the event title in `text` (gives staff a headcount).
 - `return_processed` — staff confirms physical return (staff_pin)
 - `correction` — admin note (staff_pin)
 - `star` — legacy route, superseded by `member_request`; kept for compatibility
@@ -84,6 +86,8 @@ Apps Script reads columns by header name via `sheetToObjects()`. Tabs:
 - **Transactions:** `transaction_id, timestamp, member_id, item_id, action, status_result, note_type, note_text, actor_type, override_type`. Checkout due date is stored in `note_text`.
 - **Settings:** decorative header rows — real headers in row 3. Keys: `current_general_code`, `current_vault_code`, `code_rotation_date`, `staff_pin`
 - **Requests:** `request_id, timestamp, member_id, item_id, request_type, title_text, status, staff_notes`
+- **Events:** `event_id, title, date_start, date_end, location, description, rsvp_enabled, active` — served by `events`; only `active=TRUE` and start date >= today are returned. `date_start`/`date_end` parse as dates (used for the Add to Google Calendar link); `rsvp_enabled` FALSE hides the RSVP button.
+- **Perks:** `perk_id, title, description, image_url, active` — served by `perks`; only `active=TRUE` returned. `image_url` is a root-relative path to a repo-committed image (e.g. `/perks/popcorn.jpg`, see `/perks/README.md`); blank = text-only perk.
 - **Dashboard / Expenses:** human-facing, not read by backend logic
 
 ## Membership Tiers — Source of Truth
@@ -128,6 +132,12 @@ All tiers receive Perks. Apps Script `tierRules` mirrors this table — keep the
 - Checkout input prefilled `SFD-`; "Keep typing..." hint at 4+ chars; `lookupItem()` fires at 8+; validation via `catalogByIdCache`; final validation server-side
 - Browse sort: starred first → available → alpha by `sort_title` (falls back to `title`). Search input is debounced (200ms). Starred IDs are read once per render into a Set — never re-parse localStorage per item.
 - Format emoji: 💿 DVD, 📀 Blu-ray, 💽 4K UHD, 🕹️ Video Games (future), 📼 VHS (future)
+
+### Events / Perks feeds
+- Two background fetches (`loadEvents`/`loadPerks`, mirroring `loadCatalog`) populate `eventsCache`/`perksCache`; `renderFeeds()` fills the `#eventsSection`/`#perksSection` containers on the dashboard (selective update, like `setCatalogStatus` — it does not re-run the full `renderStatus`). Feeds are non-critical: a failed fetch leaves the cache null and the section simply stays hidden.
+- Collapsible `.feed-card` accordion (tap headline to expand) shared by both. Events show a single-tap "I'm going" RSVP and an Add to Google Calendar link; perks show optional photo + text, no RSVP.
+- RSVP reuses `member_request` (no backend change) and mirrors the `STAR_KEY` localStorage toggle: `RSVP_KEY = 'sfd_rsvp_' + member.member_id` drives button state; each tap posts `rsvp`/`rsvp_cancel` fire-and-forget.
+- The "Tap Check Out or Return Items to get started" hint only renders for members with zero rentals and zero return-pending items.
 
 ### Error screen
 - "Connection Interrupted" — reassures the member their account is fine; TRY AGAIN reloads. `showError()` uses `innerHTML` so links render (its inputs are hardcoded strings; anything dynamic must be escaped).
