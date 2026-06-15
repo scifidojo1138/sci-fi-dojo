@@ -86,7 +86,7 @@ Apps Script reads columns by header name via `sheetToObjects()`. Tabs:
 - **Transactions:** `transaction_id, timestamp, member_id, item_id, action, status_result, note_type, note_text, actor_type, override_type`. Checkout due date is stored in `note_text`.
 - **Settings:** decorative header rows — real headers in row 3. Keys: `current_general_code`, `current_vault_code`, `code_rotation_date`, `staff_pin`
 - **Requests:** `request_id, timestamp, member_id, item_id, request_type, title_text, status, staff_notes`
-- **Events:** `event_id, title, date_start, date_end, location, description, rsvp_enabled, active` — served by `events`; only `active=TRUE` and start date >= today are returned. `date_start`/`date_end` parse as dates (used for the Add to Google Calendar link); `rsvp_enabled` FALSE hides the RSVP button.
+- **Events:** `event_id, title, date_start, date_end, location, description, rsvp_enabled, image_url, active` — served by `events`; only `active=TRUE` and start date >= today are returned. `date_start`/`date_end` parse as dates (used for the Add to Google Calendar link); `rsvp_enabled` FALSE hides the RSVP button; `image_url` is a root-relative path to a repo-committed image (e.g. `/events/movie-night.jpg`, see `/events/README.md`), shown in the expanded card; blank = no image.
 - **Perks:** `perk_id, title, description, image_url, active` — served by `perks`; only `active=TRUE` returned. `image_url` is a root-relative path to a repo-committed image (e.g. `/perks/popcorn.jpg`, see `/perks/README.md`); blank = text-only perk.
 - **Dashboard / Expenses:** human-facing, not read by backend logic
 

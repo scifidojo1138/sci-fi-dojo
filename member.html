@@ -557,7 +557,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15b</div>
     <div class="spacer"></div>
   </div>
 
@@ -11408,6 +11408,7 @@ function renderEventCard(ev) {
       '<span class="feed-chevron">+</span>' +
     '</div>' +
     '<div class="feed-body" id="' + id + '-body">' +
+      (ev.image_url ? '<img class="feed-img" src="' + esc(ev.image_url) + '" loading="lazy" alt="">' : '') +
       (ev.description ? '<div class="feed-text">' + esc(ev.description) + '</div>' : '') +
       (actions ? '<div class="feed-actions">' + actions + '</div>' : '') +
     '</div>' +

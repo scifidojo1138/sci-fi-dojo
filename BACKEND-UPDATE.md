@@ -15,12 +15,15 @@ In **SciFiDojo_Sheet_v2**, add two tabs with these exact header rows (row 1):
 
 **Events**
 
-| event_id | title | date_start | date_end | location | description | rsvp_enabled | active |
-|---|---|---|---|---|---|---|---|
+| event_id | title | date_start | date_end | location | description | rsvp_enabled | image_url | active |
+|---|---|---|---|---|---|---|---|---|
 
 - `date_start` / `date_end`: a date-time the sheet recognizes (e.g. `2026-07-10 19:00`). `date_end` may be blank (the calendar link then defaults to a 2-hour event).
 - `rsvp_enabled`: `TRUE` to show the "I'm going" button, `FALSE` to hide it.
+- `image_url`: optional. Root-relative path to an image committed in the repo, e.g. `/events/movie-night.jpg` (see `events/README.md`). Shown inside the expanded card. Blank = no image.
 - `active`: `TRUE` to publish. Events whose `date_start` is before today are hidden automatically, so you do not have to flip `active` off after an event passes.
+
+> **Already have the Events tab?** Just add one `image_url` column (anywhere before `active` is fine; columns are read by header name). **Perk descriptions need no deploy at all** — the `description` column already flows to the card; just type text into it.
 
 **Perks**
 
