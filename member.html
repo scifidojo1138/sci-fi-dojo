@@ -568,7 +568,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15c</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15d</div>
     <div class="spacer"></div>
   </div>
 
@@ -729,19 +729,6 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="banner banner-warn" style="margin-top:4px;">
       <span class="banner-icon">&#128274;</span>
       <div>This code is unique to your membership. Do not share.</div>
-    </div>
-    <div class="spacer"></div>
-  </div>
-
-  <!-- HOURS & LOCATION -->
-  <div class="screen" id="screen-location">
-    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Hours &amp; Location</div>
-      <div class="section-sub">Where to find us and when we are open.</div>
     </div>
     <div id="locationContent"></div>
     <div class="spacer"></div>
@@ -11738,9 +11725,8 @@ function renderStatus() {
     actionBtn('ab-checkout', '&#128192;', 'CHECK OUT', checkoutSub, checkoutEnabled, 'goCheckout()') +
     actionBtn('ab-return',   '&#8629;', 'RETURN ITEMS',  canReturn ? 'Select items to return' : 'No active rentals.', canReturn, 'goReturn()') +
     actionBtn('ab-rentals',  '&#128203;', 'RENTALS', hasRentals ? (member.rentals.length + ' out, ' + member.return_pending.length + ' pending') : 'No active rentals.', hasRentals, 'goRentals()') +
-    (st.showCode ? actionBtn('ab-code', '&#128273;', 'ACCESS CABINET', 'Tap to view your code', true, 'goCode()') : '') +
+    (st.showCode ? actionBtn('ab-code', '&#128273;', 'ACCESS CABINET', 'Tap to view your code &amp; check current hours', true, 'goCode()') : '') +
     actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'View inventory &amp; request titles', true, 'goBrowse()') +
-    ((member.location && member.location.address) ? actionBtn('ab-location', '&#128205;', 'HOURS &amp; LOCATION', 'Address, directions &amp; hours', true, 'goLocation()') : '') +
     actionBtn('ab-account', '&#9881;',   'MEMBERSHIP',  member.next_billing_date ? 'Next bill: ' + fmtDate(member.next_billing_date) : 'Manage your plan', true, 'goAccount()');
   document.getElementById('sectionHdrActions').style.display = '';
 
@@ -12162,18 +12148,22 @@ function goCode() {
   }
 
   document.getElementById('codeContent').innerHTML = html;
+
+  // Hours & Location now live on this screen, below the cabinet code.
+  document.getElementById('locationContent').innerHTML = buildLocationHtml();
   showScreen('screen-code');
 }
 
 // ================================================================
-// HOURS & LOCATION
+// HOURS & LOCATION (rendered inside the Access Cabinet screen)
 // ================================================================
-function goLocation() {
+function buildLocationHtml() {
   var loc = member.location || {};
   var html = '';
 
   if (loc.address) {
-    html += '<div class="card"><div class="card-body">' +
+    html += '<div class="section-hdr">HOURS &amp; LOCATION<div class="section-hdr-line"></div></div>' +
+      '<div class="card"><div class="card-body">' +
       '<div class="field-lbl" style="margin-bottom:6px;">Address</div>' +
       '<div style="font-size:15px;color:var(--text);line-height:1.5;">' + esc(loc.address).replace(/\n/g, '<br>') + '</div>';
     if (loc.maps_url) {
@@ -12185,8 +12175,8 @@ function goLocation() {
   var rows = parseHours(loc.hours);
   if (rows.length) {
     var todayIdx = new Date().getDay(); // 0=Sun..6=Sat
-    html += '<div class="section-hdr">HOURS<div class="section-hdr-line"></div></div>' +
-      '<div class="card"><div class="card-body">' +
+    if (!loc.address) html += '<div class="section-hdr">HOURS<div class="section-hdr-line"></div></div>';
+    html += '<div class="card"><div class="card-body">' +
       rows.map(function(r) {
         var isToday = r.dayIdx === todayIdx;
         return '<div class="hours-row' + (isToday ? ' today' : '') + '">' +
@@ -12197,9 +12187,7 @@ function goLocation() {
       '</div></div>';
   }
 
-  document.getElementById('locationContent').innerHTML = html ||
-    '<div class="card"><div class="card-body" style="color:var(--text-mid);">Location details coming soon.</div></div>';
-  showScreen('screen-location');
+  return html; // empty string when no location/hours configured -> nothing shown
 }
 
 // Parse a multi-line hours block ("Day<tab/spaces>hours" per line) into
