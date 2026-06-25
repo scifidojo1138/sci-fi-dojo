@@ -56,10 +56,11 @@ The membership token rides in the member URL (`?token=`) by QR-card design; `mem
 ## Apps Script — Endpoints
 
 ### GET
-- `?action=member&key=&token=` — full member object (rentals, return_pending, rental_history, cabinet/vault codes)
+- `?action=member&key=&token=` — full member object (rentals, return_pending, rental_history, cabinet/vault codes, `location`, `active_promo`). `tier_limit`/`loan_days` already include any active promo bonus.
 - `?action=catalog&key=&token=` — filtered catalog (in_rotation=TRUE only; vault items only with vault_access; filtering is backend-side, never client-side)
 - `?action=events&key=&token=` — active, non-past events (Events tab); past events auto-hide by date so staff need not toggle them off
 - `?action=perks&key=&token=` — active perks (Perks tab)
+- `?action=updates&key=&token=` — active updates ("The Weekly Rewind"), newest first (Updates tab)
 - `?action=all_members&pin=` — staff: full member list
 - `?action=active_checkouts&pin=` / `?action=return_bin&pin=` / `?action=catalog_staff&pin=` — staff lists
 
@@ -84,10 +85,12 @@ Apps Script reads columns by header name via `sheetToObjects()`. Tabs:
   - `collection` — "general" or "vault"; `status` — "available" / "checked_out" / "return_pending"
 - **Catalog Backup:** the REAL library (~759 items). **Catalog is currently demo data (45 items).** See go-live checklist below before swapping.
 - **Transactions:** `transaction_id, timestamp, member_id, item_id, action, status_result, note_type, note_text, actor_type, override_type`. Checkout due date is stored in `note_text`.
-- **Settings:** decorative header rows — real headers in row 3. Keys: `current_general_code`, `current_vault_code`, `code_rotation_date`, `staff_pin`
+- **Settings:** decorative header rows — real headers in row 3. Keys: `current_general_code`, `current_vault_code`, `code_rotation_date`, `staff_pin`, `location_address`, `location_maps_url`, `location_hours`. The three `location_*` keys feed the member app's Hours & Location screen; edit them to change address/directions/hours with no redeploy. `location_hours` is a multi-line cell, one "Day<tab>hours" per line (any order — the app sorts Mon→Sun and highlights today).
 - **Requests:** `request_id, timestamp, member_id, item_id, request_type, title_text, status, staff_notes`
 - **Events:** `event_id, title, date_start, date_end, location, description, rsvp_enabled, image_url, active` — served by `events`; only `active=TRUE` and start date >= today are returned. `date_start`/`date_end` parse as dates (used for the Add to Google Calendar link); `rsvp_enabled` FALSE hides the RSVP button; `image_url` is a root-relative path to a repo-committed image (e.g. `/events/movie-night.jpg`, see `/events/README.md`), shown in the expanded card; blank = no image.
 - **Perks:** `perk_id, title, description, image_url, active` — served by `perks`; only `active=TRUE` returned. `image_url` is a root-relative path to a repo-committed image (e.g. `/perks/popcorn.jpg`, see `/perks/README.md`); blank = text-only perk.
+- **Updates:** `update_id, date, title, body, active` — served by `updates` ("The Weekly Rewind"); only `active=TRUE`, newest first by `date`. `body` is freeform; line breaks render in the app. The newest unseen update shows a "new" dot per device (localStorage `sfd_rewind_seen_<member_id>`).
+- **Promos:** `promo_id, title, description, date_start, date_end, bonus_rentals, bonus_loan_days, tiers, active` — read server-side by `getActivePromo()`. A promo is live when `active=TRUE` and today is within `[date_start, date_end]` (inclusive, Eastern) and `tiers` is blank (all tiers) or lists the member's tier. Live bonuses are added to the member's `tier_limit`/`loan_days` in `lookupMember`, so checkout enforcement and display "just work"; the member object's `active_promo` drives the dashboard banner. Extended loans persist (due dates are stamped per rental); `slotsLeft` clamps at 0 so an over-limit member after a promo ends simply can't check out new items.
 - **Dashboard / Expenses:** human-facing, not read by backend logic
 
 ## Membership Tiers — Source of Truth
@@ -133,9 +136,15 @@ All tiers receive Perks. Apps Script `tierRules` mirrors this table — keep the
 - Browse sort: starred first → available → alpha by `sort_title` (falls back to `title`). Search input is debounced (200ms). Starred IDs are read once per render into a Set — never re-parse localStorage per item.
 - Format emoji: 💿 DVD, 📀 Blu-ray, 💽 4K UHD, 🕹️ Video Games (future), 📼 VHS (future)
 
-### Events / Perks feeds
-- Two background fetches (`loadEvents`/`loadPerks`, mirroring `loadCatalog`) populate `eventsCache`/`perksCache`; `renderFeeds()` fills the `#eventsSection`/`#perksSection` containers on the dashboard (selective update, like `setCatalogStatus` — it does not re-run the full `renderStatus`). Feeds are non-critical: a failed fetch leaves the cache null and the section simply stays hidden.
-- Collapsible `.feed-card` accordion (tap headline to expand) shared by both. Events show a single-tap "I'm going" RSVP and an Add to Google Calendar link; perks show optional photo + text, no RSVP.
+### Events / Perks / Weekly Rewind feeds
+- Three background fetches (`loadEvents`/`loadPerks`/`loadUpdates`, mirroring `loadCatalog`) populate `eventsCache`/`perksCache`/`updatesCache`; `renderFeeds()` fills the `#rewindSection`/`#eventsSection`/`#perksSection` containers on the dashboard (selective update, like `setCatalogStatus` — it does not re-run the full `renderStatus`). Feeds are non-critical: a failed fetch leaves the cache null and the section simply stays hidden.
+- Collapsible `.feed-card` accordion (tap headline to expand) shared by all three. Events show a single-tap "I'm going" RSVP and an Add to Google Calendar link; perks show optional photo + text; The Weekly Rewind shows the newest update with a "new" dot (cleared on expand via `REWIND_KEY` localStorage), older active updates listed below.
+
+### Hours & Location
+- `lookupMember` returns a `location` object (`address`, `maps_url`, `hours`) from the three `location_*` Settings keys. A "HOURS & LOCATION" action tile appears only when `address` is set, opening `screen-location` (address, Get Directions button, hours table). `parseHours()` splits the multi-line `hours` string into day/time rows, sorts Mon→Sun, and highlights the current day. Ships hidden until a location is configured.
+
+### Post-Credits Scene (monthly meetup)
+- No dedicated code: it's a monthly **Events** row (`rsvp_enabled=TRUE`) so it reuses the Events feed's expand + "I'm going" headcount + Add to Calendar.
 - RSVP reuses `member_request` (no backend change) and mirrors the `STAR_KEY` localStorage toggle: `RSVP_KEY = 'sfd_rsvp_' + member.member_id` drives button state; each tap posts `rsvp`/`rsvp_cancel` fire-and-forget.
 - The "Tap Check Out or Return Items to get started" hint only renders for members with zero rentals and zero return-pending items.
 
@@ -164,7 +173,7 @@ Every app file shows a date-based version in its footer: `v2026.06.10`. **Bump i
 
 ### Deferred
 - Vault visual treatment in Browse (no vault titles in collection yet — real library currently has zero `collection=vault` items)
-- Sort by format in Browse; public inventory browser; monthly member meetup ("Post-Credits Scene") tooling
+- Sort by format in Browse; public inventory browser. (Monthly meetup "Post-Credits Scene" is handled via an Events row, not separate tooling.)
 
 ## Working Conventions
 

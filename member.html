@@ -290,6 +290,16 @@ select option{background:var(--panel2);color:var(--text);}
 .feed-btn{display:inline-flex;align-items:center;gap:7px;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:9px 15px;border-radius:var(--r-sm);border:1px solid var(--border2);background:var(--panel2);color:var(--text-mid);cursor:pointer;text-decoration:none;transition:border-color .2s,color .2s,background .2s;}
 .feed-btn:hover{border-color:var(--accent);color:var(--accent);}
 .feed-btn.rsvp-on{border-color:var(--success);color:var(--success);background:rgba(0,255,157,.08);}
+.feed-newdot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent2);box-shadow:0 0 6px var(--accent2);margin-left:8px;vertical-align:middle;flex-shrink:0;}
+
+/* HOURS TABLE (location screen) */
+.hours-row{display:flex;justify-content:space-between;gap:16px;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px;}
+.hours-row:last-child{border-bottom:none;}
+.hours-day{color:var(--text-mid);}
+.hours-time{color:var(--text);font-family:'Share Tech Mono',monospace;}
+.hours-row.today{color:var(--accent);}
+.hours-row.today .hours-day,.hours-row.today .hours-time{color:var(--accent);font-weight:600;}
+.hours-today-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--accent);margin-left:8px;}
 
 /* PIPS */
 .pip-row{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
@@ -553,11 +563,12 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
+    <div id="rewindSection"></div>
     <div id="eventsSection"></div>
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15b</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15c</div>
     <div class="spacer"></div>
   </div>
 
@@ -719,6 +730,20 @@ select option{background:var(--panel2);color:var(--text);}
       <span class="banner-icon">&#128274;</span>
       <div>This code is unique to your membership. Do not share.</div>
     </div>
+    <div class="spacer"></div>
+  </div>
+
+  <!-- HOURS & LOCATION -->
+  <div class="screen" id="screen-location">
+    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Back to Account
+    </div>
+    <div class="section-heading">
+      <div class="section-title">Hours &amp; Location</div>
+      <div class="section-sub">Where to find us and when we are open.</div>
+    </div>
+    <div id="locationContent"></div>
     <div class="spacer"></div>
   </div>
 
@@ -11004,11 +11029,13 @@ var catalogCache     = null;
 var catalogByIdCache = {};
 var catalogStatus    = 'loading'; // 'loading' | 'ready' | 'failed'
 
-// Events / Perks feeds: live arrays after fetch; null = not yet loaded
-var eventsCache = null;
-var perksCache  = null;
-// localStorage key for "I'm going" RSVP state, set once member loads (mirrors STAR_KEY)
-var RSVP_KEY = 'sfd_rsvp_anon';
+// Events / Perks / Updates feeds: live arrays after fetch; null = not yet loaded
+var eventsCache  = null;
+var perksCache   = null;
+var updatesCache = null;
+// localStorage keys, set once member loads (mirror STAR_KEY)
+var RSVP_KEY   = 'sfd_rsvp_anon';
+var REWIND_KEY = 'sfd_rewind_seen_anon'; // last-seen Weekly Rewind update_id
 
 // ----------------------------------------------------------------
 // Backend validation functions.
@@ -11193,6 +11220,7 @@ async function loadMember(tok) {
     loadCatalog(tok);
     loadEvents(tok);
     loadPerks(tok);
+    loadUpdates(tok);
 
 } catch(e) {
     var msg = (e.message || '').toLowerCase();
@@ -11215,6 +11243,7 @@ async function loadMember(tok) {
       loadCatalog(tok);
       loadEvents(tok);
       loadPerks(tok);
+      loadUpdates(tok);
     } else {
       showError('Connection Interrupted',
         'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
@@ -11343,6 +11372,18 @@ async function loadEvents(tok) {
   }
 }
 
+async function loadUpdates(tok) {
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=updates&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Updates unavailable');
+    updatesCache = data.updates || [];
+    renderFeeds();
+  } catch(e) {
+    console.warn('Updates load failed:', e.message);
+  }
+}
+
 async function loadPerks(tok) {
   try {
     var res  = await fetchWithTimeout(BACKEND_URL + '?action=perks&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
@@ -11355,8 +11396,19 @@ async function loadPerks(tok) {
   }
 }
 
-// Selectively fill the two feed containers without re-running renderStatus
+// Selectively fill the feed containers without re-running renderStatus
 function renderFeeds() {
+  var rewindEl = document.getElementById('rewindSection');
+  if (rewindEl) {
+    if (updatesCache && updatesCache.length) {
+      var seen = getRewindSeen();
+      rewindEl.innerHTML =
+        '<div class="section-hdr">THE WEEKLY REWIND<div class="section-hdr-line"></div></div>' +
+        updatesCache.map(function(u, i) { return renderUpdateCard(u, i === 0 && String(u.update_id) !== seen); }).join('');
+    } else {
+      rewindEl.innerHTML = '';
+    }
+  }
   var eventsEl = document.getElementById('eventsSection');
   var perksEl  = document.getElementById('perksSection');
   if (eventsEl) {
@@ -11429,6 +11481,41 @@ function renderPerkCard(pk) {
   '</div>';
 }
 
+function renderUpdateCard(u, isNew) {
+  var id   = 'update-' + esc(u.update_id);
+  var when = fmtUpdateDate(u.date);
+  var body = u.body ? esc(u.body).replace(/\n/g, '<br>') : '';
+  return '<div class="feed-card" id="' + id + '">' +
+    '<div class="feed-head" role="button" tabindex="0" aria-expanded="false" aria-controls="' + id + '-body" data-id="' + id + '" data-rewindid="' + esc(u.update_id) + '" onclick="toggleCollapse(this.dataset.id)">' +
+      '<div class="feed-title-wrap"><div class="feed-title">' + esc(u.title) +
+        (isNew ? '<span class="feed-newdot" title="New"></span>' : '') + '</div>' +
+        (when ? '<div class="feed-meta">' + esc(when) + '</div>' : '') + '</div>' +
+      '<span class="feed-chevron">+</span>' +
+    '</div>' +
+    '<div class="feed-body" id="' + id + '-body">' +
+      (body ? '<div class="feed-text">' + body + '</div>' : '') +
+    '</div>' +
+  '</div>';
+}
+
+function fmtUpdateDate(v) {
+  if (!v) return '';
+  var d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function getRewindSeen() {
+  try { return localStorage.getItem(REWIND_KEY) || ''; } catch(e) { return ''; }
+}
+
+function markRewindSeen(updateId) {
+  try { localStorage.setItem(REWIND_KEY, String(updateId)); } catch(e) {}
+  // Remove any visible "new" dot in the Rewind section
+  var dot = document.querySelector('#rewindSection .feed-newdot');
+  if (dot) dot.parentNode.removeChild(dot);
+}
+
 // Generic accordion toggle for feed cards (keyed by card element id)
 function toggleCollapse(cardId) {
   var card = document.getElementById(cardId);
@@ -11436,6 +11523,8 @@ function toggleCollapse(cardId) {
   var open = card.classList.toggle('open');
   var head = card.querySelector('.feed-head');
   if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+  // Expanding the latest Weekly Rewind clears its "new" indicator
+  if (open && head && head.dataset.rewindid) markRewindSeen(head.dataset.rewindid);
 }
 
 function getRsvped() {
@@ -11545,9 +11634,10 @@ function setToggleBtn(id, on) {
 function renderStatus() {
   if (!member) return;
 
-  // Set STAR_KEY / RSVP_KEY now that member is loaded
-  STAR_KEY = 'sfd_starred_' + member.member_id;
-  RSVP_KEY = 'sfd_rsvp_' + member.member_id;
+  // Set localStorage keys now that member is loaded
+  STAR_KEY   = 'sfd_starred_' + member.member_id;
+  RSVP_KEY   = 'sfd_rsvp_' + member.member_id;
+  REWIND_KEY = 'sfd_rewind_seen_' + member.member_id;
 
   var st = backendGetMemberStatus(member);
 
@@ -11591,6 +11681,14 @@ function renderStatus() {
   }
   if (member.return_pending.length > 0) {
     banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' item' + (member.return_pending.length > 1 ? 's' : '') + ' pending. Slots available.');
+  }
+  // Active promo (e.g. weekend bonus rental) -- server raises the limit; this announces it
+  if (member.active_promo) {
+    var pr = member.active_promo;
+    var prMsg = '<strong>' + esc(pr.title) + '</strong>';
+    if (pr.bonus_rentals > 0) prMsg += ' &mdash; +' + esc(pr.bonus_rentals) + ' rental' + (pr.bonus_rentals > 1 ? 's' : '');
+    if (pr.date_end) prMsg += ' through ' + esc(fmtDate(pr.date_end));
+    banners += banner('ok', '&#127881;', prMsg + '.');
   }
   // Getting-started prompt -- only for members with no active transactions
   if (member.rentals.length === 0 && member.return_pending.length === 0) {
@@ -11642,6 +11740,7 @@ function renderStatus() {
     actionBtn('ab-rentals',  '&#128203;', 'RENTALS', hasRentals ? (member.rentals.length + ' out, ' + member.return_pending.length + ' pending') : 'No active rentals.', hasRentals, 'goRentals()') +
     (st.showCode ? actionBtn('ab-code', '&#128273;', 'ACCESS CABINET', 'Tap to view your code', true, 'goCode()') : '') +
     actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'View inventory &amp; request titles', true, 'goBrowse()') +
+    ((member.location && member.location.address) ? actionBtn('ab-location', '&#128205;', 'HOURS &amp; LOCATION', 'Address, directions &amp; hours', true, 'goLocation()') : '') +
     actionBtn('ab-account', '&#9881;',   'MEMBERSHIP',  member.next_billing_date ? 'Next bill: ' + fmtDate(member.next_billing_date) : 'Manage your plan', true, 'goAccount()');
   document.getElementById('sectionHdrActions').style.display = '';
 
@@ -12064,6 +12163,68 @@ function goCode() {
 
   document.getElementById('codeContent').innerHTML = html;
   showScreen('screen-code');
+}
+
+// ================================================================
+// HOURS & LOCATION
+// ================================================================
+function goLocation() {
+  var loc = member.location || {};
+  var html = '';
+
+  if (loc.address) {
+    html += '<div class="card"><div class="card-body">' +
+      '<div class="field-lbl" style="margin-bottom:6px;">Address</div>' +
+      '<div style="font-size:15px;color:var(--text);line-height:1.5;">' + esc(loc.address).replace(/\n/g, '<br>') + '</div>';
+    if (loc.maps_url) {
+      html += '<a class="feed-btn" style="margin-top:14px;" href="' + esc(loc.maps_url) + '" target="_blank" rel="noopener">&#129517; GET DIRECTIONS</a>';
+    }
+    html += '</div></div>';
+  }
+
+  var rows = parseHours(loc.hours);
+  if (rows.length) {
+    var todayIdx = new Date().getDay(); // 0=Sun..6=Sat
+    html += '<div class="section-hdr">HOURS<div class="section-hdr-line"></div></div>' +
+      '<div class="card"><div class="card-body">' +
+      rows.map(function(r) {
+        var isToday = r.dayIdx === todayIdx;
+        return '<div class="hours-row' + (isToday ? ' today' : '') + '">' +
+          '<span class="hours-day">' + esc(r.day) + (isToday ? '<span class="hours-today-tag">TODAY</span>' : '') + '</span>' +
+          '<span class="hours-time">' + esc(r.time) + '</span>' +
+        '</div>';
+      }).join('') +
+      '</div></div>';
+  }
+
+  document.getElementById('locationContent').innerHTML = html ||
+    '<div class="card"><div class="card-body" style="color:var(--text-mid);">Location details coming soon.</div></div>';
+  showScreen('screen-location');
+}
+
+// Parse a multi-line hours block ("Day<tab/spaces>hours" per line) into
+// rows, ordered Monday->Sunday. Lines whose first token is not a weekday
+// are kept (in original order) after the recognized days.
+function parseHours(raw) {
+  if (!raw) return [];
+  var DAYS = { sunday:0, monday:1, tuesday:2, wednesday:3, thursday:4, friday:5, saturday:6 };
+  var ORDER = { 1:0, 2:1, 3:2, 4:3, 5:4, 6:5, 0:6 }; // Mon first, Sun last
+  var recognized = [], extra = [];
+  String(raw).split(/\r?\n/).forEach(function(line) {
+    var t = line.trim();
+    if (!t) return;
+    var m = t.match(/^(\S+)[\t ]+(.*)$/); // first token, then the rest
+    if (m) {
+      var key = m[1].toLowerCase().replace(/[^a-z]/g, '');
+      if (DAYS.hasOwnProperty(key)) {
+        recognized.push({ dayIdx: DAYS[key], day: m[1], time: m[2].trim() });
+        return;
+      }
+    }
+    extra.push({ dayIdx: -1, day: t, time: '' });
+  });
+  recognized.sort(function(a, b) { return ORDER[a.dayIdx] - ORDER[b.dayIdx]; });
+  return recognized.concat(extra);
 }
 
 // ================================================================
