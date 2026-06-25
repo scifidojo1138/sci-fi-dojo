@@ -24,9 +24,11 @@ This round adds three things to the member app, all driven from the spreadsheet:
 |---|---|---|---|---|---|---|---|---|
 
 - Live when `active=TRUE` and today is within `[date_start, date_end]` (inclusive, Eastern).
-- `bonus_rentals` / `bonus_loan_days`: integers added to the member's normal limit / loan length during the window.
+- `bonus_rentals` / `bonus_loan_days`: integers added to the member's normal limit / loan length during the window. These set the **actual** bonus (and a promo only counts as live when at least one is non-zero).
+- `description`: the member-facing banner copy. Write it however you like ("Grab an extra rental all weekend!") — the app shows your text, it does not auto-generate "+1 rental". `title` is the bold lead-in.
 - `tiers`: blank = all tiers; otherwise a comma list (e.g. `Premiere, Donor`).
-- Example "+1 rental this weekend": `bonus_rentals=1`, `bonus_loan_days=0`, `date_start`/`date_end` = the weekend, `tiers` blank.
+- Example "+1 rental this weekend": `title=Weekend Special`, `description=Take home an extra rental all weekend`, `bonus_rentals=1`, `bonus_loan_days=0`, `date_start`/`date_end` = the weekend, `tiers` blank.
+- The member's plan line always shows their **normal** tier numbers; the promo shows as a banner plus a "+N promo" tag on the Available card, so ending a promo never looks like a downgrade.
 
 **Settings** (existing tab) — add three rows (column A key, column B value):
 

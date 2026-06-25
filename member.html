@@ -568,7 +568,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15d</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.06.15e</div>
     <div class="spacer"></div>
   </div>
 
@@ -11648,7 +11648,11 @@ function renderStatus() {
                 member.tier === 'Donor' ? 'tier-pre' : 'tier-mat';
   tierEl.className   = 'member-tier ' + tierCls;
   tierEl.style.display = '';
-  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>' + esc(member.tier) + '</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">' + esc(member.tier_limit) + ' rental' + (member.tier_limit > 1 ? 's' : '') + ' at a time &bull; ' + esc(member.loan_days) + ' day limit</div></div>';
+  // Plan-identity line shows the member's PERMANENT plan (base), never the
+  // promo-inflated number -- otherwise a promo ending looks like a downgrade.
+  var planLimit = (member.base_tier_limit != null) ? member.base_tier_limit : member.tier_limit;
+  var planLoan  = (member.base_loan_days  != null) ? member.base_loan_days  : member.loan_days;
+  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>' + esc(member.tier) + '</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">' + esc(planLimit) + ' rental' + (planLimit > 1 ? 's' : '') + ' at a time &bull; ' + esc(planLoan) + ' day limit</div></div>';
 
   // Banners
   var banners = '';
@@ -11672,10 +11676,10 @@ function renderStatus() {
   // Active promo (e.g. weekend bonus rental) -- server raises the limit; this announces it
   if (member.active_promo) {
     var pr = member.active_promo;
+    // Member-facing copy comes from the staff-written promo description.
     var prMsg = '<strong>' + esc(pr.title) + '</strong>';
-    if (pr.bonus_rentals > 0) prMsg += ' &mdash; +' + esc(pr.bonus_rentals) + ' rental' + (pr.bonus_rentals > 1 ? 's' : '');
-    if (pr.date_end) prMsg += ' through ' + esc(fmtDate(pr.date_end));
-    banners += banner('ok', '&#127881;', prMsg + '.');
+    if (pr.description) prMsg += ' &mdash; ' + esc(pr.description);
+    banners += banner('ok', '&#127881;', prMsg);
   }
   // Getting-started prompt -- only for members with no active transactions
   if (member.rentals.length === 0 && member.return_pending.length === 0) {
@@ -11693,10 +11697,16 @@ function renderStatus() {
   var vaultText  = 'Granted';
   var vaultCls   = 'vault';
 
+  // Availability uses the EFFECTIVE limit (real current capacity). When a
+  // promo adds slots, label them so the boost reads as temporary, not as the
+  // member's normal plan.
+  var promoBonus = (member.active_promo && member.active_promo.bonus_rentals > 0) ? member.active_promo.bonus_rentals : 0;
+  var availSub   = (promoBonus ? '+' + esc(promoBonus) + ' promo &bull; ' : '') + st.slotsUsed + ' checked out';
+
   document.getElementById('sectionHdrStatus').style.display = '';
   document.getElementById('statusGrid').innerHTML =
     statCard('Access',      statusText,  statusCls, esc(member.tier)) +
-    statCard('Available',   st.slotsLeft + ' of ' + esc(member.tier_limit), slotsCls, st.slotsUsed + ' checked out') +
+    statCard('Available',   st.slotsLeft + ' of ' + esc(member.tier_limit), slotsCls, availSub) +
     statCard('Return Bin',  String(member.return_pending.length), member.return_pending.length > 0 ? 'warning' : 'dim', 'awaiting processing') +
     (member.vault_access ? statCard('Vault Access', vaultText, vaultCls, 'Premiere members only') : '');
 
@@ -12576,7 +12586,10 @@ function goAccount() {
   var subtitle   = document.getElementById('accountSubtitle');
 
   billingEl.textContent = member.next_billing_date ? fmtDate(member.next_billing_date) : 'Not available';
-  tierEl.textContent    = member.tier + ' -- ' + member.tier_limit + ' rental' + (member.tier_limit > 1 ? 's' : '') + ', ' + member.loan_days + '-day loans';
+  // Show the permanent plan (base), not promo-inflated numbers.
+  var acctLimit = (member.base_tier_limit != null) ? member.base_tier_limit : member.tier_limit;
+  var acctLoan  = (member.base_loan_days  != null) ? member.base_loan_days  : member.loan_days;
+  tierEl.textContent    = member.tier + ' -- ' + acctLimit + ' rental' + (acctLimit > 1 ? 's' : '') + ', ' + acctLoan + '-day loans';
   subtitle.textContent  = 'Your ' + member.tier + ' membership.';
 
   var base    = 'mailto:scifidojo@aol.com';
