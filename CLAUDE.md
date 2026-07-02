@@ -21,7 +21,8 @@ Sci-Fi Dojo (SFD) is a membership-based physical media rental club operating in 
 | File | URL | Description |
 |---|---|---|
 | `index.html` | `scifidojo.com` | Public landing page |
-| `member.html` | `scifidojo.com/member?token=tok_xxx` | Member app |
+| `member.html` | `scifidojo.com/member?token=tok_xxx` | Member app (legacy model, kept until cutover) |
+| `rent.html` | `scifidojo.com/rent?token=cus_xxx` | Pay-per-rental customer app (Redbox model; no token = signup) |
 | `terms.html` | `scifidojo.com/terms` | Rental terms |
 | `BACKEND-UPDATE.md` | — | Apps Script change log / paste instructions |
 
@@ -32,7 +33,7 @@ Sci-Fi Dojo (SFD) is a membership-based physical media rental club operating in 
 | `success.html` | Post-payment enrollment confirmation + QR card |
 | `sfd-staff.html` | Staff terminal: member lookup, cabinet codes, checkouts, return bin |
 | `cards/print-cards.html` | Member card print layout |
-| Netlify functions | `create-checkout`, `onboard-member`, `process-return` |
+| Netlify functions | `create-checkout`, `onboard-member`, `process-return`, `start-rental`, `rental-webhook`, `charge-rental`, `billing-sweep` |
 
 ### Backend
 - **Google Apps Script** web app connected to **SciFiDojo_Sheet_v2** (Google Sheets)
@@ -48,6 +49,8 @@ Two credentials, both checked server-side in Apps Script:
 
 1. **`API_KEY`** — shared constant defined in both the Apps Script and each client page. Sent as `&key=` on GETs, `api_key` in POST bodies. Gates the member-facing actions: `member`, `catalog`, `checkout`, `return_log`, `member_request`. The key is visible in page source by design — it deters bots and casual URL abuse. Real per-member security is the membership token. To rotate: change it in the Apps Script AND every client page, then redeploy both.
 2. **`staff_pin`** — lives only in the Settings tab of the sheet (never in any page source). Sent as `&pin=` on GETs. Gates the staff actions: `all_members`, `active_checkouts`, `return_bin`, `catalog_staff`, and (as `staff_pin` in POST body) `return_processed`, `correction`. The staff page's login gate verifies the typed PIN against the backend — there is no hardcoded staff code in `sfd-staff.html`.
+
+3. **`SERVER_KEY`** — server-to-server secret shared only between the Apps Script and the Netlify functions (env `SFD_SERVER_KEY`; never in any page source). Gates the payment-recording rental actions: `rent_confirm`, `rent_charge_recorded`, `rent_charge_lookup`, `rental_payment_failed`. Without it, anyone with the public API key could mark rentals as paid.
 
 **Deliberately ungated:** `onboard` and `update_stripe` (called server-side by Netlify functions). A commented-out gate exists in the Apps Script `doPost` — enable it once the Netlify functions include `api_key` in the JSON they send.
 
@@ -93,7 +96,40 @@ Apps Script reads columns by header name via `sheetToObjects()`. Tabs:
 - **Promos:** `promo_id, title, description, date_start, date_end, bonus_rentals, bonus_loan_days, tiers, active` — read server-side by `getActivePromo()`. A promo is live when `active=TRUE` and today is within `[date_start, date_end]` (inclusive, Eastern) and `tiers` is blank (all tiers) or lists the member's tier. Live bonuses are added to the member's **effective** `tier_limit`/`loan_days` in `lookupMember`, so checkout enforcement and availability "just work". The member's permanent plan is also returned as `base_tier_limit`/`base_loan_days`: the app shows **base** on the plan-identity lines (tier line, Membership screen) so a promo ending never looks like a downgrade, while the "Available X of Y" card uses the effective limit and tags the extra with "+N promo". `active_promo` (title + `description` + bonuses + `date_end`) drives the dashboard banner — the banner copy is the staff-written **description**, not auto-generated. A promo only counts as live when at least one bonus is non-zero. Extended loans persist (due dates are stamped per rental); `slotsLeft` clamps at 0 so an over-limit member after a promo ends simply can't check out new items.
 - **Dashboard / Expenses:** human-facing, not read by backend logic
 
-## Membership Tiers — Source of Truth
+## Pay-Per-Rental (Redbox model) — the primary business model
+
+Replaces deposits + memberships (member.html continues to work until cutover). One static QR on the cabinet → `scifidojo.com/rent` → signup (name, email/phone, terms checkbox) → personal `cus_` token URL, bookmarked and reused.
+
+### Pricing & accrual (single source of truth: `computeAccrued_` in the Apps Script)
+- Base price = Catalog `rental_price` column in dollars (blank = $1), covers days 1–3.
+- Then $1/day (`RENT_DAILY_CENTS`), `daysOut = ceil((until - start)/1day)` where `until` = `return_date` if returned else now — so charges freeze the moment the customer logs a return, regardless of when staff process it.
+- Total charges cap at Catalog `replacement_cost` (blank → Settings `default_payoff_cost`, default $10). Paid to cap = `paid_off`: the disc is theirs; the catalog row goes `status=sold`, `in_rotation=FALSE`.
+
+### Billing policy (fees vs locked-card risk)
+- **At rental:** base charged immediately. First rental via Stripe Checkout (`start-rental` returns a URL; card saved with `setup_future_usage`); later rentals are one-tap off-session charges. Proves the card is live before the disc leaves.
+- **At return:** staff CHARGE & CLOSE bills the accrued overage in one transaction.
+- **While out:** RUN BILLING SWEEP (staff terminal) charges any active rental ≥7 days since last charge or ≥$10 owed (`due_for_sweep` flag from `rental_billing`). Bounds a locked-card loss to roughly one week.
+- **Failed charge:** customer `payment_status=failed`, blocked from new rentals, banner in the app, retried by the next sweep.
+
+### Sheet tabs
+- **Customers:** `customer_id, customer_token, display_name, email, phone, terms_accepted, stripe_customer_id, payment_status(none/ok/failed), rental_limit, status, joined_date, notes`. `rental_limit` starts at Settings `default_rental_limit` (1); staff raise it per customer after a clean first return.
+- **Rentals:** `rental_id, customer_id, item_id, start_date, status(pending/active/return_pending/closed/paid_off/void), base_price, base_paid_date, extra_charged, last_charge_date, return_date, closed_date, notes`. Dollars in the sheet; the code does math in cents. `pending` rows older than 30 min are auto-voided by any `rental_billing` read.
+- **Catalog:** + `rental_price` column; `replacement_cost` doubles as the payoff cap.
+- **Settings:** + `default_payoff_cost`, `default_rental_limit`.
+
+### Endpoints
+- GET `customer&key=&token=` — dashboard payload (profile, open rentals with live accrual, history, `cabinet_code` only while a paid rental is active, location).
+- POST (api_key): `customer_signup`, `rent_start` (validates limit/payment/item; creates pending rental; returns price + has_card), `rental_return` (freezes accrual, item → return_pending).
+- POST (SERVER_KEY, Netlify only): `rent_confirm` (payment done → active, clock starts, item checked_out), `rent_charge_lookup`, `rent_charge_recorded` (adds charge; closes or pays off), `rental_payment_failed`.
+- GET (staff_pin): `all_customers`, `rental_billing` (open rentals + owed_now + flags). POST (staff_pin): `rental_close` (waive & close).
+- Catalog/events/perks/updates/member_request accept customer tokens too (`accountForToken_`); rental audit rows land in Transactions as `rental_*` actions (invisible to legacy member views).
+
+### rent.html notes
+- Fork of member.html; internal variable is still `member` — `normalizeCustomer()` aliases `member_id`, splits open rentals into `rentals` (active) + `return_pending`, sets `tier_limit = rental_limit`.
+- Rent flow calls the Netlify `start-rental` (CORS-enabled): `{url}` → redirect to Stripe Checkout, `{charged:true}` → instant success. Back-from-Stripe (`?rented=1`) polls the customer endpoint briefly for webhook lag.
+- Netlify env needed: existing `STRIPE_SECRET_KEY`, `APPS_SCRIPT_URL` + new `SFD_API_KEY`, `SFD_SERVER_KEY`, `STRIPE_WEBHOOK_SECRET`, `SFD_RENT_URL`. Stripe dashboard webhook → `rental-webhook`, event `checkout.session.completed`.
+
+## Membership Tiers — Source of Truth (legacy model)
 
 | Tier | Rentals | Loan | Deposit | Access | Visibility |
 |---|---|---|---|---|---|
@@ -166,6 +202,8 @@ Every app file shows a date-based version in its footer: `v2026.06.10`. **Bump i
 - QR scanner: success feedback (green flash) and SFD-code validation (reject non-SFD QR codes before closing camera)
 
 ### Queued
+- Pay-per-rental go-live: create Customers/Rentals tabs + Settings keys, set Netlify env + Stripe webhook, deploy backend, test in Stripe test mode, print the cabinet QR (scifidojo.com/rent). Then decide member-app cutover timing.
+- Automate the billing sweep (Netlify scheduled function) once the staff-triggered flow is proven.
 - Go-live swap from demo Catalog to Catalog Backup. Checklist: set `in_rotation` TRUE on live items (real library is currently ALL FALSE = empty catalog if swapped as-is); clear/process demo transactions first (all 45 demo item_ids collide with real titles — open rentals and history would display wrong movies); unify `sort_title` convention (634 of 759 real items blank)
 - VLT prefix → SFD batch rename in sheet
 - Enable the `onboard`/`update_stripe` key gate (needs `api_key` added to the two Netlify functions first)

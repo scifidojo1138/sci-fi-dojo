@@ -1,81 +1,112 @@
-# Apps Script Backend Update — Weekly Rewind, Promos, Location
+# Backend Update — Pay-Per-Rental Launch (Redbox model)
 
-This round adds three things to the member app, all driven from the spreadsheet:
+This round adds the pay-per-rental system: `rent.html` (already on this site at
+`scifidojo.com/rent`), new backend actions, two new sheet tabs, and four new
+Netlify functions that do all the Stripe work. The member app is untouched and
+keeps working until you retire it.
 
-1. **The Weekly Rewind** — an in-app weekly update (new `Updates` tab + `updates` endpoint).
-2. **Weekend Promos** — temporary rental/loan bonuses (new `Promos` tab, read server-side; no new endpoint).
-3. **Hours & Location** — address, directions, and editable hours (three new `Settings` keys; rides the member object).
+Work through the sections in order. Nothing goes live for customers until the
+QR poster is printed, so you can take your time and test in Stripe test mode.
 
-> Until deployed, these sections simply don't appear in the app (fetches fail quietly / fields come back empty). Nothing else is affected.
+## 1. Google Sheet — new tabs and columns
 
-## 1. Create / update tabs
+**Customers** (new tab), row 1 headers:
 
-**Updates** (new tab) — "The Weekly Rewind":
+| customer_id | customer_token | display_name | email | phone | terms_accepted | stripe_customer_id | payment_status | rental_limit | status | joined_date | notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 
-| update_id | date | title | body | active |
-|---|---|---|---|---|
+Rows are created by the signup flow — you never add these by hand. To raise a
+good customer's limit after their first clean return, edit their
+`rental_limit` cell (e.g. 1 → 3).
 
-- `body` is freeform; line breaks are preserved in the app (write "New arrivals:", picks, perks on separate lines).
-- Newest `date` shows first; `active=TRUE` to publish. `update_id` just needs to be unique (e.g. `U1`, `U2`).
+**Rentals** (new tab), row 1 headers:
 
-**Promos** (new tab):
+| rental_id | customer_id | item_id | start_date | status | base_price | base_paid_date | extra_charged | last_charge_date | return_date | closed_date | notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|
 
-| promo_id | title | description | date_start | date_end | bonus_rentals | bonus_loan_days | tiers | active |
-|---|---|---|---|---|---|---|---|---|
+Also machine-written. Statuses: `pending` (checkout not finished; auto-voids
+after 30 min) → `active` → `return_pending` → `closed`, or `paid_off` when
+the customer has paid the disc's full price (it is theirs; the catalog row
+becomes `sold`).
 
-- Live when `active=TRUE` and today is within `[date_start, date_end]` (inclusive, Eastern).
-- `bonus_rentals` / `bonus_loan_days`: integers added to the member's normal limit / loan length during the window. These set the **actual** bonus (and a promo only counts as live when at least one is non-zero).
-- `description`: the member-facing banner copy. Write it however you like ("Grab an extra rental all weekend!") — the app shows your text, it does not auto-generate "+1 rental". `title` is the bold lead-in.
-- `tiers`: blank = all tiers; otherwise a comma list (e.g. `Premiere, Donor`).
-- Example "+1 rental this weekend": `title=Weekend Special`, `description=Take home an extra rental all weekend`, `bonus_rentals=1`, `bonus_loan_days=0`, `date_start`/`date_end` = the weekend, `tiers` blank.
-- The member's plan line always shows their **normal** tier numbers; the promo shows as a banner plus a "+N promo" tag on the Available card, so ending a promo never looks like a downgrade.
+**Catalog** — add one column: `rental_price` (dollars: 1, 2, or 3; blank
+defaults to $1). The existing `replacement_cost` column is the payoff cap —
+fill it in for items you rent out (blank falls back to the default below).
 
-**Settings** (existing tab) — add three rows (column A key, column B value):
+**Settings** — add two rows (key in column A, value in B):
 
-| key | value (example) |
+| key | value |
 |---|---|
-| `location_address` | `123 Main St, Asbury Park, NJ 07712` |
-| `location_maps_url` | `https://maps.google.com/?q=123+Main+St+Asbury+Park+NJ` |
-| `location_hours` | a multi-line cell, one day per line (see below) |
+| `default_payoff_cost` | `10` |
+| `default_rental_limit` | `1` |
 
-For `location_hours`, paste one "Day<tab or spaces>hours" per line, in any order — the app sorts Monday→Sunday and highlights today:
+## 2. Apps Script
 
-```
-Monday      2–10 PM
-Tuesday     4–10 PM
-Wednesday   2–10 PM
-Thursday    2–10 PM
-Friday      12–10 PM
-Saturday    12–10 PM
-Sunday      2–10 PM
-```
+Paste the delivered backend file over the current code, then deploy a **new
+version of the SAME deployment** (Deploy → Manage deployments → ✏️ → New
+version → Deploy). Changes: Customers/Rentals support, accrual math
+(`computeAccrued_`), signup / rent / return / billing actions, and a new
+`SERVER_KEY` that only the Netlify functions know (it gates the
+"mark this rental paid" actions, so the public page key can't fake payments).
 
-Leave all three location keys blank to keep the Hours & Location tile hidden until you have a venue.
+## 3. Netlify (onboarding repo)
 
-**Post-Credits Scene** (monthly meetup): no new tab — just add a row to the **Events** tab each month with `rsvp_enabled=TRUE`. It uses the existing Events feed (expand, "I'm going" headcount, Add to Calendar).
+Commit the four delivered function files into `netlify/functions/`:
+`start-rental.js`, `rental-webhook.js`, `charge-rental.js`, `billing-sweep.js`.
 
-## 2. Update the Apps Script
+Then in Netlify → Site settings → Environment variables, add:
 
-Paste the delivered `.txt` over the current code. Changes vs. the previous version:
-- `TAB` gains `updates` and `promos`.
-- `doGet` requires the API key on the new `updates` action and routes it.
-- New `getUpdates(token)` and `getActivePromo(memberTier)`.
-- `lookupMember` now returns a `location` object and an `active_promo` summary, and folds any active promo bonus into `tier_limit`/`loan_days` (so checkout and the dashboard reflect it automatically).
+| Variable | Value |
+|---|---|
+| `SFD_API_KEY` | `27268cf583e78fcdb9e5eb2d5bada419` (same as the page key) |
+| `SFD_SERVER_KEY` | `28dcc9be93758719d3a5dd74b5e2d7ac` (matches SERVER_KEY in the Apps Script) |
+| `SFD_RENT_URL` | `https://scifidojo.com/rent` |
+| `STRIPE_WEBHOOK_SECRET` | from step 4 below |
 
-## 3. Deploy (same URL)
+(`STRIPE_SECRET_KEY` and `APPS_SCRIPT_URL` already exist.) Remember: env
+changes need a redeploy of the Netlify site to take effect.
 
-**Deploy → Manage deployments → ✏️ on the active deployment → Version: New version → Deploy.** Saving the code does **not** deploy it.
+## 4. Stripe dashboard
 
-## 4. Verify
+1. **Webhook:** Developers → Webhooks → Add endpoint →
+   `https://scifidojo-onboarding.netlify.app/.netlify/functions/rental-webhook`
+   → select the single event `checkout.session.completed`. Copy the signing
+   secret (`whsec_...`) into `STRIPE_WEBHOOK_SECRET` and redeploy.
+2. **Test mode first:** use your test API key in `STRIPE_SECRET_KEY` and a
+   matching test-mode webhook until the flow checks out.
 
-With your token (replace `YOUR_TOKEN`):
+## 5. Staff terminal
 
-```
-.../exec?action=updates&key=27268cf583e78fcdb9e5eb2d5bada419&token=YOUR_TOKEN
-.../exec?action=member&key=27268cf583e78fcdb9e5eb2d5bada419&token=YOUR_TOKEN
-```
+Replace `sfd-staff.html` with the delivered file. New sections: **Rental
+Customers** (search; CARD FAILED badges; open a customer's app), and
+**Outstanding Rentals** (each open rental with days out / paid / owed / cap,
+a CHARGE & CLOSE button on returned discs, and the RUN BILLING SWEEP button).
 
-- `updates` returns `{"ok":true,"updates":[...]}` (after you add an active Updates row).
-- `member` now includes a `location` object and `active_promo` (null when no promo is live). During a live promo, `tier_limit` is the elevated number.
+Weekly routine: open the staff page, tap RUN BILLING SWEEP. It charges every
+active rental that is 7+ days since its last charge or owes $10+, and reports
+a summary. Returned discs: put the disc back, tap CHARGE & CLOSE.
 
-Then open the member app: The Weekly Rewind, the Hours & Location tile (once the address is set), and a promo banner (during a live promo) all appear on the dashboard.
+## 6. Test in Stripe test mode
+
+1. Open `scifidojo.com/rent` in a private window → sign up.
+2. Rent a disc → Stripe Checkout → card `4242 4242 4242 4242`, any future
+   expiry/CVC → back in the app the rental shows active with the cabinet code.
+3. Check the sheet: Customers row, Rentals row `active`, catalog item
+   `checked_out`.
+4. Log the return in the app → staff terminal shows RETURNED — CHECK IN →
+   CHARGE & CLOSE (within 3 days it just closes; nothing owed).
+5. Rent again (same account) — it should charge with one tap, no redirect.
+6. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
+   fails charges) — the sweep flags the customer, and their app shows the
+   card banner with renting blocked.
+7. Flip to live keys (and a live-mode webhook) when everything passes.
+
+## 7. Terms page
+
+Revise `/terms` before printing the QR poster — see `TERMS-CHECKLIST.md` in
+this repo for the clauses the rental model needs.
+
+## 8. Launch
+
+Print the QR poster pointing at `https://scifidojo.com/rent` and put it on
+the cabinet. That is the moment the system goes live.
