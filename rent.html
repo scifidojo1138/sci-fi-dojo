@@ -11718,7 +11718,8 @@ function renderStatus() {
 
   var catalogReady = (catalogStatus !== 'failed' && catalogCache !== null);
   var rentEnabled  = st.canCheckout && catalogReady;
-  var rentSub = !catalogReady ? 'Catalog loading — please wait' :
+  var rentSub = catalogStatus === 'failed' ? 'Catalog unavailable. Tap Browse to retry.' :
+                !catalogReady ? 'Catalog loading — please wait' :
                 (member.payment_status === 'failed' ? 'Card needs attention' :
                 (st.slotsLeft === 0 ? 'Return your disc first' : 'First 3 days from $1'));
   document.getElementById('actionGrid').innerHTML =
