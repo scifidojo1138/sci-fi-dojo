@@ -30,15 +30,25 @@ the customer has paid the disc's full price (it is theirs; the catalog row
 becomes `sold`).
 
 **Catalog** — add one column: `rental_price` (dollars: 1, 2, or 3; blank
-defaults to $1). The existing `replacement_cost` column is the payoff cap —
-fill it in for items you rent out (blank falls back to the default below).
+defaults to $2 — set a row to `1` explicitly for anything you want priced at
+the floor). The existing `replacement_cost` column is the payoff cap — fill
+it in for items you rent out (blank falls back to the default below).
 
-**Settings** — add two rows (key in column A, value in B):
+**Settings** — add four rows (key in column A, value in B):
 
 | key | value |
 |---|---|
 | `default_payoff_cost` | `10` |
 | `default_rental_limit` | `1` |
+| `trusted_on_time_threshold` | `10` |
+| `trusted_rental_limit` | `2` |
+
+The last two power **Trusted Accounts**: once a customer has this many
+rentals returned within the included 3-day window, their `rental_limit` is
+raised to `trusted_rental_limit` automatically — no staff action needed. A
+customer who's great but occasionally keeps a disc a few extra days doesn't
+count toward this and isn't penalized; raising their limit further stays a
+manual edit to their `rental_limit` cell, same as today.
 
 ## 2. Apps Script
 
@@ -87,13 +97,14 @@ Weekly routine: open the staff page, tap RUN BILLING SWEEP. It charges every
 active rental that is 7+ days since its last charge or owes $10+, and reports
 a summary. Returned discs: put the disc back, tap CHARGE & CLOSE.
 
-Signups are presented to the public as free membership (no deposit, no
-monthly fee) rather than "creating a rental account" — see `rent.html`'s
-signup and success screens. The account itself is unchanged; it is still a
-row in the Customers tab. When a member is at the counter, search for them
-in **Rental Customers** and tap **PRINT CARD** to print their physical
-membership card (same print layout the legacy member flow uses). Most people
-join digitally on their first visit and get the card on a later one.
+Signups are presented to the public as a free **SFD Account** (no deposit,
+no monthly fee) — not a membership; "membership" is reserved for a possible
+future paid tier. See `rent.html`'s signup and success screens. The account
+itself is a row in the Customers tab. When a customer is at the counter,
+search for them in **Rental Customers** and tap **PRINT CARD** to print
+their physical SFD card (same print layout the legacy member flow uses).
+Most people create their account digitally on the first visit and get the
+card on a later one.
 
 ## 6. Test in Stripe test mode
 

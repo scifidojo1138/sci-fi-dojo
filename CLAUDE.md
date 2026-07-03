@@ -1,6 +1,6 @@
 # Sci-Fi Dojo — Project Handoff (Technical)
 
-Last updated: 2026-07-03. Update this file whenever architecture, endpoints, or conventions change.
+Last updated: 2026-07-04. Update this file whenever architecture, endpoints, or conventions change.
 
 ## Project Overview
 
@@ -21,7 +21,7 @@ Sci-Fi Dojo (SFD) is a membership-based physical media rental club operating in 
 | File | URL | Description |
 |---|---|---|
 | `member.html` | `scifidojo.com/member?token=tok_xxx` | Member app (legacy model, kept until cutover) |
-| `rent.html` | `scifidojo.com/rent?token=cus_xxx` | Pay-per-rental customer app (Redbox model; no token = signup). Presented publicly as free membership — see "Pay-Per-Rental" below. |
+| `rent.html` | `scifidojo.com/rent?token=cus_xxx` | Pay-per-rental customer app (Redbox model; no token = signup). Presented publicly as a free SFD Account — see "Pay-Per-Rental" below. |
 | `terms.html` | `scifidojo.com/terms` | Rental terms |
 | `BACKEND-UPDATE.md` | — | Apps Script change log / paste instructions |
 | `TERMS-CHECKLIST.md` | — | Clause checklist for revising `/terms` around pay-per-rental billing |
@@ -102,12 +102,17 @@ Apps Script reads columns by header name via `sheetToObjects()`. Tabs:
 
 Replaces deposits + memberships (member.html continues to work until cutover). One static QR on the cabinet → `scifidojo.com/rent` → signup (name, email/phone, terms checkbox) → personal `cus_` token URL, bookmarked and reused.
 
-**Framing note:** the underlying mechanism is pay-per-rental (Customers/Rentals tabs, no deposit, no monthly fee), but it is presented to the public as **free Sci-Fi Dojo membership** — signup copy says "Become a Member," the success screen says "Welcome to the Dojo," and staff can print a physical membership card for a customer using the existing card-print flow (see below). This is deliberate: the legacy `Members` tab/tier system (deposit + monthly fee, `member.html`) is reserved for a possible future paid tier, so "member" in conversation now means two different backend records depending on which app issued the card. Internal code (`Customers` tab, `customer_id`, `customer_token`) is unchanged — only the customer-facing copy and the staff card-print button reflect the membership framing.
+**Framing note:** this is presented to the public as a **free SFD Account** — not a membership. Signup copy says "Create Your SFD Account," the button says "Create Account," and staff print a physical **SFD card** (not a "membership card") using the existing card-print flow (see below). "Membership" is deliberately reserved for a possible future paid tier built on the legacy `Members` tab/tier system (`member.html`); Phase 1 is explicitly an account, with no monthly fee and no deposit, so the free/paid distinction stays legible in conversation even though both are colloquially "signing someone up." Internal code (`Customers` tab, `customer_id`, `customer_token`) already used this language and is unchanged.
 
 ### Pricing & accrual (single source of truth: `computeAccrued_` in the Apps Script)
-- Base price = Catalog `rental_price` column in dollars (blank = $1), covers days 1–3.
+- Base price = Catalog `rental_price` column in dollars (blank defaults to **$2**; $1 remains available as an explicit per-item floor for cheaper titles), covers days 1–3.
 - Then $1/day (`RENT_DAILY_CENTS`), `daysOut = ceil((until - start)/1day)` where `until` = `return_date` if returned else now — so charges freeze the moment the customer logs a return, regardless of when staff process it.
-- Total charges cap at Catalog `replacement_cost` (blank → Settings `default_payoff_cost`, default $10). Paid to cap = `paid_off`: the disc is theirs; the catalog row goes `status=sold`, `in_rotation=FALSE`.
+- Total charges cap at Catalog `replacement_cost` (blank → Settings `default_payoff_cost`, default $10). Paid to cap = `paid_off`: the disc is theirs; the catalog row goes `status=sold`, `in_rotation=FALSE`. Avoid the words "late fee" and "replacement cost" in anything customer- or staff-facing; the accrual after day 3 is framed as an extended-rental fee, and the cap is framed as "yours to keep at $X," not a penalty.
+
+### Trusted Accounts
+- An account's `rental_limit` is raised automatically once it has enough **on-time returns** — closed rentals returned within the included 3-day window (`ceil(daysOut) <= RENT_INCLUDED_DAYS`), computed fresh from Rentals each time by `countOnTimeReturns_()`. Rentals kept past day 3, paid off outright, or still open don't count toward or against the total.
+- Thresholds live in Settings so they're tunable without a redeploy: `trusted_on_time_threshold` (default 10) and `trusted_rental_limit` (default 2). `maybeUpgradeToTrusted_()` runs after any rental closes (`doRentChargeRecorded` and `doRentalClose`), only raises (never lowers) the limit, and leaves a dated note on the customer's `notes` field so staff can see why it changed.
+- Anything beyond this — a customer who's great but occasionally keeps a disc past 3 days, wanting a limit above the trusted default, badges/perks/streak mechanics — stays a manual `rental_limit` edit or a deliberately deferred feature; the auto-upgrade only ever does the one thing above.
 
 ### Billing policy (fees vs locked-card risk)
 - **At rental:** base charged immediately. First rental via Stripe Checkout (`start-rental` returns a URL; card saved with `setup_future_usage`); later rentals are one-tap off-session charges. Proves the card is live before the disc leaves.
@@ -119,7 +124,7 @@ Replaces deposits + memberships (member.html continues to work until cutover). O
 - **Customers:** `customer_id, customer_token, display_name, email, phone, terms_accepted, stripe_customer_id, payment_status(none/ok/failed), rental_limit, status, joined_date, notes`. `rental_limit` starts at Settings `default_rental_limit` (1); staff raise it per customer after a clean first return.
 - **Rentals:** `rental_id, customer_id, item_id, start_date, status(pending/active/return_pending/closed/paid_off/void), base_price, base_paid_date, extra_charged, last_charge_date, return_date, closed_date, notes`. Dollars in the sheet; the code does math in cents. `pending` rows older than 30 min are auto-voided by any `rental_billing` read.
 - **Catalog:** + `rental_price` column; `replacement_cost` doubles as the payoff cap.
-- **Settings:** + `default_payoff_cost`, `default_rental_limit`.
+- **Settings:** + `default_payoff_cost`, `default_rental_limit`, `trusted_on_time_threshold`, `trusted_rental_limit`.
 
 ### Endpoints
 - GET `customer&key=&token=` — dashboard payload (profile, open rentals with live accrual, history, `cabinet_code` only while a paid rental is active, location).
@@ -128,9 +133,9 @@ Replaces deposits + memberships (member.html continues to work until cutover). O
 - GET (staff_pin): `all_customers`, `rental_billing` (open rentals + owed_now + flags). POST (staff_pin): `rental_close` (waive & close).
 - Catalog/events/perks/updates/member_request accept customer tokens too (`accountForToken_`); rental audit rows land in Transactions as `rental_*` actions (invisible to legacy member views).
 
-### Membership card printing (staff terminal)
+### SFD card printing (staff terminal)
 - `sfd-staff.html` → Rental Customers → **PRINT CARD** on any result row. `printCustomerCard()` looks the customer up in the already-loaded `allCustomers` list and calls `buildCustomerPrintUrl()`, which mirrors the legacy `buildPrintUrl()` pattern one-for-one: `cards/print-cards.html?token_a=<customer_token>&name_a=<display_name>&id_a=<customer_id>&since_a=<formatSince(joined_date)>`. No `reprint_a` flag on first print (matches the legacy default-print call).
-- Typical flow: customer joins digitally on visit one (QR → signup → bookmarked link, no physical card yet); staff print the card whenever the customer is next at the counter.
+- Typical flow: customer creates their SFD Account digitally on visit one (QR → signup → bookmarked link, no physical card yet); staff print the card whenever the customer is next at the counter.
 
 ### rent.html notes
 - Fork of member.html; internal variable is still `member` — `normalizeCustomer()` aliases `member_id`, splits open rentals into `rentals` (active) + `return_pending`, sets `tier_limit = rental_limit`.

@@ -9,7 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon-member-favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-member-apple-touch-icon.png">
 <link rel="manifest" href="favicon-member-site.webmanifest">
-<title>SFD Membership</title>
+<title>SFD Account</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap">
@@ -522,7 +522,7 @@ select option{background:var(--panel2);color:var(--text);}
 <div class="page">
   <header class="header">
     <div class="logo">SCI-FI <span>DOJO</span></div>
-    <div class="hdr-r"><div class="live-dot"></div>Membership</div>
+    <div class="hdr-r"><div class="live-dot"></div>Account</div>
   </header>
 
   <!-- LOADING -->
@@ -530,7 +530,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="loading-wrap">
       <div class="loading-logo">SCI-FI <span>DOJO</span></div>
       <div class="spin-lg"></div>
-      <div class="loading-msg">Loading your membership...</div>
+      <div class="loading-msg">Loading your account...</div>
     </div>
   </div>
 
@@ -539,15 +539,15 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="error-wrap">
       <div class="error-icon">&#128683;</div>
       <div class="error-title" id="errorTitle">Access Error</div>
-      <div class="error-msg" id="errorMsg">Something went wrong. Please scan your membership card again or <a href="mailto:scifidojo@aol.com?subject=SFD - Support" style="color:var(--accent);">email support</a>.</div>
+      <div class="error-msg" id="errorMsg">Something went wrong. Please scan your SFD card again or <a href="mailto:scifidojo@aol.com?subject=SFD - Support" style="color:var(--accent);">email support</a>.</div>
     </div>
   </div>
 
   <!-- SIGNUP -->
   <div class="screen" id="screen-signup">
     <div class="section-heading" style="padding-top:24px;">
-      <div class="section-title">Become a Member</div>
-      <div class="section-sub">Membership is free. No deposit, no monthly fee. Pay only when you rent, starting at $1 for 3 days.</div>
+      <div class="section-title">Create Your SFD Account</div>
+      <div class="section-sub">Your account is free. No deposit, no monthly fee. Pay only when you rent, starting at $2 for 3 days.</div>
     </div>
     <div class="card d2">
       <div class="card-hdr">Your Info<div class="card-hdr-line"></div></div>
@@ -571,15 +571,15 @@ select option{background:var(--panel2);color:var(--text);}
       </div>
     </div>
     <div id="signupAlert"></div>
-    <button class="btn-primary d3" id="signupSubmitBtn" onclick="submitSignup()">BECOME A MEMBER</button>
-    <p class="terms-line">Free membership. No deposit, no subscription. Your card is only charged when you rent.</p>
+    <button class="btn-primary d3" id="signupSubmitBtn" onclick="submitSignup()">CREATE ACCOUNT</button>
+    <p class="terms-line">Free account. No deposit, no subscription. Your card is only charged when you rent.</p>
     <div class="spacer"></div>
   </div>
 
   <!-- STATUS -->
   <div class="screen" id="screen-status">
     <div class="member-hero">
-      <div class="member-eyebrow">Sci-Fi Dojo Member</div>
+      <div class="member-eyebrow">Sci-Fi Dojo Account</div>
       <div class="member-name" id="statusName">--</div>
       <div id="systemStatusLine" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:12px;display:none;">SYSTEM STATUS: ACTIVE</div>
       <div class="member-tier" id="statusTier"><div class="tier-dot"></div>--</div>
@@ -602,7 +602,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.03</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.04</div>
     <div class="spacer"></div>
   </div>
 
@@ -758,8 +758,8 @@ select option{background:var(--panel2);color:var(--text);}
       Back to Account
     </div>
     <div class="section-heading">
-      <div class="section-title">Membership</div>
-      <div class="section-sub" id="accountSubtitle">Your Sci-Fi Dojo membership.</div>
+      <div class="section-title">Account</div>
+      <div class="section-sub" id="accountSubtitle">Your Sci-Fi Dojo account.</div>
     </div>
     <div class="billing-box">
       <div class="billing-label">Payment Method</div>
@@ -768,7 +768,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CARD / CONTACT INFO</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">QUESTIONS? EMAIL US</a>
-    <p class="mgmt-note">Membership is free. No deposit, no monthly fee. The base price covers your first 3 days, then $1 a day is billed to your saved card until the disc is returned or paid off. Pay a disc off and it is yours to keep.</p>
+    <p class="mgmt-note">Your account is free. No deposit, no monthly fee. The base price covers your first 3 days, then $1 a day is billed to your saved card until the disc is returned or paid off. Pay a disc off and it is yours to keep.</p>
     <div class="spacer"></div>
   </div>
 
@@ -11129,7 +11129,7 @@ async function submitSignup() {
   if (!terms)           { alertEl.innerHTML = banner('warn', '&#9888;', 'Please agree to the SFD Rental Terms to continue.'); return; }
 
   var btn = document.getElementById('signupSubmitBtn');
-  btn.disabled = true; btn.textContent = 'JOINING...';
+  btn.disabled = true; btn.textContent = 'CREATING...';
   try {
     var res  = await fetchWithTimeout(BACKEND_URL, { method: 'POST', body: JSON.stringify({
       action: 'customer_signup', api_key: API_KEY,
@@ -11141,16 +11141,16 @@ async function submitSignup() {
     token = data.customer_token;
     try { history.replaceState(null, '', window.location.pathname + '?token=' + encodeURIComponent(token)); } catch(e) {}
     showSuccess('co', 'Welcome to the Dojo!',
-      'Bookmark this page. It is your membership link for every visit. Ask staff to print your membership card on your next visit.',
+      'Bookmark this page. It is your personal account link for every visit. Ask staff to print you an SFD card on your next visit.',
       [ { k: 'NAME', v: name },
-        { k: 'MEMBER ID', v: data.customer_id },
+        { k: 'ACCOUNT ID', v: data.customer_id },
         { k: 'NEXT', v: 'Tap below, then Rent a Disc' } ]);
     // Warm the account data in the background WITHOUT navigating away, so
     // the bookmark message stays on screen until the customer taps through.
     refreshAfterRent();
   } catch(e) {
-    btn.disabled = false; btn.textContent = 'BECOME A MEMBER';
-    alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Signup failed') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Membership Signup Help" style="color:inherit;">Email us</a> if you need a hand.');
+    btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
+    alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Signup failed') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Account Signup Help" style="color:inherit;">Email us</a> if you need a hand.');
   }
 }
 
@@ -11182,7 +11182,7 @@ async function loadMember(tok) {
   }
 
   try {
-    setMsg('Loading your membership...');
+    setMsg('Loading your account...');
     var res  = await fetchWithTimeout(BACKEND_URL + '?action=customer&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
@@ -11227,8 +11227,8 @@ async function loadMember(tok) {
       // Token rejected -- cached data for it must not be reused
       clearMemberCache();
       member = null;
-      showError('Membership Link Invalid',
-        'This membership link is not valid. Scan the QR code at the cabinet to become a member, or use the personal link from when you joined.' +
+      showError('Account Link Invalid',
+        'This link is not valid. Scan the QR code at the cabinet to create an account, or use the personal link from when you signed up.' +
         '<br><br>' +
         'If this keeps happening, <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-AUTH" style="color:var(--accent);">email support</a>.');
     } else if (memberFromCache) {
@@ -11659,7 +11659,7 @@ function renderStatus() {
   var tierEl  = document.getElementById('statusTier');
   tierEl.className   = 'member-tier tier-mat';
   tierEl.style.display = '';
-  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>Free Membership</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">No deposit, no monthly fee &bull; pay only when you rent &bull; yours to keep at the disc price</div></div>';
+  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>Free Account</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">No deposit, no monthly fee &bull; pay only when you rent &bull; yours to keep at the disc price</div></div>';
 
   // Banners
   var banners = '';
@@ -11667,7 +11667,7 @@ function renderStatus() {
     banners += banner('warn', '&#9888;', 'Showing saved account data — the server could not be reached. <a href="javascript:location.reload()" style="color:inherit;">Tap to refresh</a>.');
   }
   if (!member.active) {
-    banners += banner('err', '&#9888;', 'Membership paused. New rentals are unavailable. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-INACTIVE" style="color:inherit;">Email us</a> to resolve.');
+    banners += banner('err', '&#9888;', 'Account paused. New rentals are unavailable. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-INACTIVE" style="color:inherit;">Email us</a> to resolve.');
   }
   if (member.payment_status === 'failed') {
     banners += banner('err', '&#128179;', 'Your card could not be charged. New rentals are paused until it is updated. <a href="mailto:scifidojo@aol.com?subject=SFD - Update My Card" style="color:inherit;">Email us</a> to fix it.');
@@ -11677,7 +11677,7 @@ function renderStatus() {
   }
   // Getting-started prompt -- only for customers with nothing out
   if (member.rentals.length === 0 && member.return_pending.length === 0) {
-    banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. Members pay only when they rent, starting at $1 for 3 days.');
+    banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. You pay only when you rent, starting at $2 for 3 days.');
   }
   if (banners) {
     document.getElementById('statusNotifSection').innerHTML =
@@ -11721,7 +11721,7 @@ function renderStatus() {
   var rentSub = catalogStatus === 'failed' ? 'Catalog unavailable. Tap Browse to retry.' :
                 !catalogReady ? 'Catalog loading — please wait' :
                 (member.payment_status === 'failed' ? 'Card needs attention' :
-                (st.slotsLeft === 0 ? 'Return your disc first' : 'First 3 days from $1'));
+                (st.slotsLeft === 0 ? 'Return your disc first' : 'First 3 days from $2'));
   document.getElementById('actionGrid').innerHTML =
     actionBtn('ab-checkout', '&#128192;', 'RENT A DISC', rentSub, rentEnabled, 'goCheckout()') +
     actionBtn('ab-return',   '&#8629;', 'RETURN',  canReturn ? 'Stop the daily charge' : 'Nothing out right now.', canReturn, 'goReturn()') +
@@ -12510,17 +12510,17 @@ function goAccount() {
   if (member.email) contactBits.push(member.email);
   if (member.phone) contactBits.push(member.phone);
   tierEl.textContent   = (contactBits.join(' -- ') || 'No contact info on file');
-  subtitle.textContent = 'Member ' + member.customer_id + '.';
+  subtitle.textContent = 'Account ' + member.customer_id + '.';
 
   var base = 'mailto:scifidojo@aol.com';
 
   changeLink.href = base +
-    '?subject=' + encodeURIComponent('SFD Membership - Update My Info') +
-    '&body=' + encodeURIComponent('Hi,\n\nI would like to update my card or contact info.\n\nMember: ' + member.customer_id + '\nName: ' + member.display_name + '\n\nThank you');
+    '?subject=' + encodeURIComponent('SFD Account - Update My Info') +
+    '&body=' + encodeURIComponent('Hi,\n\nI would like to update my card or contact info.\n\nAccount: ' + member.customer_id + '\nName: ' + member.display_name + '\n\nThank you');
 
   cancelLink.href = base +
-    '?subject=' + encodeURIComponent('SFD Membership - Question') +
-    '&body=' + encodeURIComponent('Hi,\n\nMember: ' + member.customer_id + ' (' + member.display_name + ')\n\n');
+    '?subject=' + encodeURIComponent('SFD Account - Question') +
+    '&body=' + encodeURIComponent('Hi,\n\nAccount: ' + member.customer_id + ' (' + member.display_name + ')\n\n');
 
   showScreen('screen-account');
 }
