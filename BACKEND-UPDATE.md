@@ -78,13 +78,22 @@ changes need a redeploy of the Netlify site to take effect.
 ## 5. Staff terminal
 
 Replace `sfd-staff.html` with the delivered file. New sections: **Rental
-Customers** (search; CARD FAILED badges; open a customer's app), and
-**Outstanding Rentals** (each open rental with days out / paid / owed / cap,
-a CHARGE & CLOSE button on returned discs, and the RUN BILLING SWEEP button).
+Customers** (search; CARD FAILED badges; open a customer's app; PRINT CARD),
+and **Outstanding Rentals** (each open rental with days out / paid / owed /
+cap, a CHARGE & CLOSE button on returned discs, and the RUN BILLING SWEEP
+button).
 
 Weekly routine: open the staff page, tap RUN BILLING SWEEP. It charges every
 active rental that is 7+ days since its last charge or owes $10+, and reports
 a summary. Returned discs: put the disc back, tap CHARGE & CLOSE.
+
+Signups are presented to the public as free membership (no deposit, no
+monthly fee) rather than "creating a rental account" — see `rent.html`'s
+signup and success screens. The account itself is unchanged; it is still a
+row in the Customers tab. When a member is at the counter, search for them
+in **Rental Customers** and tap **PRINT CARD** to print their physical
+membership card (same print layout the legacy member flow uses). Most people
+join digitally on their first visit and get the card on a later one.
 
 ## 6. Test in Stripe test mode
 

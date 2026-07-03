@@ -1,6 +1,6 @@
 # Sci-Fi Dojo — Project Handoff (Technical)
 
-Last updated: 2026-06-10. Update this file whenever architecture, endpoints, or conventions change.
+Last updated: 2026-07-03. Update this file whenever architecture, endpoints, or conventions change.
 
 ## Project Overview
 
@@ -20,11 +20,13 @@ Sci-Fi Dojo (SFD) is a membership-based physical media rental club operating in 
 **This repo (`sci-fi-dojo`, public):**
 | File | URL | Description |
 |---|---|---|
-| `index.html` | `scifidojo.com` | Public landing page |
 | `member.html` | `scifidojo.com/member?token=tok_xxx` | Member app (legacy model, kept until cutover) |
-| `rent.html` | `scifidojo.com/rent?token=cus_xxx` | Pay-per-rental customer app (Redbox model; no token = signup) |
+| `rent.html` | `scifidojo.com/rent?token=cus_xxx` | Pay-per-rental customer app (Redbox model; no token = signup). Presented publicly as free membership — see "Pay-Per-Rental" below. |
 | `terms.html` | `scifidojo.com/terms` | Rental terms |
 | `BACKEND-UPDATE.md` | — | Apps Script change log / paste instructions |
+| `TERMS-CHECKLIST.md` | — | Clause checklist for revising `/terms` around pay-per-rental billing |
+
+There is no `index.html`; `netlify.toml` redirects `/` to the Instagram profile (`@scifi_dojo`) until a proper landing page exists.
 
 **Onboarding repo (private Netlify site: `scifidojo-onboarding.netlify.app`):**
 | File | Description |
@@ -100,6 +102,8 @@ Apps Script reads columns by header name via `sheetToObjects()`. Tabs:
 
 Replaces deposits + memberships (member.html continues to work until cutover). One static QR on the cabinet → `scifidojo.com/rent` → signup (name, email/phone, terms checkbox) → personal `cus_` token URL, bookmarked and reused.
 
+**Framing note:** the underlying mechanism is pay-per-rental (Customers/Rentals tabs, no deposit, no monthly fee), but it is presented to the public as **free Sci-Fi Dojo membership** — signup copy says "Become a Member," the success screen says "Welcome to the Dojo," and staff can print a physical membership card for a customer using the existing card-print flow (see below). This is deliberate: the legacy `Members` tab/tier system (deposit + monthly fee, `member.html`) is reserved for a possible future paid tier, so "member" in conversation now means two different backend records depending on which app issued the card. Internal code (`Customers` tab, `customer_id`, `customer_token`) is unchanged — only the customer-facing copy and the staff card-print button reflect the membership framing.
+
 ### Pricing & accrual (single source of truth: `computeAccrued_` in the Apps Script)
 - Base price = Catalog `rental_price` column in dollars (blank = $1), covers days 1–3.
 - Then $1/day (`RENT_DAILY_CENTS`), `daysOut = ceil((until - start)/1day)` where `until` = `return_date` if returned else now — so charges freeze the moment the customer logs a return, regardless of when staff process it.
@@ -123,6 +127,10 @@ Replaces deposits + memberships (member.html continues to work until cutover). O
 - POST (SERVER_KEY, Netlify only): `rent_confirm` (payment done → active, clock starts, item checked_out), `rent_charge_lookup`, `rent_charge_recorded` (adds charge; closes or pays off), `rental_payment_failed`.
 - GET (staff_pin): `all_customers`, `rental_billing` (open rentals + owed_now + flags). POST (staff_pin): `rental_close` (waive & close).
 - Catalog/events/perks/updates/member_request accept customer tokens too (`accountForToken_`); rental audit rows land in Transactions as `rental_*` actions (invisible to legacy member views).
+
+### Membership card printing (staff terminal)
+- `sfd-staff.html` → Rental Customers → **PRINT CARD** on any result row. `printCustomerCard()` looks the customer up in the already-loaded `allCustomers` list and calls `buildCustomerPrintUrl()`, which mirrors the legacy `buildPrintUrl()` pattern one-for-one: `cards/print-cards.html?token_a=<customer_token>&name_a=<display_name>&id_a=<customer_id>&since_a=<formatSince(joined_date)>`. No `reprint_a` flag on first print (matches the legacy default-print call).
+- Typical flow: customer joins digitally on visit one (QR → signup → bookmarked link, no physical card yet); staff print the card whenever the customer is next at the counter.
 
 ### rent.html notes
 - Fork of member.html; internal variable is still `member` — `normalizeCustomer()` aliases `member_id`, splits open rentals into `rentals` (active) + `return_pending`, sets `tier_limit = rental_limit`.
