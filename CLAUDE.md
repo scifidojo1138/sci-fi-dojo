@@ -1,6 +1,6 @@
 # Sci-Fi Dojo — Project Handoff (Technical)
 
-Last updated: 2026-07-05. Update this file whenever architecture, endpoints, or conventions change.
+Last updated: 2026-07-06. Update this file whenever architecture, endpoints, or conventions change.
 
 ## Project Overview
 
@@ -135,10 +135,15 @@ Replaces deposits + memberships (member.html continues to work until cutover). O
 
 ### Endpoints
 - GET `customer&key=&token=` — dashboard payload (profile, open rentals with live accrual, history, `cabinet_code` as soon as the account is active, location).
-- POST (api_key): `customer_signup` (also returns `cabinet_code` and a `flagged` boolean so the app can show the code immediately or the pending-review message), `rent_start` (validates limit/payment/item; creates pending rental; returns price + has_card), `rental_return` (freezes accrual, item → return_pending).
+- POST (api_key): `customer_signup` (also returns `cabinet_code` and a `flagged` boolean so the app can show the code immediately or the pending-review message), `customer_lookup` (returning-customer recovery: requires **both** email and phone to match the same account — either alone is rejected; returns `customer_token` on a match, a generic error otherwise), `rent_start` (validates limit/payment/item; creates pending rental; returns price + has_card), `rental_return` (freezes accrual, item → return_pending).
 - POST (SERVER_KEY, Netlify only): `rent_confirm` (payment done → active, clock starts, item checked_out), `rent_charge_lookup`, `rent_charge_recorded` (adds charge; closes or pays off), `rental_payment_failed`.
 - GET (staff_pin): `all_customers`, `rental_billing` (open rentals + owed_now + flags). POST (staff_pin): `rental_close` (waive & close).
 - Catalog/events/perks/updates/member_request accept customer tokens too (`accountForToken_`); rental audit rows land in Transactions as `rental_*` actions (invisible to legacy member views).
+
+### Returning-customer login (rent.html)
+- The signup screen leads with a Returning Customer card: **SCAN MY CARD** opens the same camera/jsQR pipeline used for item lookup, now parameterized by `cameraPurpose` (`'checkout'` vs `'login'`) so `openCamera()`/`onQRDetected()` branch correctly — a login scan extracts a `token` query param if the scan is a URL, else treats the raw scanned text as the token itself, then calls `loginWithToken()`.
+- As a backup, a collapsible form (reusing the `toggleNote()` accordion) asks for **email and phone together** — the client enforces both are non-blank before submitting, and the backend (`doCustomerLookup`) re-checks both server-side with the same normalization as the Blacklist match (case/whitespace-insensitive email, digits-only phone). Neither field alone is ever sufficient; a customer_id is guessable and an email or phone alone isn't proof of identity. A non-match returns one generic error regardless of which field (if either) was close, so this can't be used to probe for registered contacts one at a time.
+- `loginWithToken()` verifies the token against `?action=customer` before committing to it, so a bad scan or a stale/garbage token shows an inline error and stays on the signup screen instead of bouncing to the full-page "Account Link Invalid" error.
 
 ### SFD card printing (staff terminal)
 - `sfd-staff.html` → Rental Customers → **PRINT CARD** on any result row. `printCustomerCard()` looks the customer up in the already-loaded `allCustomers` list and calls `buildCustomerPrintUrl()`, which mirrors the legacy `buildPrintUrl()` pattern one-for-one: `cards/print-cards.html?token_a=<customer_token>&name_a=<display_name>&id_a=<customer_id>&since_a=<formatSince(joined_date)>`. No `reprint_a` flag on first print (matches the legacy default-print call).

@@ -90,9 +90,11 @@ tradeoff before turning this on somewhere with different foot traffic.
 Paste the delivered backend file over the current code, then deploy a **new
 version of the SAME deployment** (Deploy → Manage deployments → ✏️ → New
 version → Deploy). Changes: Customers/Rentals support, accrual math
-(`computeAccrued_`), signup / rent / return / billing actions, and a new
-`SERVER_KEY` that only the Netlify functions know (it gates the
-"mark this rental paid" actions, so the public page key can't fake payments).
+(`computeAccrued_`), signup / rent / return / billing actions, a new
+returning-customer lookup action (`customer_lookup` — requires both email
+and phone to match the same account), and a new `SERVER_KEY` that only the
+Netlify functions know (it gates the "mark this rental paid" actions, so the
+public page key can't fake payments).
 
 ## 3. Netlify (onboarding repo)
 
@@ -148,18 +150,24 @@ card on a later one.
 2. Sign up again with an email/phone you've added to the Blacklist tab →
    the success screen should say the account is pending review, with no
    cabinet code, and the Rentals tab should still be empty for that account.
-3. Rent a disc on the first (non-blacklisted) account → Stripe Checkout →
+3. Reload `scifidojo.com/rent` with no token (simulating a lost bookmark) →
+   expand "Or look up by email & phone" → try just the email, or just the
+   phone, from step 1's account (should be rejected) → then both together
+   (should log you straight into that account). Scanning the QR from the
+   printed card should also work — see the note in `CLAUDE.md` about
+   confirming what `cards/print-cards.html` actually encodes.
+4. Rent a disc on the first (non-blacklisted) account → Stripe Checkout →
    card `4242 4242 4242 4242`, any future expiry/CVC → back in the app the
    rental shows active.
-4. Check the sheet: Customers row, Rentals row `active`, catalog item
+5. Check the sheet: Customers row, Rentals row `active`, catalog item
    `checked_out`.
-5. Log the return in the app → staff terminal shows RETURNED — CHECK IN →
+6. Log the return in the app → staff terminal shows RETURNED — CHECK IN →
    CHARGE & CLOSE (within the 7-day window it just closes; nothing owed).
-6. Rent again (same account) — it should charge with one tap, no redirect.
-7. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
+7. Rent again (same account) — it should charge with one tap, no redirect.
+8. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
    fails charges) — the sweep flags the customer, and their app shows the
    card banner with renting blocked.
-7. Flip to live keys (and a live-mode webhook) when everything passes.
+9. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 
