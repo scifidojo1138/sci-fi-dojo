@@ -17,7 +17,21 @@ QR poster is printed, so you can take your time and test in Stripe test mode.
 
 Rows are created by the signup flow — you never add these by hand. To raise a
 good customer's limit after their first clean return, edit their
-`rental_limit` cell (e.g. 1 → 3).
+`rental_limit` cell (e.g. 1 → 3). A row with `status = flagged` means the
+signup matched the Blacklist tab below; it has no cabinet code and can't
+rent until you edit that cell back to `active`.
+
+**Blacklist** (new tab), row 1 headers:
+
+| blacklist_id | email | phone | reason | added_by | added_date |
+|---|---|---|---|---|---|
+
+A row can list an email, a phone, or both — either matching a new signup's
+info flags that account instead of activating it normally (see Customers,
+above). This only catches **future** signups; it can't undo a rental someone
+already paid for. To let someone back in, delete their row here (their
+existing account still needs its `status` cell fixed back to `active`
+separately, since the two are independent).
 
 **Rentals** (new tab), row 1 headers:
 
@@ -29,10 +43,16 @@ after 30 min) → `active` → `return_pending` → `closed`, or `paid_off` when
 the customer has paid the disc's full price (it is theirs; the catalog row
 becomes `sold`).
 
-**Catalog** — add one column: `rental_price` (dollars: 1, 2, or 3; blank
-defaults to $2 — set a row to `1` explicitly for anything you want priced at
+**Catalog** — add one column: `rental_price` (dollars, e.g. 2, 3, or 4; blank
+defaults to $3 — set a row to `2` explicitly for anything you want priced at
 the floor). The existing `replacement_cost` column is the payoff cap — fill
 it in for items you rent out (blank falls back to the default below).
+
+> **Already have items priced under the old $1/$2/$3 scheme?** Existing
+> `rental_price` values don't change on their own — only blank cells pick up
+> the new $3 default. If you want every title bumped by $1 to match the new
+> pricing, that's a one-time manual (or separately scripted) edit to the
+> Catalog tab; nothing in this update does it for you.
 
 **Settings** — add four rows (key in column A, value in B):
 
@@ -44,11 +64,26 @@ it in for items you rent out (blank falls back to the default below).
 | `trusted_rental_limit` | `2` |
 
 The last two power **Trusted Accounts**: once a customer has this many
-rentals returned within the included 3-day window, their `rental_limit` is
+rentals returned within the included 7-day window, their `rental_limit` is
 raised to `trusted_rental_limit` automatically — no staff action needed. A
 customer who's great but occasionally keeps a disc a few extra days doesn't
 count toward this and isn't penalized; raising their limit further stays a
 manual edit to their `rental_limit` cell, same as today.
+
+**Rental window and rates changed for the Thu–Sun schedule:** the included
+period is now 7 days (was 3) so a rental never comes due during the Mon–Wed
+closure with no way to return it, and the extended-rental rate is now $2/day
+(was $1) to keep revenue roughly steady against the longer free window.
+Both are in the Apps Script as constants (`RENT_INCLUDED_DAYS`,
+`RENT_DAILY_CENTS`), not Settings — changing them again means editing the
+script and deploying a new version, same as any other code change.
+
+**General-collection cabinet code is now handed out immediately at signup**
+(no rental needed first) unless the signup matches the Blacklist tab above,
+in which case the account is created but held for staff review with no code
+and no ability to rent. This is deliberate for a single trusted location —
+see `CLAUDE.md`'s "Blacklist and cabinet code timing" section for the
+tradeoff before turning this on somewhere with different foot traffic.
 
 ## 2. Apps Script
 
@@ -108,15 +143,20 @@ card on a later one.
 
 ## 6. Test in Stripe test mode
 
-1. Open `scifidojo.com/rent` in a private window → sign up.
-2. Rent a disc → Stripe Checkout → card `4242 4242 4242 4242`, any future
-   expiry/CVC → back in the app the rental shows active with the cabinet code.
-3. Check the sheet: Customers row, Rentals row `active`, catalog item
+1. Open `scifidojo.com/rent` in a private window → sign up. The success
+   screen should show the cabinet code immediately (no rental needed yet).
+2. Sign up again with an email/phone you've added to the Blacklist tab →
+   the success screen should say the account is pending review, with no
+   cabinet code, and the Rentals tab should still be empty for that account.
+3. Rent a disc on the first (non-blacklisted) account → Stripe Checkout →
+   card `4242 4242 4242 4242`, any future expiry/CVC → back in the app the
+   rental shows active.
+4. Check the sheet: Customers row, Rentals row `active`, catalog item
    `checked_out`.
-4. Log the return in the app → staff terminal shows RETURNED — CHECK IN →
-   CHARGE & CLOSE (within 3 days it just closes; nothing owed).
-5. Rent again (same account) — it should charge with one tap, no redirect.
-6. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
+5. Log the return in the app → staff terminal shows RETURNED — CHECK IN →
+   CHARGE & CLOSE (within the 7-day window it just closes; nothing owed).
+6. Rent again (same account) — it should charge with one tap, no redirect.
+7. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
    fails charges) — the sweep flags the customer, and their app shows the
    card banner with renting blocked.
 7. Flip to live keys (and a live-mode webhook) when everything passes.

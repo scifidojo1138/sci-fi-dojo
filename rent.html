@@ -547,7 +547,7 @@ select option{background:var(--panel2);color:var(--text);}
   <div class="screen" id="screen-signup">
     <div class="section-heading" style="padding-top:24px;">
       <div class="section-title">Create Your SFD Account</div>
-      <div class="section-sub">Your account is free. No deposit, no monthly fee. Pay only when you rent, starting at $2 for 3 days.</div>
+      <div class="section-sub">Your account is free. No deposit, no monthly fee. Pay only when you rent, starting at $3 for 7 days.</div>
     </div>
     <div class="card d2">
       <div class="card-hdr">Your Info<div class="card-hdr-line"></div></div>
@@ -602,7 +602,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.04</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.05</div>
     <div class="spacer"></div>
   </div>
 
@@ -640,7 +640,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div id="checkoutAlert"></div>
     <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitRent()" disabled>PAY &amp; RENT</button>
-    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 3 days, then $1 a day until the disc is returned or paid off.</p>
+    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then $2 a day until the disc is returned or paid off.</p>
     <button class="btn-ghost" onclick="goStatus()">Cancel</button>
     <div class="spacer"></div>
   </div>
@@ -768,7 +768,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CARD / CONTACT INFO</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">QUESTIONS? EMAIL US</a>
-    <p class="mgmt-note">Your account is free. No deposit, no monthly fee. The base price covers your first 3 days, then $1 a day is billed to your saved card until the disc is returned or paid off. Pay a disc off and it is yours to keep.</p>
+    <p class="mgmt-note">Your account is free. No deposit, no monthly fee. The base price covers your first 7 days, then $2 a day is billed to your saved card until the disc is returned or paid off. Pay a disc off and it is yours to keep.</p>
     <div class="spacer"></div>
   </div>
 
@@ -11140,11 +11140,25 @@ async function submitSignup() {
 
     token = data.customer_token;
     try { history.replaceState(null, '', window.location.pathname + '?token=' + encodeURIComponent(token)); } catch(e) {}
-    showSuccess('co', 'Welcome to the Dojo!',
-      'Bookmark this page. It is your personal account link for every visit. Ask staff to print you an SFD card on your next visit.',
-      [ { k: 'NAME', v: name },
-        { k: 'ACCOUNT ID', v: data.customer_id },
-        { k: 'NEXT', v: 'Tap below, then Rent a Disc' } ]);
+
+    if (data.flagged) {
+      // Account created but held for staff review (e.g. a blacklist
+      // match) -- no cabinet code yet, and rentals stay blocked until
+      // a staff member clears it.
+      showSuccess('co', 'Account Created',
+        'Bookmark this page. It is your personal account link for every visit.',
+        [ { k: 'NAME', v: name },
+          { k: 'ACCOUNT ID', v: data.customer_id },
+          { k: 'STATUS', v: 'Pending review before rentals are enabled' },
+          { k: 'NEXT', v: 'A team member will follow up, or ask at the counter' } ]);
+    } else {
+      showSuccess('co', 'Welcome to the Dojo!',
+        'Bookmark this page. It is your personal account link for every visit. Ask staff to print you an SFD card on your next visit.',
+        [ { k: 'NAME', v: name },
+          { k: 'ACCOUNT ID', v: data.customer_id },
+          { k: 'CABINET CODE', v: data.cabinet_code || 'See Access Cabinet' },
+          { k: 'NEXT', v: 'Tap below, then Rent a Disc' } ]);
+    }
     // Warm the account data in the background WITHOUT navigating away, so
     // the bookmark message stays on screen until the customer taps through.
     refreshAfterRent();
@@ -11677,7 +11691,7 @@ function renderStatus() {
   }
   // Getting-started prompt -- only for customers with nothing out
   if (member.rentals.length === 0 && member.return_pending.length === 0) {
-    banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. You pay only when you rent, starting at $2 for 3 days.');
+    banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. You pay only when you rent, starting at $3 for 7 days.');
   }
   if (banners) {
     document.getElementById('statusNotifSection').innerHTML =
@@ -11721,7 +11735,7 @@ function renderStatus() {
   var rentSub = catalogStatus === 'failed' ? 'Catalog unavailable. Tap Browse to retry.' :
                 !catalogReady ? 'Catalog loading — please wait' :
                 (member.payment_status === 'failed' ? 'Card needs attention' :
-                (st.slotsLeft === 0 ? 'Return your disc first' : 'First 3 days from $2'));
+                (st.slotsLeft === 0 ? 'Return your disc first' : 'First 7 days from $3'));
   document.getElementById('actionGrid').innerHTML =
     actionBtn('ab-checkout', '&#128192;', 'RENT A DISC', rentSub, rentEnabled, 'goCheckout()') +
     actionBtn('ab-return',   '&#8629;', 'RETURN',  canReturn ? 'Stop the daily charge' : 'Nothing out right now.', canReturn, 'goReturn()') +
@@ -11829,7 +11843,7 @@ function lookupItem(code) {
 
   var item      = result.item;
   var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 1) * 100);
-  var priceLine = '<strong>' + money(baseCents) + '</strong> covers your first 3 days, then $1 a day.' +
+  var priceLine = '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then $2 a day.' +
     (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
   area.innerHTML = itemConfirmCard('ok', priceLine, item);
@@ -11900,7 +11914,7 @@ async function submitRent() {
       'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
         { k: 'CHARGED', v: money(rentSelection.base_cents) + ' (covers 3 days)' },
-        { k: 'AFTER DAY 3', v: '$1 a day until returned or paid off' },
+        { k: 'AFTER DAY 7', v: '$2 a day until returned or paid off' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
     btn.disabled = false; btn.textContent = 'PAY & RENT';

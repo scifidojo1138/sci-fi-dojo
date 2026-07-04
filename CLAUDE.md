@@ -1,6 +1,6 @@
 # Sci-Fi Dojo — Project Handoff (Technical)
 
-Last updated: 2026-07-04. Update this file whenever architecture, endpoints, or conventions change.
+Last updated: 2026-07-05. Update this file whenever architecture, endpoints, or conventions change.
 
 ## Project Overview
 
@@ -105,14 +105,20 @@ Replaces deposits + memberships (member.html continues to work until cutover). O
 **Framing note:** this is presented to the public as a **free SFD Account** — not a membership. Signup copy says "Create Your SFD Account," the button says "Create Account," and staff print a physical **SFD card** (not a "membership card") using the existing card-print flow (see below). "Membership" is deliberately reserved for a possible future paid tier built on the legacy `Members` tab/tier system (`member.html`); Phase 1 is explicitly an account, with no monthly fee and no deposit, so the free/paid distinction stays legible in conversation even though both are colloquially "signing someone up." Internal code (`Customers` tab, `customer_id`, `customer_token`) already used this language and is unchanged.
 
 ### Pricing & accrual (single source of truth: `computeAccrued_` in the Apps Script)
-- Base price = Catalog `rental_price` column in dollars (blank defaults to **$2**; $1 remains available as an explicit per-item floor for cheaper titles), covers days 1–3.
-- Then $1/day (`RENT_DAILY_CENTS`), `daysOut = ceil((until - start)/1day)` where `until` = `return_date` if returned else now — so charges freeze the moment the customer logs a return, regardless of when staff process it.
-- Total charges cap at Catalog `replacement_cost` (blank → Settings `default_payoff_cost`, default $10). Paid to cap = `paid_off`: the disc is theirs; the catalog row goes `status=sold`, `in_rotation=FALSE`. Avoid the words "late fee" and "replacement cost" in anything customer- or staff-facing; the accrual after day 3 is framed as an extended-rental fee, and the cap is framed as "yours to keep at $X," not a penalty.
+- Base price = Catalog `rental_price` column in dollars (blank defaults to **$3**; $2 remains available as an explicit per-item floor for cheaper titles), covers days 1–7. The 7-day included window matches the shop's Thu–Sun open days: 7 days guarantees every rental spans at least one full open window to return in, no matter which open day it started on (the original 3-day window didn't survive the Mon–Wed closure — a rental could come due while the shop was closed with no way to return it).
+- Then $2/day (`RENT_DAILY_CENTS`, bumped from $1 alongside the window extending from 3 to 7 days, to keep per-rental revenue roughly steady), `daysOut = ceil((until - start)/1day)` where `until` = `return_date` if returned else now — so charges freeze the moment the customer logs a return, regardless of when staff process it.
+- Total charges cap at Catalog `replacement_cost` (blank → Settings `default_payoff_cost`, default $10 — this is a replacement-value ceiling, not a "rate," so it did **not** move with the day-window/price bump above). Paid to cap = `paid_off`: the disc is theirs; the catalog row goes `status=sold`, `in_rotation=FALSE`. Avoid the words "late fee" and "replacement cost" in anything customer- or staff-facing; the accrual after the included window is framed as an extended-rental fee, and the cap is framed as "yours to keep at $X," not a penalty.
+- **Existing catalog rows with an explicit `rental_price` typed in do not move automatically** when these defaults change — only rows left blank pick up the new default. Bumping already-priced titles is a manual (or separately-scripted) sheet edit, not something the backend does for you.
 
 ### Trusted Accounts
-- An account's `rental_limit` is raised automatically once it has enough **on-time returns** — closed rentals returned within the included 3-day window (`ceil(daysOut) <= RENT_INCLUDED_DAYS`), computed fresh from Rentals each time by `countOnTimeReturns_()`. Rentals kept past day 3, paid off outright, or still open don't count toward or against the total.
+- An account's `rental_limit` is raised automatically once it has enough **on-time returns** — closed rentals returned within the included window (`ceil(daysOut) <= RENT_INCLUDED_DAYS`, currently 7 days), computed fresh from Rentals each time by `countOnTimeReturns_()`. Rentals kept past the included window, paid off outright, or still open don't count toward or against the total. Because this reads the same `RENT_INCLUDED_DAYS` constant as the accrual math, "on time" always tracks whatever the included window currently is — it moved from 3 to 7 days for free when the window changed.
 - Thresholds live in Settings so they're tunable without a redeploy: `trusted_on_time_threshold` (default 10) and `trusted_rental_limit` (default 2). `maybeUpgradeToTrusted_()` runs after any rental closes (`doRentChargeRecorded` and `doRentalClose`), only raises (never lowers) the limit, and leaves a dated note on the customer's `notes` field so staff can see why it changed.
-- Anything beyond this — a customer who's great but occasionally keeps a disc past 3 days, wanting a limit above the trusted default, badges/perks/streak mechanics — stays a manual `rental_limit` edit or a deliberately deferred feature; the auto-upgrade only ever does the one thing above.
+- Anything beyond this — a customer who's great but occasionally keeps a disc past the included window, wanting a limit above the trusted default, badges/perks/streak mechanics — stays a manual `rental_limit` edit or a deliberately deferred feature; the auto-upgrade only ever does the one thing above.
+
+### Blacklist and cabinet code timing
+- The general-collection cabinet code is handed to a customer **as soon as their account is created** — `getCustomer()` reveals it whenever `status === 'active'`, with no rental required first. (The vault code, if this ever grows one, stays separately gated — untouched by this.)
+- A new `Blacklist` tab (`blacklist_id, email, phone, reason, added_by, added_date`) is checked at signup by `isBlacklisted_()` (case/whitespace-insensitive on email, digits-only on phone, so formatting differences like dashes or parens still match). A match doesn't reject the signup outright — it still creates the account (so staff have a record and a legitimate person isn't silently locked out with zero explanation) but writes `status: 'flagged'` instead of `'active'`. A flagged account gets no cabinet code and can't rent (`doRentStart` already requires `status === 'active'`); the app shows the same generic "Account paused" banner as any other non-active status, without revealing why. Today the staff override is a direct edit of that customer's `status` cell back to `'active'`; the staff terminal's Rental Customers search flags a blacklisted account with a red "FLAGGED — REVIEW" badge so it isn't missed.
+- This only stops a **repeat** offender from cycling through disposable contact info to sign up again — it can't retroactively catch a first-time bad actor whose payment hasn't happened yet.
 
 ### Billing policy (fees vs locked-card risk)
 - **At rental:** base charged immediately. First rental via Stripe Checkout (`start-rental` returns a URL; card saved with `setup_future_usage`); later rentals are one-tap off-session charges. Proves the card is live before the disc leaves.
@@ -121,14 +127,15 @@ Replaces deposits + memberships (member.html continues to work until cutover). O
 - **Failed charge:** customer `payment_status=failed`, blocked from new rentals, banner in the app, retried by the next sweep.
 
 ### Sheet tabs
-- **Customers:** `customer_id, customer_token, display_name, email, phone, terms_accepted, stripe_customer_id, payment_status(none/ok/failed), rental_limit, status, joined_date, notes`. `rental_limit` starts at Settings `default_rental_limit` (1); staff raise it per customer after a clean first return.
+- **Customers:** `customer_id, customer_token, display_name, email, phone, terms_accepted, stripe_customer_id, payment_status(none/ok/failed), rental_limit, status(active/flagged/...), joined_date, notes`. `rental_limit` starts at Settings `default_rental_limit` (1); staff raise it per customer after a clean first return (or it self-raises via Trusted Accounts, above).
 - **Rentals:** `rental_id, customer_id, item_id, start_date, status(pending/active/return_pending/closed/paid_off/void), base_price, base_paid_date, extra_charged, last_charge_date, return_date, closed_date, notes`. Dollars in the sheet; the code does math in cents. `pending` rows older than 30 min are auto-voided by any `rental_billing` read.
 - **Catalog:** + `rental_price` column; `replacement_cost` doubles as the payoff cap.
+- **Blacklist:** `blacklist_id, email, phone, reason, added_by, added_date` — checked at signup only (see above); a row needs an email, a phone, or both.
 - **Settings:** + `default_payoff_cost`, `default_rental_limit`, `trusted_on_time_threshold`, `trusted_rental_limit`.
 
 ### Endpoints
-- GET `customer&key=&token=` — dashboard payload (profile, open rentals with live accrual, history, `cabinet_code` only while a paid rental is active, location).
-- POST (api_key): `customer_signup`, `rent_start` (validates limit/payment/item; creates pending rental; returns price + has_card), `rental_return` (freezes accrual, item → return_pending).
+- GET `customer&key=&token=` — dashboard payload (profile, open rentals with live accrual, history, `cabinet_code` as soon as the account is active, location).
+- POST (api_key): `customer_signup` (also returns `cabinet_code` and a `flagged` boolean so the app can show the code immediately or the pending-review message), `rent_start` (validates limit/payment/item; creates pending rental; returns price + has_card), `rental_return` (freezes accrual, item → return_pending).
 - POST (SERVER_KEY, Netlify only): `rent_confirm` (payment done → active, clock starts, item checked_out), `rent_charge_lookup`, `rent_charge_recorded` (adds charge; closes or pays off), `rental_payment_failed`.
 - GET (staff_pin): `all_customers`, `rental_billing` (open rentals + owed_now + flags). POST (staff_pin): `rental_close` (waive & close).
 - Catalog/events/perks/updates/member_request accept customer tokens too (`accountForToken_`); rental audit rows land in Transactions as `rental_*` actions (invisible to legacy member views).
