@@ -546,7 +546,37 @@ select option{background:var(--panel2);color:var(--text);}
   <!-- SIGNUP -->
   <div class="screen" id="screen-signup">
     <div class="section-heading" style="padding-top:24px;">
-      <div class="section-title">Create Your SFD Account</div>
+      <div class="section-title">Welcome to Sci-Fi Dojo</div>
+      <div class="section-sub">Already have an account, or joining for the first time?</div>
+    </div>
+
+    <button class="btn-primary" onclick="openCamera('login')">SCAN MY CARD TO LOG IN</button>
+
+    <div class="card d2">
+      <div class="card-body">
+        <div class="note-toggle" id="noteToggleLookup" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsLookup" onclick="toggleNote('Lookup')">
+          <span class="note-toggle-lbl">Or look up by email &amp; phone</span>
+          <span class="note-chevron" id="noteChevronLookup">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsLookup">
+          <hr class="note-divider">
+          <div class="field">
+            <label class="field-lbl" for="lookupEmail">Email</label>
+            <input type="email" id="lookupEmail" autocomplete="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label class="field-lbl" for="lookupPhone">Phone</label>
+            <input type="tel" id="lookupPhone" autocomplete="tel" placeholder="(555) 555-5555" />
+          </div>
+          <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">We ask for both to confirm it's you.</p>
+          <button class="btn-primary" id="lookupSubmitBtn" onclick="submitCustomerLookup()" style="width:100%;margin:0;">FIND MY ACCOUNT</button>
+        </div>
+      </div>
+    </div>
+    <div id="returningAlert"></div>
+
+    <div class="section-heading" style="padding-top:8px;">
+      <div class="section-title">New Here?</div>
       <div class="section-sub">Your account is free. No deposit, no monthly fee. Pay only when you rent, starting at $3 for 7 days.</div>
     </div>
     <div class="card d2">
@@ -602,7 +632,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.05</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.06</div>
     <div class="spacer"></div>
   </div>
 
@@ -11050,6 +11080,7 @@ var token         = null;
 var checkoutItems = [];   // confirmed items in queue (item objects)
 var returnSelected = [];  // item_ids selected for return
 var cameraStream  = null;
+var cameraPurpose = 'checkout'; // 'checkout' (item lookup) or 'login' (scan card to log in)
 var memberFromCache = false; // true while showing cached data, before fresh fetch lands
 var memberStale     = false; // true when fetch failed and cached data is all we have
 var lastMemberFetch = 0;     // throttle for visibility-change refreshes
@@ -11166,6 +11197,53 @@ async function submitSignup() {
     btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
     alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Signup failed') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Account Signup Help" style="color:inherit;">Email us</a> if you need a hand.');
   }
+}
+
+// ----------------------------------------------------------------
+// RETURNING CUSTOMER: log in by scanning the printed SFD card, or as
+// a backup, look up the account by email AND phone together (both
+// required -- neither alone is treated as proof of identity).
+// ----------------------------------------------------------------
+async function loginWithToken(tok, alertElId) {
+  var alertEl = alertElId ? document.getElementById(alertElId) : null;
+  if (alertEl) alertEl.innerHTML = '';
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL + '?action=customer&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
+    var data = await res.json();
+    if (!data.ok || !data.customer) throw new Error('not found');
+    token = tok;
+    try { history.replaceState(null, '', window.location.pathname + '?token=' + encodeURIComponent(token)); } catch(e) {}
+    showScreen('screen-loading');
+    loadMember(token);
+  } catch(e) {
+    if (alertEl) alertEl.innerHTML = banner('err', '&#9888;', "That didn't match an account. Try scanning again, or ask staff for help.");
+  }
+}
+
+async function submitCustomerLookup() {
+  var email = document.getElementById('lookupEmail').value.trim();
+  var phone = document.getElementById('lookupPhone').value.trim();
+  var alertEl = document.getElementById('returningAlert');
+  alertEl.innerHTML = '';
+
+  if (!email || !phone) {
+    alertEl.innerHTML = banner('warn', '&#9888;', 'Please enter both your email and phone number.');
+    return;
+  }
+
+  var btn = document.getElementById('lookupSubmitBtn');
+  btn.disabled = true; btn.textContent = 'LOOKING UP...';
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL, { method: 'POST', body: JSON.stringify({
+      action: 'customer_lookup', api_key: API_KEY, email: email, phone: phone,
+    }) });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'No matching account found.');
+    await loginWithToken(data.customer_token, 'returningAlert');
+  } catch(e) {
+    alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'No matching account found.'));
+  }
+  btn.disabled = false; btn.textContent = 'FIND MY ACCOUNT';
 }
 
 // The customer payload arrives with one open-rentals array; split it into
@@ -12191,8 +12269,18 @@ function toggleNote(ctx) {
 // CAMERA
 // ================================================================
 function openCamera(ctx) {
-  var fb = document.getElementById('camFeedback');
-  document.getElementById('camInput').value = '';
+  cameraPurpose = ctx;
+  var fb    = document.getElementById('camFeedback');
+  var lbl   = document.querySelector('#camOverlay .cam-lbl');
+  var input = document.getElementById('camInput');
+  if (ctx === 'login') {
+    lbl.textContent = 'Scan Your SFD Card';
+    input.placeholder = 'Or type your account link...';
+  } else {
+    lbl.textContent = 'Scan Item QR Code';
+    input.placeholder = 'Or type item code...';
+  }
+  input.value = '';
   fb.textContent = '';
   document.getElementById('camOverlay').classList.remove('hidden');
 
@@ -12275,6 +12363,20 @@ function closeCamera() {
 }
 
 function onQRDetected(raw) {
+  if (cameraPurpose === 'login') {
+    // The printed card's QR encodes the account link -- pull the token
+    // out of it if it's a URL, else treat the whole scan as the token.
+    var tok = raw.trim();
+    try {
+      var loginUrl = new URL(raw);
+      var t = loginUrl.searchParams.get('token');
+      if (t) tok = t;
+    } catch(e) {}
+    closeCamera();
+    loginWithToken(tok, 'returningAlert');
+    return;
+  }
+
   var code = raw.trim().toUpperCase();
   try {
     var u = new URL(raw);
