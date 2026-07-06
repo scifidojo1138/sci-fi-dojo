@@ -550,7 +550,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="section-sub">Already have an account, or joining for the first time?</div>
     </div>
 
-    <button class="btn-primary" onclick="openCamera('login')">SCAN MY CARD TO LOG IN</button>
+    <button class="btn-primary" style="margin-bottom:18px;" onclick="openCamera('login')">SCAN MY CARD TO LOG IN</button>
 
     <div class="card d2">
       <div class="card-body">
@@ -596,7 +596,7 @@ select option{background:var(--panel2);color:var(--text);}
         </div>
         <div class="field" style="display:flex;gap:10px;align-items:flex-start;">
           <input type="checkbox" id="suTerms" style="width:20px;height:20px;accent-color:var(--accent);flex-shrink:0;margin-top:1px;" />
-          <label for="suTerms" style="font-size:13px;color:var(--text-mid);line-height:1.5;">I agree to the <a href="https://scifidojo.com/terms" target="_blank" rel="noopener" style="color:var(--accent);">SFD Rental Terms</a>, including daily charges until each disc is returned or paid off.</label>
+          <label for="suTerms" style="font-size:13px;color:var(--text-mid);line-height:1.5;">I agree to the <a href="https://scifidojo.com/terms" target="_blank" rel="noopener" style="color:var(--accent);">SFD Rental Terms</a>, including daily charges until each disc is returned or the maximum charge is reached.</label>
         </div>
       </div>
     </div>
@@ -739,7 +739,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="codeContent"></div>
     <div class="banner banner-warn" style="margin-top:4px;">
       <span class="banner-icon">&#128274;</span>
-      <div>This code is unique to your membership. Do not share.</div>
+      <div>This code is unique to your account. Do not share.</div>
     </div>
     <div id="locationContent"></div>
     <div class="spacer"></div>
@@ -11920,7 +11920,7 @@ function lookupItem(code) {
   }
 
   var item      = result.item;
-  var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 1) * 100);
+  var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
   var priceLine = '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then $2 a day.' +
     (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
@@ -11991,7 +11991,7 @@ async function submitRent() {
     showSuccess('co', 'Enjoy the Movie!',
       'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
-        { k: 'CHARGED', v: money(rentSelection.base_cents) + ' (covers 3 days)' },
+        { k: 'CHARGED', v: money(rentSelection.base_cents) + ' (covers 7 days)' },
         { k: 'AFTER DAY 7', v: '$2 a day until returned or paid off' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {

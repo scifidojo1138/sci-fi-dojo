@@ -92,7 +92,9 @@ version of the SAME deployment** (Deploy → Manage deployments → ✏️ → N
 version → Deploy). Changes: Customers/Rentals support, accrual math
 (`computeAccrued_`), signup / rent / return / billing actions, a new
 returning-customer lookup action (`customer_lookup` — requires both email
-and phone to match the same account), and a new `SERVER_KEY` that only the
+and phone to match the same account), signup now rejects a duplicate email
+or phone already on file (pointing the customer at that same lookup instead
+of quietly creating a second account), and a new `SERVER_KEY` that only the
 Netlify functions know (it gates the "mark this rental paid" actions, so the
 public page key can't fake payments).
 
