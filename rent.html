@@ -670,7 +670,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div id="checkoutAlert"></div>
     <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitRent()" disabled>PAY &amp; RENT</button>
-    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then $2 a day until the disc is returned or paid off.</p>
+    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then $2 a day until the disc is returned or the maximum charge is reached.</p>
     <button class="btn-ghost" onclick="goStatus()">Cancel</button>
     <div class="spacer"></div>
   </div>
@@ -809,7 +809,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="suc-title" id="sucTitle"></div>
       <div class="suc-sub"   id="sucSub"></div>
       <div class="receipt"   id="sucReceipt"></div>
-      <button class="btn-primary" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
+      <button class="btn-primary" id="sucBtn" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
     </div>
   </div>
 
@@ -11188,7 +11188,8 @@ async function submitSignup() {
         [ { k: 'NAME', v: name },
           { k: 'ACCOUNT ID', v: data.customer_id },
           { k: 'CABINET CODE', v: data.cabinet_code || 'See Access Cabinet' },
-          { k: 'NEXT', v: 'Tap below, then Rent a Disc' } ]);
+          { k: 'NEXT', v: 'Tap below to rent your first disc' } ],
+        'CHECK OUT A RENTAL', goCheckout);
     }
     // Warm the account data in the background WITHOUT navigating away, so
     // the bookmark message stays on screen until the customer taps through.
@@ -11751,7 +11752,7 @@ function renderStatus() {
   var tierEl  = document.getElementById('statusTier');
   tierEl.className   = 'member-tier tier-mat';
   tierEl.style.display = '';
-  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>Free Account</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">No deposit, no monthly fee &bull; pay only when you rent &bull; yours to keep at the disc price</div></div>';
+  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>Free Account</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">No deposit, no monthly fee &bull; pay only when you rent</div></div>';
 
   // Banners
   var banners = '';
@@ -12238,7 +12239,7 @@ function parseHours(raw) {
 // ================================================================
 // SUCCESS
 // ================================================================
-function showSuccess(type, title, sub, rows) {
+function showSuccess(type, title, sub, rows, btnLabel, btnAction) {
   var glyph = document.getElementById('sucGlyph');
   glyph.innerHTML   = type === 'co' ? '&#10003;' : '&#8629;';
   glyph.className   = 'suc-glyph ' + type;
@@ -12249,6 +12250,9 @@ function showSuccess(type, title, sub, rows) {
     // r.v can contain member names, item titles, and user-typed notes
     return '<div class="r-row"><span class="r-key">' + esc(r.k) + '</span><span class="r-val">' + esc(r.v) + '</span></div>';
   }).join('');
+  var btn = document.getElementById('sucBtn');
+  btn.textContent = btnLabel || 'BACK TO MY ACCOUNT';
+  btn.onclick = btnAction || goStatus;
   showScreen('screen-success');
 }
 
