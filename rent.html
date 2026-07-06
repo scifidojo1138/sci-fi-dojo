@@ -11056,8 +11056,15 @@ function backendGetMemberStatus(m) {
 // Local pre-check before the PAY button lights up; the backend re-validates
 // everything on rent_start.
 function validateRentalItem(itemId) {
+  if (!member) return { ok: false, reason: 'Still loading your account. Give it a moment, then re-enter the code.' };
   var item = catalogByIdCache[itemId];
-  if (!item) return { ok: false, reason: 'Item not found. Check the code and try again, or browse the catalog.' };
+  if (!item) {
+    // Distinguish "we have not loaded the catalog yet" from a genuine miss,
+    // or a slow load reads as every disc in the cabinet not existing.
+    return { ok: false, reason: catalogStatus !== 'ready'
+      ? 'The catalog is still loading. Give it a few seconds, then re-enter the code.'
+      : 'Item not found. Check the code and try again, or browse the catalog.' };
+  }
   if (member.rentals.find(function(r) { return r.item_id === itemId; }) ||
       member.return_pending.find(function(r) { return r.item_id === itemId; }))
     return { ok: false, reason: 'Already on your account.' };
@@ -11084,6 +11091,7 @@ var cameraPurpose = 'checkout'; // 'checkout' (item lookup) or 'login' (scan car
 var memberFromCache = false; // true while showing cached data, before fresh fetch lands
 var memberStale     = false; // true when fetch failed and cached data is all we have
 var lastMemberFetch = 0;     // throttle for visibility-change refreshes
+var signupWarm      = null;  // promise: account fetch kicked off right after signup
 
 // ----------------------------------------------------------------
 // Member data cache (localStorage, keyed by token).
@@ -11172,6 +11180,16 @@ async function submitSignup() {
     token = data.customer_token;
     try { history.replaceState(null, '', window.location.pathname + '?token=' + encodeURIComponent(token)); } catch(e) {}
 
+    // Warm everything in the background WITHOUT navigating away, so the
+    // bookmark message stays on screen until the customer taps through.
+    // The catalog load matters: the CHECK OUT A RENTAL button goes straight
+    // to the rent screen, and item lookups validate against the catalog.
+    signupWarm = refreshAfterRent();
+    loadCatalog(token);
+    loadEvents(token);
+    loadPerks(token);
+    loadUpdates(token);
+
     if (data.flagged) {
       // Account created but held for staff review (e.g. a blacklist
       // match) -- no cabinet code yet, and rentals stay blocked until
@@ -11189,11 +11207,8 @@ async function submitSignup() {
           { k: 'ACCOUNT ID', v: data.customer_id },
           { k: 'CABINET CODE', v: data.cabinet_code || 'See Access Cabinet' },
           { k: 'NEXT', v: 'Tap below to rent your first disc' } ],
-        'CHECK OUT A RENTAL', goCheckout);
+        'CHECK OUT A RENTAL', goFirstRental);
     }
-    // Warm the account data in the background WITHOUT navigating away, so
-    // the bookmark message stays on screen until the customer taps through.
-    refreshAfterRent();
   } catch(e) {
     btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
     alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Signup failed') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Account Signup Help" style="color:inherit;">Email us</a> if you need a hand.');
@@ -11878,6 +11893,19 @@ function actionBtn(cls, icon, label, sub, enabled, onclick) {
 // ================================================================
 var rentSelection = null; // { item_id, title } pending payment
 
+// Post-signup CTA: the account fetch may still be warming (Apps Script
+// cold starts run seconds), and the rent screen needs member data for
+// its checks -- wait for the warm-up before opening it.
+async function goFirstRental() {
+  if (member) { goCheckout(); return; }
+  showScreen('screen-loading');
+  var msgEl = document.getElementById('loadingMsg');
+  if (msgEl) msgEl.textContent = 'Loading your account...';
+  if (signupWarm) { try { await signupWarm; } catch(e) {} }
+  if (member) { goCheckout(); return; }
+  loadMember(token); // warm-up failed: full loader (it has retry/error UI)
+}
+
 function goCheckout() {
   rentSelection = null;
   document.getElementById('checkoutCodeInput').value = 'SFD-';
@@ -11993,10 +12021,11 @@ async function submitRent() {
       'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
         { k: 'CHARGED', v: money(rentSelection.base_cents) + ' (covers 7 days)' },
-        { k: 'AFTER DAY 7', v: '$2 a day until returned or paid off' },
+        { k: 'AFTER DAY 7', v: '$2 a day until returned, up to the maximum charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
-    btn.disabled = false; btn.textContent = 'PAY & RENT';
+    btn.disabled = false;
+    btn.textContent = 'PAY ' + money(rentSelection.base_cents) + ' & RENT';
     alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RENT">Email support</a>.');
   }
 }
