@@ -7,18 +7,22 @@ The signup checkbox records a timestamp in the Customers tab
 (`terms_accepted`), which is your evidence in a card dispute, so the terms
 must actually say what the app does.
 
-1. **Pricing.** The listed base price covers the first 3 days of a rental.
-   From day 4, $1 per day is added until the disc is returned or paid off.
+1. **Pricing.** The listed base price covers the first 7 days of a rental.
+   From day 8, $2 per day is added until the disc is returned, up to the
+   maximum charge below.
 
-2. **Payoff equals purchase.** Total charges for a rental never exceed the
-   disc's listed price. Once total charges reach that price, the disc is
-   yours to keep and the rental ends. No refunds for keeping it.
+2. **Maximum charge.** Total charges for a rental never exceed the disc's
+   listed maximum. Reaching the maximum stops the daily fee but does not
+   end the rental or transfer ownership — every disc is still due back,
+   and an account holding a maxed-out disc may be paused until it is
+   returned. Charges already made are not refunded.
 
 3. **Card on file authorization.** By renting, the customer authorizes SFD
    to save their payment method and charge it for the base price at rental,
    accrued daily fees during the rental (charged periodically), and the
-   remaining balance when the disc is returned or paid off. This is the
-   clause that makes off-session charges legitimate — do not skip it.
+   remaining balance when the disc is returned, up to the maximum charge.
+   This is the clause that makes off-session charges legitimate — do not
+   skip it.
 
 4. **When charges stop.** Daily charges stop the moment a return is logged
    in the app AND the disc is placed in the Return Bin. Logging a return
@@ -35,9 +39,9 @@ must actually say what the app does.
    A disc returned damaged or unplayable may be charged up to its listed
    price (same cap as non-return).
 
-8. **Cabinet access.** The cabinet code is personal, revealed only during an
-   active rental, and only the rented disc may be taken. Taking other items
-   is theft and ends the account.
+8. **Cabinet access.** The cabinet code is personal, provided with an
+   active account, and only a disc paid for through the app may be taken.
+   Taking other items is theft and ends the account.
 
 9. **Account accuracy.** Customers provide accurate contact info; SFD may
    contact them about their rentals. One account per person.

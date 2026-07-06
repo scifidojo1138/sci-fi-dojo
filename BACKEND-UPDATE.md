@@ -39,9 +39,10 @@ separately, since the two are independent).
 |---|---|---|---|---|---|---|---|---|---|---|---|
 
 Also machine-written. Statuses: `pending` (checkout not finished; auto-voids
-after 30 min) → `active` → `return_pending` → `closed`, or `paid_off` when
-the customer has paid the disc's full price (it is theirs; the catalog row
-becomes `sold`).
+after 30 min) → `active` → `return_pending` → `closed`. Reaching the
+maximum charge does NOT end a rental: the daily fee just stops accruing
+and the disc is still expected back — the rental stays open on the staff
+Outstanding Rentals list until you check it in.
 
 **Catalog** — add one column: `rental_price` (dollars, e.g. 2, 3, or 4; blank
 defaults to $3 — set a row to `2` explicitly for anything you want priced at
@@ -156,8 +157,9 @@ card on a later one.
    expand "Or look up by email & phone" → try just the email, or just the
    phone, from step 1's account (should be rejected) → then both together
    (should log you straight into that account). Scanning the QR from the
-   printed card should also work — see the note in `CLAUDE.md` about
-   confirming what `cards/print-cards.html` actually encodes.
+   printed card should also work — commit the delivered `print-cards.html`
+   into the onboarding repo's `cards/` first, so customer cards encode the
+   `/rent` link instead of the legacy `/member` one.
 4. Rent a disc on the first (non-blacklisted) account → Stripe Checkout →
    card `4242 4242 4242 4242`, any future expiry/CVC → back in the app the
    rental shows active.
