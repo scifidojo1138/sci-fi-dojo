@@ -632,7 +632,7 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="perksSection"></div>
     <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.06</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.08</div>
     <div class="spacer"></div>
   </div>
 
@@ -11917,13 +11917,6 @@ function goCheckout() {
   showScreen('screen-checkout');
 }
 
-// Open the rent screen with an item already chosen (Browse shortcut)
-function goRentWith(itemId) {
-  goCheckout();
-  document.getElementById('checkoutCodeInput').value = itemId;
-  lookupItem(itemId);
-}
-
 function onCheckoutCodeInput(el) {
   el.value = el.value.toUpperCase();
   var code = el.value.trim();
@@ -12571,14 +12564,17 @@ function getBrowseStatusTag(it) {
 }
 
 function getBrowseAction(it, starredSet) {
-  // Star everywhere; RENT shortcut on available items; Notify Me otherwise
+  // Star everywhere; Notify Me on unavailable items. No RENT shortcut:
+  // renting starts by scanning the disc in hand at the cabinet, so Browse
+  // is discovery only (also avoids paying for a disc someone else is
+  // about to grab).
   var id      = esc(it.item_id);
   var starred = starredSet ? starredSet.has(it.item_id) : isStarred(it.item_id);
   var starBtn = '<button class="star-btn' + (starred ? ' starred' : '') + '" data-id="' + id + '" aria-pressed="' + (starred ? 'true' : 'false') + '" aria-label="' + (starred ? 'Unstar' : 'Star') + ' ' + esc(it.title) + '" onclick="toggleStar(this.dataset.id)">' + (starred ? '&#9733;' : '&#9734;') + '</button>';
   if (it.status !== 'available') {
     return starBtn + '<button class="browse-action" id="bact-' + id + '" data-id="' + id + '" onclick="notifyMe(this.dataset.id)">NOTIFY ME</button>';
   }
-  return starBtn + '<button class="browse-action" data-id="' + id + '" onclick="goRentWith(this.dataset.id)">RENT</button>';
+  return starBtn;
 }
 
 // ----------------------------------------------------------------
