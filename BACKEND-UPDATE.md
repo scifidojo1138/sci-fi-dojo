@@ -12,14 +12,20 @@ QR poster is printed, so you can take your time and test in Stripe test mode.
 
 **Customers** (new tab), row 1 headers:
 
-| customer_id | customer_token | display_name | email | phone | terms_accepted | stripe_customer_id | payment_status | rental_limit | status | joined_date | notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|
+| customer_id | customer_token | display_name | email | phone | terms_accepted | stripe_customer_id | payment_status | rental_limit | status | comp | joined_date | notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 Rows are created by the signup flow — you never add these by hand. To raise a
 good customer's limit after their first clean return, edit their
 `rental_limit` cell (e.g. 1 → 3). A row with `status = flagged` means the
 signup matched the Blacklist tab below; it has no cabinet code and can't
 rent until you edit that cell back to `active`.
+
+**Staff accounts:** sign up normally through the app, then type `TRUE` in
+that row's `comp` cell. From then on their rentals log like anyone else's
+(so you can test the whole flow, and staff borrowing stays on the books)
+but nothing is ever charged and no card is ever asked for. The staff
+terminal badges them "STAFF — NO CHARGE".
 
 **Blacklist** (new tab), row 1 headers:
 
@@ -96,7 +102,8 @@ returning-customer lookup action (`customer_lookup` — requires both email
 and phone to match the same account), signup now rejects a duplicate email
 or phone already on file (pointing the customer at that same lookup instead
 of quietly creating a second account), the catalog payload now includes
-`rental_price` (feeds the Browse tap-to-expand price line), and a new
+`rental_price` (feeds the Browse tap-to-expand price line), staff comp
+accounts (`comp` column — logged but never charged), and a new
 `SERVER_KEY` that only the Netlify functions know (it gates the "mark this
 rental paid" actions, so the public page key can't fake payments).
 
@@ -172,7 +179,12 @@ card on a later one.
 8. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
    fails charges) — the sweep flags the customer, and their app shows the
    card banner with renting blocked.
-9. Flip to live keys (and a live-mode webhook) when everything passes.
+9. Staff comp path: set `comp = TRUE` on one account's Customers row →
+   renting on it should skip Stripe entirely (no checkout page, "RENT
+   (NO CHARGE)" button), the rental still shows on Outstanding Rentals
+   with a STAFF — NO CHARGE badge, and check-in closes it without
+   charging.
+10. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 

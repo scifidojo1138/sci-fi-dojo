@@ -11793,6 +11793,9 @@ function renderStatus() {
   if (member.payment_status === 'failed') {
     banners += banner('err', '&#128179;', 'Your card could not be charged. New rentals are paused until it is updated. <a href="mailto:scifidojo@aol.com?subject=SFD - Update My Card" style="color:inherit;">Email us</a> to fix it.');
   }
+  if (member.comp) {
+    banners += banner('info', '&#127916;', 'Staff account. Rentals are logged like any other, but nothing is ever charged.');
+  }
   if (member.return_pending.length > 0) {
     banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' disc' + (member.return_pending.length > 1 ? 's' : '') + ' waiting for staff check-in. Charges have stopped.');
   }
@@ -11809,9 +11812,11 @@ function renderStatus() {
   var statusText = member.active ? 'Enabled' : 'Paused';
   var statusCls  = member.active ? 'success'  : 'danger';
   var slotsCls   = st.slotsLeft === 0 ? 'warning' : 'accent';
-  var cardText   = member.payment_status === 'failed' ? 'Needs Update' :
+  var cardText   = member.comp ? 'Not Needed' :
+                   member.payment_status === 'failed' ? 'Needs Update' :
                    (member.has_card ? 'On File' : 'None Yet');
-  var cardCls    = member.payment_status === 'failed' ? 'danger' :
+  var cardCls    = member.comp ? 'dim' :
+                   member.payment_status === 'failed' ? 'danger' :
                    (member.has_card ? 'success' : 'dim');
 
   document.getElementById('sectionHdrStatus').style.display = '';
@@ -11819,7 +11824,7 @@ function renderStatus() {
     statCard('Account',   statusText, statusCls, 'pay per rental') +
     statCard('Available', st.slotsLeft + ' of ' + esc(member.rental_limit), slotsCls, st.slotsUsed + ' out now') +
     statCard('Return Bin', String(member.return_pending.length), member.return_pending.length > 0 ? 'warning' : 'dim', 'awaiting check-in') +
-    statCard('Card', cardText, cardCls, member.has_card ? 'charged per rental' : 'added at first rental');
+    statCard('Card', cardText, cardCls, member.comp ? 'staff account' : (member.has_card ? 'charged per rental' : 'added at first rental'));
 
   // Running cost card for each open rental
   renderCurrentRentals();
@@ -11875,7 +11880,9 @@ function renderCurrentRentals() {
       ? ' <span class="ri-tag ri-tag-pending">IN RETURN BIN</span>' : '';
     var line2 = r.status === 'return_pending'
       ? 'Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' will be billed at check-in.' : 'Nothing more owed.')
-      : 'Day ' + esc(r.days_out) + ' &bull; ' + money(r.owed_total) + ' so far &bull; ' + money(r.cap) + ' max';
+      : member.comp
+        ? 'Day ' + esc(r.days_out) + ' &bull; no charge (staff account)'
+        : 'Day ' + esc(r.days_out) + ' &bull; ' + money(r.owed_total) + ' so far &bull; ' + money(r.cap) + ' max';
     return '<div class="stat-card" style="grid-column:span 2;margin:0 16px 12px;">' +
       '<div class="stat-label">CURRENT RENTAL</div>' +
       '<div style="font-weight:600;font-size:16px;color:var(--text);margin:2px 0 4px;">' + esc(r.title) + pendingTag + '</div>' +
@@ -11956,14 +11963,16 @@ function lookupItem(code) {
 
   var item      = result.item;
   var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
-  var priceLine = '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then $2 a day.' +
-    (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
+  var priceLine = member.comp
+    ? '<strong>Staff account</strong>: no charge. The rental is still logged.'
+    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then $2 a day.' +
+      (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
   area.innerHTML = itemConfirmCard('ok', priceLine, item);
   rentSelection = { item_id: item.item_id, title: item.title, base_cents: baseCents };
   var btn = document.getElementById('checkoutSubmitBtn');
   btn.disabled = false;
-  btn.textContent = 'PAY ' + money(baseCents) + ' & RENT';
+  btn.textContent = member.comp ? 'RENT (NO CHARGE)' : 'PAY ' + money(baseCents) + ' & RENT';
 }
 
 function itemConfirmCard(status, msg, item) {
@@ -12002,7 +12011,8 @@ async function submitRent() {
   }
 
   var btn = document.getElementById('checkoutSubmitBtn');
-  btn.disabled = true; btn.textContent = member.has_card ? 'CHARGING CARD...' : 'OPENING CHECKOUT...';
+  btn.disabled = true;
+  btn.textContent = member.comp ? 'LOGGING RENTAL...' : (member.has_card ? 'CHARGING CARD...' : 'OPENING CHECKOUT...');
 
   try {
     // The Netlify function validates via the backend, then either returns a
@@ -12024,14 +12034,14 @@ async function submitRent() {
     // Saved card charged instantly -- refresh the account and celebrate
     await refreshAfterRent();
     showSuccess('co', 'Enjoy the Movie!',
-      'Paid and ready. Grab your disc from the cabinet.',
+      member.comp ? 'Logged and ready. Grab your disc from the cabinet.' : 'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
-        { k: 'CHARGED', v: money(rentSelection.base_cents) + ' (covers 7 days)' },
-        { k: 'AFTER DAY 7', v: '$2 a day until returned, up to the maximum charge' },
+        { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : money(rentSelection.base_cents) + ' (covers 7 days)' },
+        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : '$2 a day until returned, up to the maximum charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
     btn.disabled = false;
-    btn.textContent = 'PAY ' + money(rentSelection.base_cents) + ' & RENT';
+    btn.textContent = member.comp ? 'RENT (NO CHARGE)' : 'PAY ' + money(rentSelection.base_cents) + ' & RENT';
     alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RENT">Email support</a>.');
   }
 }
@@ -12069,8 +12079,10 @@ function renderReturnList() {
   }
   list.innerHTML = member.rentals.map(function(r) {
     var sel = returnSelected.includes(r.rental_id);
-    var costLine = 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far' +
-      (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' billed at check-in' : ' &middot; fully covered');
+    var costLine = member.comp
+      ? 'Day ' + esc(r.days_out) + ' &middot; no charge (staff account)'
+      : 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far' +
+        (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' billed at check-in' : ' &middot; fully covered');
     return '<div class="return-item' + (sel ? ' selected' : '') + '" role="checkbox" tabindex="0" aria-checked="' + (sel ? 'true' : 'false') + '" data-id="' + esc(r.rental_id) + '" onclick="toggleReturn(this.dataset.id)">' +
       '<div class="ri-check">' + (sel ? '&#10003;' : '') + '</div>' +
       '<div style="flex:1;min-width:0;">' +
@@ -12123,7 +12135,7 @@ async function submitReturn() {
     var rows = [{ k: 'NAME', v: member.display_name }];
     items.forEach(function(it, i2) {
       rows.push({ k: 'DISC ' + (i2 + 1), v: it.title + ' (' + it.item_id + ')' });
-      rows.push({ k: 'BALANCE', v: it.owed_now > 0 ? money(it.owed_now) + ' billed at check-in' : 'Fully covered' });
+      rows.push({ k: 'BALANCE', v: member.comp ? 'No charge (staff account)' : (it.owed_now > 0 ? money(it.owed_now) + ' billed at check-in' : 'Fully covered') });
     });
     rows.push({ k: 'STATUS', v: 'Charges stopped. Place the disc in the Return Bin.' });
 
@@ -12162,7 +12174,9 @@ function goRentals() {
         : '<span class="ri-tag ri-tag-out">OUT NOW</span>';
       var costBlock = pending
         ? '<div class="ri-due" style="color:var(--text-dim);">Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' billed at check-in.' : 'Nothing more owed.') + '</div>'
-        : '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; ' + money(r.cap) + ' max</div>';
+        : member.comp
+          ? '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; no charge (staff account)</div>'
+          : '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; ' + money(r.cap) + ' max</div>';
       return '<div class="rental-item">' +
         '<div class="ri-disc">' + (pending ? '&#128236;' : '&#128192;') + '</div>' +
         '<div class="ri-info">' +
