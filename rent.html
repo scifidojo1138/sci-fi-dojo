@@ -258,6 +258,19 @@ select option{background:var(--panel2);color:var(--text);}
 .ri-tag-pending{color:var(--warning); border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.06);}
 .ri-tag-vault  {color:var(--vault);   border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.06);}
 
+/* BROWSE EXPAND — tap a title for cover art + rental details.
+   The cover image element only exists while a row is open, so nothing
+   downloads until someone actually taps. */
+.rental-item.browse-open{border-bottom:none;}
+.browse-chevron{font-family:'Share Tech Mono',monospace;font-size:16px;color:var(--text-dim);flex-shrink:0;padding:2px 2px 0 0;cursor:pointer;transition:transform .15s;}
+.rental-item.browse-open .browse-chevron{transform:rotate(45deg);color:var(--accent);}
+.browse-detail{display:flex;gap:14px;padding:2px 0 16px 34px;border-bottom:1px solid var(--border);animation:fadeUp .2s ease both;}
+.browse-detail:last-child{border-bottom:none;}
+.browse-cover{width:76px;height:auto;border-radius:6px;border:1px solid var(--border2);flex-shrink:0;display:block;}
+.browse-facts{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;padding-top:2px;}
+.browse-fact{font-family:'Share Tech Mono',monospace;font-size:11.5px;color:var(--text-mid);letter-spacing:.03em;line-height:1.5;}
+.browse-fact strong{color:var(--text);font-size:13px;}
+
 /* RETURN SELECTABLE */
 .return-item{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;transition:all .2s;}
 .return-item:active{border-color:var(--accent2);background:rgba(255,107,53,.05);}
@@ -12534,16 +12547,69 @@ function renderBrowseList() {
     var action    = getBrowseAction(it, starredSet);
     var titleStr  = esc(it.title) + (it.year    ? ' (' + esc(it.year) + ')' : '');
     var metaStr   = esc(it.item_id) + ' &middot; ' + esc(it.format) + (it.edition ? ' &middot; ' + esc(it.edition) : '');
-    return '<div class="rental-item">' +
+    var open      = !!browseExpanded[it.item_id];
+    return '<div class="rental-item' + (open ? ' browse-open' : '') + '">' +
       '<div class="ri-disc">' + getFormatEmoji(it.format) + '</div>' +
-      '<div class="ri-info">' +
+      '<div class="ri-info" role="button" tabindex="0" aria-expanded="' + (open ? 'true' : 'false') + '" data-id="' + esc(it.item_id) + '" onclick="toggleBrowseInfo(this.dataset.id)">' +
         '<div class="ri-title">' + titleStr + '</div>' +
         '<div class="ri-meta">' + metaStr + '</div>' +
         '<div class="ri-tags">' + statusTag + vaultTag + '</div>' +
       '</div>' +
+      '<span class="browse-chevron" aria-hidden="true" data-id="' + esc(it.item_id) + '" onclick="toggleBrowseInfo(this.dataset.id)">+</span>' +
       action +
-      '</div>';
+      '</div>' +
+      (open ? browseDetailHtml(it) : '');
   }).join('');
+}
+
+// Expanded Browse rows, keyed by item_id. Kept OUTSIDE the render so a
+// re-render (star toggle, catalog refresh) doesn't collapse open rows.
+var browseExpanded = {};
+
+function toggleBrowseInfo(itemId) {
+  if (browseExpanded[itemId]) delete browseExpanded[itemId];
+  else browseExpanded[itemId] = true;
+  renderBrowseList();
+}
+
+// Covers that already 404'd this session -- skipped on re-render so a
+// star toggle doesn't re-request images we know aren't there.
+var coverMissing = {};
+
+function coverFail(img) {
+  img.style.display = 'none';
+  coverMissing[img.dataset.id] = true;
+}
+
+// Detail panel: cover art (requested only now -- the img element does not
+// exist until the row is expanded, so browsing never preloads covers) plus
+// rental facts from the catalog payload.
+function browseDetailHtml(it) {
+  var facts = [];
+  // Price line only when the backend sends rental_price (older deploys
+  // don't) -- hiding it beats guessing at a number that could be wrong.
+  if (Object.prototype.hasOwnProperty.call(it, 'rental_price')) {
+    var p = parseFloat(it.rental_price);
+    var baseCents = Math.round((p > 0 ? p : 3) * 100);
+    facts.push('<strong>' + money(baseCents) + '</strong> &middot; first 7 days, then $2/day');
+  }
+  if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(it.subcategory));
+  if (it.group_name) facts.push(esc(it.group_name));
+  var dc = parseInt(it.disc_count, 10);
+  if (dc > 1) facts.push(dc + ' discs');
+  if (it.condition && it.condition !== 'good') facts.push('Condition: ' + esc(it.condition));
+  facts.push(it.status === 'available' ? 'On the shelf now' :
+             it.status === 'return_pending' ? 'Being checked in' : 'Out right now');
+
+  var cover = coverMissing[it.item_id] ? '' :
+    '<img class="browse-cover" data-id="' + esc(it.item_id) + '" src="/covers/' + esc(encodeURIComponent(it.item_id)) + '.jpg" alt="" onerror="coverFail(this)">';
+
+  return '<div class="browse-detail" id="bdetail-' + esc(it.item_id) + '">' +
+    cover +
+    '<div class="browse-facts">' +
+      facts.map(function(f) { return '<div class="browse-fact">' + f + '</div>'; }).join('') +
+    '</div>' +
+  '</div>';
 }
 
 function getFormatEmoji(format) {
