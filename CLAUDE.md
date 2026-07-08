@@ -33,7 +33,7 @@ There is no `index.html`; `netlify.toml` redirects `/` to the Instagram profile 
 |---|---|
 | `sfd-onboarding.html` | Staff onboarding terminal (tier selection, Stripe checkout) |
 | `success.html` | Post-payment enrollment confirmation + QR card |
-| `sfd-staff.html` | Staff terminal: member lookup, cabinet codes, checkouts, return bin |
+| `sfd-staff.html` | Staff terminal (shares the onboarding terminal's teal/cyan style since 2026-07-08): attention strip, cabinet codes, outstanding rentals + sweep, customer search + card printing; legacy member tools collapsed at the bottom |
 | `cards/print-cards.html` | Member card print layout |
 | Netlify functions | `create-checkout`, `onboard-member`, `process-return`, `start-rental`, `rental-webhook`, `charge-rental`, `billing-sweep` |
 

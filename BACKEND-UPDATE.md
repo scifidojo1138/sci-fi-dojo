@@ -135,11 +135,16 @@ changes need a redeploy of the Netlify site to take effect.
 
 ## 5. Staff terminal
 
-Replace `sfd-staff.html` with the delivered file. New sections: **Rental
-Customers** (search; CARD FAILED badges; open a customer's app; PRINT CARD),
-and **Outstanding Rentals** (each open rental with days out / paid / owed /
-cap, a CHARGE & CLOSE button on returned discs, and the RUN BILLING SWEEP
-button).
+Replace `sfd-staff.html` with the delivered file. It now shares the
+onboarding terminal's visual style (teal/cyan, high contrast) and is
+organized by daily task: a needs-attention strip up top (returns to check
+in, due for sweep, failed cards — each chip jumps to its section), compact
+cabinet codes, then **Outstanding Rentals** (each open rental with days
+out / paid / owed / cap, a CHARGE & CLOSE button on returned discs, and
+the RUN BILLING SWEEP button) and **Rental Customers** (search; badges;
+open a customer's app; PRINT CARD). The legacy membership tools (member
+lookup, active checkouts, return bin) are collapsed at the bottom until
+tapped.
 
 Weekly routine: open the staff page, tap RUN BILLING SWEEP. It charges every
 active rental that is 7+ days since its last charge or owes $10+, and reports
