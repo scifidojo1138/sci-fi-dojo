@@ -11092,6 +11092,15 @@ function money(cents) {
   return '$' + (d % 1 === 0 ? d.toFixed(0) : d.toFixed(2));
 }
 
+// Extended-day rate for NEW rentals: the promo rate while one is live
+// (rides the customer payload), else the standard $2. Open rentals
+// accrue by the rate stamped on them server-side regardless of this.
+function dayRateCents() {
+  return (member && member.active_promo && member.active_promo.daily_cents > 0)
+    ? member.active_promo.daily_cents : 200;
+}
+function dayRateStr() { return money(dayRateCents()); }
+
 // ================================================================
 // STATE
 // ================================================================
@@ -11796,6 +11805,12 @@ function renderStatus() {
   if (member.comp) {
     banners += banner('info', '&#127916;', 'Staff account. Rentals are logged like any other, but nothing is ever charged.');
   }
+  // Live pricing promo (Rental Promos tab): staff-written description is
+  // the banner copy, same convention as the member-app promo banner.
+  if (member.active_promo && (member.active_promo.daily_cents > 0 || member.active_promo.base_discount_cents > 0)) {
+    banners += banner('info', '&#127903;', '<strong>' + esc(member.active_promo.title) + '</strong>' +
+      (member.active_promo.description ? ' &mdash; ' + esc(member.active_promo.description) : ''));
+  }
   if (member.return_pending.length > 0) {
     banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' disc' + (member.return_pending.length > 1 ? 's' : '') + ' waiting for staff check-in. Charges have stopped.');
   }
@@ -11932,6 +11947,11 @@ function goCheckout() {
   document.getElementById('itemConfirmArea').innerHTML = '';
   document.getElementById('checkoutAlert').innerHTML  = '';
   document.getElementById('checkoutSubtitle').textContent = 'Scan or enter the code on the disc case.';
+  // Terms line reflects any live promo daily rate (its links are static
+  // markup; only the hardcoded rate needs refreshing per member)
+  document.getElementById('rentTermsLine').innerHTML =
+    'By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. ' +
+    'The base price covers 7 days, then ' + dayRateStr() + ' a day until the disc is returned or the maximum charge is reached.';
   document.getElementById('checkoutSubmitBtn').disabled = true;
   document.getElementById('checkoutSubmitBtn').textContent = 'PAY & RENT';
   showScreen('screen-checkout');
@@ -11965,7 +11985,7 @@ function lookupItem(code) {
   var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
   var priceLine = member.comp
     ? '<strong>Staff account</strong>: no charge. The rental is still logged.'
-    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then $2 a day.' +
+    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then ' + dayRateStr() + ' a day.' +
       (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
   area.innerHTML = itemConfirmCard('ok', priceLine, item);
@@ -12037,7 +12057,7 @@ async function submitRent() {
       member.comp ? 'Logged and ready. Grab your disc from the cabinet.' : 'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
         { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : money(rentSelection.base_cents) + ' (covers 7 days)' },
-        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : '$2 a day until returned, up to the maximum charge' },
+        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + ' a day until returned, up to the maximum charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
     btn.disabled = false;
@@ -12605,7 +12625,7 @@ function browseDetailHtml(it) {
   if (Object.prototype.hasOwnProperty.call(it, 'rental_price')) {
     var p = parseFloat(it.rental_price);
     var baseCents = Math.round((p > 0 ? p : 3) * 100);
-    facts.push('<strong>' + money(baseCents) + '</strong> &middot; first 7 days, then $2/day');
+    facts.push('<strong>' + money(baseCents) + '</strong> &middot; first 7 days, then ' + dayRateStr() + '/day');
   }
   if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(it.subcategory));
   if (it.group_name) facts.push(esc(it.group_name));

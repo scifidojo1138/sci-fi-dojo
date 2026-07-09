@@ -77,6 +77,31 @@ customer who's great but occasionally keeps a disc a few extra days doesn't
 count toward this and isn't penalized; raising their limit further stays a
 manual edit to their `rental_limit` cell, same as today.
 
+**Rental Promos** (new tab), row 1 headers:
+
+| promo_id | title | description | date_start | date_end | daily_rate | base_discount | active |
+|---|---|---|---|---|---|---|---|
+
+Pricing promos for pay-per-rental (separate from the legacy member Promos
+tab). A row is live when `active` is TRUE and today falls between the
+dates (inclusive). `daily_rate` replaces the $2 extended-day rate;
+`base_discount` comes off every base price (never below $1). Fill in one,
+both, or use rows for different windows — the first live row wins. Every
+rental keeps the deal it started under, so ending a promo never changes
+what someone already renting owes. The `description` text is the banner
+customers see in the app. For the launch special, add:
+
+| RP-001 | Launch Special | All extended days are just $1 a day during our launch. | (launch date) | (end date) | 1 |  | TRUE |
+
+**Rentals tab** — add one column: `daily_rate` (leave the cells blank;
+the backend stamps it when a promo rental starts).
+
+**Grace period:** extended fees now start only once a disc is more than
+24 hours past the 7-day window (so day 9, not day 8). This is deliberate
+slack for returns nobody has seen yet — the apps still say "7 days"
+everywhere, and on-time credit for Trusted Accounts uses the same
+boundary.
+
 **Rental window and rates changed for the Thu–Sun schedule:** the included
 period is now 7 days (was 3) so a rental never comes due during the Mon–Wed
 closure with no way to return it, and the extended-rental rate is now $2/day
