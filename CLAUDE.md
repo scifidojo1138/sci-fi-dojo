@@ -252,9 +252,10 @@ Every app file shows a date-based version in its footer: `v2026.06.10`. **Bump i
 ### Copy / tone (app and public-facing prose)
 - Direct, confident, slightly cinematic — never corporate, never quirky
 - No em-dashes or emojis in prose
-- Location references use "New Jersey" until permanent location confirmed
+- Location references use "Belmar, NJ" (confirmed 2026-07-08)
 - Invite-only tiers hidden from all public-facing copy
 - Collection should feel welcoming to all film fans, not genre-restricted
+- Perks (snacks, surprises) are cheap PAID items via an honor box (decision 2026-07-08) — copy should not promise free stuff; trade-ins are rewarded in free rentals (exact math TBD)
 
 ### CSS Variables (member app palette)
 ```css
