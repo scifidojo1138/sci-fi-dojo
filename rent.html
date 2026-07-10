@@ -11897,7 +11897,7 @@ function renderCurrentRentals() {
       ? 'Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' will be billed at check-in.' : 'Nothing more owed.')
       : member.comp
         ? 'Day ' + esc(r.days_out) + ' &bull; no charge (staff account)'
-        : 'Day ' + esc(r.days_out) + ' &bull; ' + money(r.owed_total) + ' so far &bull; ' + money(r.cap) + ' max';
+        : 'Day ' + esc(r.days_out) + ' &bull; ' + money(r.owed_total) + ' so far &bull; yours to keep at ' + money(r.cap);
     return '<div class="stat-card" style="grid-column:span 2;margin:0 16px 12px;">' +
       '<div class="stat-label">CURRENT RENTAL</div>' +
       '<div style="font-weight:600;font-size:16px;color:var(--text);margin:2px 0 4px;">' + esc(r.title) + pendingTag + '</div>' +
@@ -12196,7 +12196,7 @@ function goRentals() {
         ? '<div class="ri-due" style="color:var(--text-dim);">Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' billed at check-in.' : 'Nothing more owed.') + '</div>'
         : member.comp
           ? '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; no charge (staff account)</div>'
-          : '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; ' + money(r.cap) + ' max</div>';
+          : '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; yours to keep at ' + money(r.cap) + '</div>';
       return '<div class="rental-item">' +
         '<div class="ri-disc">' + (pending ? '&#128236;' : '&#128192;') + '</div>' +
         '<div class="ri-info">' +
@@ -12809,7 +12809,7 @@ function renderHistory() {
     var safeId    = String(h.item_id || '').replace(/[^a-zA-Z0-9]/g, '');
     var safeDate  = String(h.start_date || '').replace(/[^0-9]/g, '');
     var rid       = 'hist-' + safeId + '-' + safeDate;
-    var paidOff   = h.status === 'paid_off' ? ' &middot; MAX CHARGE REACHED' : '';
+    var paidOff   = h.status === 'paid_off' ? ' &middot; KEPT - MAX CHARGE REACHED' : '';
     return '<div class="hist-item">' +
       '<div class="hist-title">' + esc(h.title) + '</div>' +
       '<div class="hist-meta">' + esc(h.format) + ' &middot; Out: ' + fmtDate(h.start_date) + ' &middot; Closed: ' + fmtDate(h.closed_date) + ' &middot; Paid ' + money(h.total_paid) + paidOff + '</div>' +

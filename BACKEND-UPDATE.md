@@ -12,20 +12,27 @@ QR poster is printed, so you can take your time and test in Stripe test mode.
 
 **Customers** (new tab), row 1 headers:
 
-| customer_id | customer_token | display_name | email | phone | terms_accepted | stripe_customer_id | payment_status | rental_limit | status | comp | joined_date | notes |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| customer_id | customer_token | display_name | email | phone | terms_accepted | stripe_customer_id | payment_status | rental_limit | status | comp | card_printed | joined_date | notes |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 
 Rows are created by the signup flow — you never add these by hand. To raise a
 good customer's limit after their first clean return, edit their
 `rental_limit` cell (e.g. 1 → 3). A row with `status = flagged` means the
 signup matched the Blacklist tab below; it has no cabinet code and can't
-rent until you edit that cell back to `active`.
+rent until you edit that cell back to `active`. A row with `status = paused`
+means one of their rentals hit its maximum charge (see the Kept Discs
+section below) — the staff terminal is the only way to clear this (the
+REACTIVATE ACCOUNT button), there's no expected sheet edit for it.
 
 **Staff accounts:** sign up normally through the app, then type `TRUE` in
 that row's `comp` cell. From then on their rentals log like anyone else's
 (so you can test the whole flow, and staff borrowing stays on the books)
 but nothing is ever charged and no card is ever asked for. The staff
 terminal badges them "STAFF — NO CHARGE".
+
+**`card_printed`** — leave blank; the staff terminal's Cards To Print
+section sets it to `TRUE` once a customer's card has been printed in a
+batch. You never need to touch this cell by hand.
 
 **Blacklist** (new tab), row 1 headers:
 
@@ -45,10 +52,42 @@ separately, since the two are independent).
 |---|---|---|---|---|---|---|---|---|---|---|---|
 
 Also machine-written. Statuses: `pending` (checkout not finished; auto-voids
-after 30 min) → `active` → `return_pending` → `closed`. Reaching the
-maximum charge does NOT end a rental: the daily fee just stops accruing
-and the disc is still expected back — the rental stays open on the staff
-Outstanding Rentals list until you check it in.
+after 30 min) → `active` → `return_pending` → `closed`, or `paid_off`.
+Reaching the maximum charge on a rental that hasn't been physically
+returned auto-closes it as `paid_off`: the disc is the customer's to keep
+by default, their account pauses for new rentals, and it shows up in the
+staff terminal's Kept Discs section. Nothing further happens automatically
+until staff act — see "Kept Discs" below.
+
+## Kept Discs (rentals that hit the maximum charge)
+
+When a rental's total charges reach its maximum, the disc is the
+customer's to keep — no deadline, no obligation to return it. Three
+things happen automatically, all visible in the new **Kept Discs** section
+of the staff terminal:
+
+1. The rental closes as `paid_off` (not `closed`) and the catalog item is
+   pulled out of rotation.
+2. The customer's account is paused (`status: paused`) so they can't start
+   a new rental until you've connected with them. It's not a penalty —
+   just a hold for a quick check-in, and the plan is to mainly reach out
+   by email (the section has an **EMAIL CUSTOMER** button pre-addressed
+   to them for exactly this).
+3. The disc stays flagged in Kept Discs indefinitely, so nothing is ever
+   silently forgotten.
+
+If the customer walks back in with the disc, tap **PROCESS RETURN** on
+their row: enter whatever refund makes sense case by case (capped
+automatically at what they actually paid), an optional note, and whether
+the disc goes back into rotation. **This does not touch Stripe** — it only
+records your decision. Issue the actual refund yourself in the Stripe
+dashboard afterward (search the customer, refund the relevant charge).
+
+Reactivating the account is a separate button (**REACTIVATE ACCOUNT**,
+shown whenever the account is paused) and a separate decision from
+processing the disc's return — you might reactivate someone well before
+the disc ever comes back, or not at all if it never does. There's no
+auto-reactivate; every reactivation is a deliberate tap in the terminal.
 
 **Catalog** — add one column: `rental_price` (dollars, e.g. 2, 3, or 4; blank
 defaults to $3 — set a row to `2` explicitly for anything you want priced at
@@ -163,13 +202,27 @@ changes need a redeploy of the Netlify site to take effect.
 Replace `sfd-staff.html` with the delivered file. It now shares the
 onboarding terminal's visual style (teal/cyan, high contrast) and is
 organized by daily task: a needs-attention strip up top (returns to check
-in, due for sweep, failed cards — each chip jumps to its section), compact
-cabinet codes, then **Outstanding Rentals** (each open rental with days
-out / paid / owed / cap, a CHARGE & CLOSE button on returned discs, and
-the RUN BILLING SWEEP button) and **Rental Customers** (search; badges;
-open a customer's app; PRINT CARD). The legacy membership tools (member
-lookup, active checkouts, return bin) are collapsed at the bottom until
-tapped.
+in, due for sweep, kept discs, failed cards, cards to print — each chip
+jumps to its section), compact cabinet codes, then **Outstanding Rentals**
+(each open rental with days out / paid / owed / cap, a CHARGE & CLOSE
+button on returned discs, and the RUN BILLING SWEEP button), **Kept
+Discs** (see the section above), **Cards To Print** (below), and
+**Rental Customers** (search; badges including a "PAUSED — KEPT DISC"
+badge with a REACTIVATE button; open a customer's app; PRINT CARD). The
+legacy membership tools (member lookup, active checkouts, return bin) are
+collapsed at the bottom until tapped.
+
+### Cards To Print (batch printing)
+
+Cards are no longer printed the moment someone signs up — they're printed
+in batches as you get to them, and picked up on a later visit. **Cards To
+Print** lists every active signup without a card yet; check up to two
+(the print sheet holds two people per physical sheet, same as it always
+has), tap **PRINT SELECTED**, and both are marked printed automatically.
+Pick just one and it prints solo with the second slot blank, same as
+before. The existing single **PRINT CARD** button in Rental Customers
+search is untouched — still there for reprints and one-offs regardless of
+whether someone's been through the batch flow yet.
 
 Weekly routine: open the staff page, tap RUN BILLING SWEEP. It charges every
 active rental that is 7+ days since its last charge or owes $10+, and reports
@@ -214,7 +267,22 @@ card on a later one.
    (NO CHARGE)" button), the rental still shows on Outstanding Rentals
    with a STAFF — NO CHARGE badge, and check-in closes it without
    charging.
-10. Flip to live keys (and a live-mode webhook) when everything passes.
+10. Kept-disc path: rent a disc, then in the sheet set that rental's
+    `replacement_cost` (via the catalog item) very low — say $3, equal to
+    the base price — and run RUN BILLING SWEEP. The rental should close as
+    `paid_off`, the catalog item should drop out of rotation, the customer
+    should show `status: paused` and a "PAUSED — KEPT DISC" badge in
+    Rental Customers, and the disc should appear in the staff terminal's
+    Kept Discs section with an EMAIL CUSTOMER link and a REACTIVATE
+    ACCOUNT button. Try PROCESS RETURN (a refund amount, a note, the
+    reactivate checkbox) and confirm the rental closes for good and the
+    catalog item's `in_rotation` matches your checkbox choice. Try
+    REACTIVATE ACCOUNT separately and confirm the customer can rent again.
+11. Cards To Print: sign up two more test accounts, confirm both appear in
+    Cards To Print, check both, tap PRINT SELECTED, confirm the print sheet
+    opens with both names filled in and both disappear from the pending
+    list afterward.
+12. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 
