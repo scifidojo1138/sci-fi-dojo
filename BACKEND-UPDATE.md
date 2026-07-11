@@ -108,6 +108,14 @@ it in for items you rent out (blank falls back to the default below).
 | `default_rental_limit` | `1` |
 | `trusted_on_time_threshold` | `10` |
 | `trusted_rental_limit` | `2` |
+| `return_cooldown_minutes` | `60` |
+
+`return_cooldown_minutes` is how long after checkout a customer must wait
+before they can log a return. Logging a return frees their rental slot
+immediately, so this cooldown is what stops someone renting a stack of
+discs by insta-returning each one. Staff comp accounts are exempt, and
+the staff terminal's LOG RETURN (STAFF) button overrides it for the
+honest wrong-disc case. Set it to `0` to disable entirely.
 
 The last two power **Trusted Accounts**: once a customer has this many
 rentals returned within the included 7-day window, their `rental_limit` is
@@ -205,7 +213,9 @@ organized by daily task: a needs-attention strip up top (returns to check
 in, due for sweep, kept discs, failed cards, cards to print — each chip
 jumps to its section), compact cabinet codes, then **Outstanding Rentals**
 (each open rental with days out / paid / owed / cap, a CHARGE & CLOSE
-button on returned discs, and the RUN BILLING SWEEP button), **Kept
+button on returned discs, a LOG RETURN (STAFF) button on active ones
+that bypasses the customer return cooldown for wrong-disc walk-ups, and
+the RUN BILLING SWEEP button), **Kept
 Discs** (see the section above), **Cards To Print** (below), and
 **Rental Customers** (search; badges including a "PAUSED — KEPT DISC"
 badge with a REACTIVATE button; open a customer's app; PRINT CARD). The
@@ -256,18 +266,26 @@ card on a later one.
    rental shows active.
 5. Check the sheet: Customers row, Rentals row `active`, catalog item
    `checked_out`.
-6. Log the return in the app → staff terminal shows RETURNED — CHECK IN →
-   CHARGE & CLOSE (within the 7-day window it just closes; nothing owed).
-7. Rent again (same account) — it should charge with one tap, no redirect.
-8. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
+6. Try to return it right away → the app should show the disc locked with
+   a "returns unlock in ~60 min" note (that's the return cooldown; the
+   dashboard slot stays used while the disc is active). To keep testing
+   without waiting an hour, either use the staff terminal's LOG RETURN
+   (STAFF) button on that rental, or temporarily set
+   `return_cooldown_minutes` to `0` in Settings (put it back after).
+7. With the return logged: the app's rental slot frees IMMEDIATELY (you
+   can rent again before staff touch anything), and the staff terminal
+   shows RETURNED — CHECK IN → CHARGE & CLOSE (within the 7-day window it
+   just closes; nothing owed).
+8. Rent again (same account) — it should charge with one tap, no redirect.
+9. Failed-card path: new signup with card `4000 0000 0000 0341` (attaches but
    fails charges) — the sweep flags the customer, and their app shows the
    card banner with renting blocked.
-9. Staff comp path: set `comp = TRUE` on one account's Customers row →
-   renting on it should skip Stripe entirely (no checkout page, "RENT
-   (NO CHARGE)" button), the rental still shows on Outstanding Rentals
-   with a STAFF — NO CHARGE badge, and check-in closes it without
-   charging.
-10. Kept-disc path: rent a disc, then in the sheet set that rental's
+10. Staff comp path: set `comp = TRUE` on one account's Customers row →
+    renting on it should skip Stripe entirely (no checkout page, "RENT
+    (NO CHARGE)" button), the rental still shows on Outstanding Rentals
+    with a STAFF — NO CHARGE badge, and check-in closes it without
+    charging.
+11. Kept-disc path: rent a disc, then in the sheet set that rental's
     `replacement_cost` (via the catalog item) very low — say $3, equal to
     the base price — and run RUN BILLING SWEEP. The rental should close as
     `paid_off`, the catalog item should drop out of rotation, the customer
@@ -278,11 +296,11 @@ card on a later one.
     reactivate checkbox) and confirm the rental closes for good and the
     catalog item's `in_rotation` matches your checkbox choice. Try
     REACTIVATE ACCOUNT separately and confirm the customer can rent again.
-11. Cards To Print: sign up two more test accounts, confirm both appear in
+12. Cards To Print: sign up two more test accounts, confirm both appear in
     Cards To Print, check both, tap PRINT SELECTED, confirm the print sheet
     opens with both names filled in and both disappear from the pending
     list afterward.
-12. Flip to live keys (and a live-mode webhook) when everything passes.
+13. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 

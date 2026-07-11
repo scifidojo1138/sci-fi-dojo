@@ -490,7 +490,21 @@ select option{background:var(--panel2);color:var(--text);}
 @keyframes fadeUp   {from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)}}
 @keyframes popIn    {from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
 .d1{animation-delay:.05s}.d2{animation-delay:.1s}.d3{animation-delay:.15s}.d4{animation-delay:.2s}
-/* CATALOG STATUS INDICATOR */
+/* APP STATUS STRIP -- pinned to the top of the viewport so loading and
+   updating states are visible without scrolling (it used to live at the
+   bottom of the dashboard where nobody saw it). */
+#appStatusBar{
+  position:fixed;top:0;left:0;right:0;z-index:800;
+  display:flex;justify-content:center;pointer-events:none;
+}
+#appStatusBar .catalog-status{
+  pointer-events:auto;
+  margin:10px auto 0;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  border-radius:999px;
+  box-shadow:0 4px 18px rgba(0,0,0,.55);
+}
 .catalog-status{
   margin:0 16px 14px;padding:8px 14px;
   display:flex;align-items:center;gap:8px;
@@ -505,6 +519,9 @@ select option{background:var(--panel2);color:var(--text);}
 .catalog-status-text{color:var(--text-dim);}
 .catalog-status.clickable .catalog-status-text{color:var(--danger);}
 
+/* Return cooldown: too-fresh rentals are visible but not selectable */
+.return-item.return-locked{opacity:.55;cursor:not-allowed;}
+
 .spacer{height:32px;}
 
 /* Screens receive programmatic focus on navigation for screen readers;
@@ -513,6 +530,9 @@ select option{background:var(--panel2);color:var(--text);}
 </style>
 </head>
 <body>
+
+<!-- APP STATUS STRIP (fixed at the top of the viewport) -->
+<div id="appStatusBar" aria-live="polite"></div>
 
 <!-- CAMERA -->
 <div class="cam-overlay hidden" id="camOverlay" role="dialog" aria-modal="true" aria-label="QR code scanner">
@@ -643,9 +663,8 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="rewindSection"></div>
     <div id="eventsSection"></div>
     <div id="perksSection"></div>
-    <div id="catalogStatusBar"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.08</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.10</div>
     <div class="spacer"></div>
   </div>
 
@@ -11059,7 +11078,10 @@ var REWIND_KEY = 'sfd_rewind_seen_anon'; // last-seen Weekly Rewind update_id
 function backendGetMemberStatus(m) {
   // Both active and return-pending rentals count toward the limit
   // (matches server-side enforcement in rent_start)
-  var slotsUsed = m.rentals.length + m.return_pending.length;
+  // Only ACTIVE rentals hold a slot (matches server-side rent_start):
+  // logging a return frees the slot immediately; the return cooldown is
+  // what prevents insta-cycling, not the slot.
+  var slotsUsed = m.rentals.length;
   var slotsLeft = Math.max(0, (m.rental_limit || 1) - slotsUsed);
   var canRent   = m.active && m.payment_status !== 'failed' && slotsLeft > 0;
   var showCode  = m.active && !!m.cabinet_code;
@@ -11389,6 +11411,7 @@ var MEMBER_REFRESH_MIN_MS = 60000;
 
 async function refreshMember() {
   if (!token || !member) return;
+  appBusy(true);
   try {
     var res  = await fetchWithTimeout(BACKEND_URL + '?action=customer&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(token));
     var data = await res.json();
@@ -11401,6 +11424,8 @@ async function refreshMember() {
     if (s && s.classList.contains('active')) renderStatus();
   } catch(e) {
     console.warn('Member refresh failed:', e.message);
+  } finally {
+    appBusy(false);
   }
 }
 
@@ -11462,11 +11487,14 @@ function setCatalogStatus(status) {
         'Catalog unavailable. <a href="javascript:goBrowse()" style="color:var(--accent);">Tap to retry</a>.</div>';
     }
   }
-  var bar = document.getElementById('catalogStatusBar');
+  // The status chip lives in the fixed top strip so it's visible without
+  // scrolling. An in-flight account update takes priority over it.
+  if (appBusyCount > 0) return;
+  var bar = document.getElementById('appStatusBar');
   if (!bar) return;
   if (status === 'ready') {
     bar.innerHTML = '<div class="catalog-status"><div class="catalog-dot ready"></div><span class="catalog-status-text">CATALOG: READY</span></div>';
-    setTimeout(function() { if (bar) bar.innerHTML = ''; }, 2000);
+    setTimeout(function() { if (bar && appBusyCount === 0 && catalogStatus === 'ready') bar.innerHTML = ''; }, 2000);
   } else if (status === 'loading') {
     bar.innerHTML = '<div class="catalog-status"><div class="catalog-dot loading"></div><span class="catalog-status-text">CATALOG: LOADING...</span></div>';
   } else if (status === 'failed') {
@@ -11476,6 +11504,27 @@ function setCatalogStatus(status) {
 
 function retryCatalog() {
   if (token) loadCatalog(token);
+}
+
+// ----------------------------------------------------------------
+// "Updating account..." chip in the top strip, shown while a fresh
+// account fetch is in flight (after a rental, a return, or a focus
+// refresh). Counted so overlapping refreshes don't clear each other.
+// ----------------------------------------------------------------
+var appBusyCount = 0;
+
+function appBusy(on) {
+  appBusyCount += on ? 1 : -1;
+  if (appBusyCount < 0) appBusyCount = 0;
+  var bar = document.getElementById('appStatusBar');
+  if (!bar) return;
+  if (appBusyCount > 0) {
+    bar.innerHTML = '<div class="catalog-status"><div class="catalog-dot loading"></div><span class="catalog-status-text">UPDATING ACCOUNT...</span></div>';
+  } else if (catalogStatus === 'ready') {
+    bar.innerHTML = '';
+  } else {
+    setCatalogStatus(catalogStatus); // restore the catalog chip (loading/failed)
+  }
 }
 
 // ================================================================
@@ -11720,8 +11769,13 @@ function fmtEventWhen(startStr, endStr) {
 // NAVIGATION
 // ================================================================
 function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
   var scr = document.getElementById(id);
+  // In-place refresh: background re-renders (catalog finishing, account
+  // refreshes) call this for the ALREADY-active screen -- scrolling to
+  // the top and stealing focus mid-read was a real reported bug, so a
+  // no-op here is deliberate. Only actual navigation scrolls.
+  if (scr.classList.contains('active')) return;
+  document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
   scr.classList.add('active');
   window.scrollTo({ top: 0, behavior: 'smooth' });
   // Move screen-reader/keyboard focus to the new screen
@@ -12066,8 +12120,10 @@ async function submitRent() {
   }
 }
 
-// Fetch the fresh account state after a successful instant charge
+// Fetch the fresh account state after a money action (rental, return),
+// so the next screen shows server truth rather than a local guess.
 async function refreshAfterRent() {
+  appBusy(true);
   try {
     var res  = await fetchWithTimeout(BACKEND_URL + '?action=customer&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(token));
     var data = await res.json();
@@ -12077,6 +12133,7 @@ async function refreshAfterRent() {
       writeMemberCache(member);
     }
   } catch(e) { console.warn('Post-rent refresh failed:', e.message); }
+  finally { appBusy(false); }
 }
 
 // ================================================================
@@ -12091,6 +12148,20 @@ function goReturn() {
   showScreen('screen-return');
 }
 
+// Minutes until a rental's return unlocks (0 = returnable now). Mirrors
+// the server's cooldown rule so the UI can say WHEN instead of failing;
+// the server enforces it regardless of what this returns. Staff comp
+// accounts are exempt, matching the backend.
+function returnUnlockMinutes(r) {
+  if (member.comp) return 0;
+  var coolMin = (member.return_cooldown_min != null) ? member.return_cooldown_min : 60;
+  if (!coolMin) return 0;
+  var started = new Date(r.start_date).getTime();
+  if (isNaN(started)) return 0;
+  var minsOut = (Date.now() - started) / 60000;
+  return Math.max(0, Math.ceil(coolMin - minsOut));
+}
+
 function renderReturnList() {
   var list = document.getElementById('returnList');
   if (!member.rentals.length) {
@@ -12098,23 +12169,30 @@ function renderReturnList() {
     return;
   }
   list.innerHTML = member.rentals.map(function(r) {
-    var sel = returnSelected.includes(r.rental_id);
+    var sel    = returnSelected.includes(r.rental_id);
+    var locked = returnUnlockMinutes(r) > 0;
     var costLine = member.comp
       ? 'Day ' + esc(r.days_out) + ' &middot; no charge (staff account)'
       : 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far' +
         (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' billed at check-in' : ' &middot; fully covered');
-    return '<div class="return-item' + (sel ? ' selected' : '') + '" role="checkbox" tabindex="0" aria-checked="' + (sel ? 'true' : 'false') + '" data-id="' + esc(r.rental_id) + '" onclick="toggleReturn(this.dataset.id)">' +
+    var lockLine = locked
+      ? '<div class="ri-due" style="color:var(--warning);">Just rented &middot; returns unlock in ~' + returnUnlockMinutes(r) + ' min &middot; ask staff to return sooner</div>'
+      : '';
+    return '<div class="return-item' + (sel ? ' selected' : '') + (locked ? ' return-locked' : '') + '" role="checkbox" tabindex="' + (locked ? '-1' : '0') + '" aria-checked="' + (sel ? 'true' : 'false') + '" aria-disabled="' + (locked ? 'true' : 'false') + '" data-id="' + esc(r.rental_id) + '" onclick="toggleReturn(this.dataset.id)">' +
       '<div class="ri-check">' + (sel ? '&#10003;' : '') + '</div>' +
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-weight:600;font-size:15px;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(r.title) + '</div>' +
         '<div style="font-family:\'Share Tech Mono\',monospace;font-size:11px;color:var(--text-mid);margin-bottom:4px;">' + esc(r.item_id) + ' &middot; ' + esc(r.format) + '</div>' +
         '<div class="ri-due due-ok">' + costLine + '</div>' +
+        lockLine +
       '</div>' +
       '</div>';
   }).join('');
 }
 
 function toggleReturn(rentalId) {
+  var r = member.rentals.find(function(x) { return x.rental_id === rentalId; });
+  if (r && returnUnlockMinutes(r) > 0) return; // still in the return cooldown
   if (returnSelected.includes(rentalId)) {
     returnSelected = returnSelected.filter(function(i) { return i !== rentalId; });
   } else {
@@ -12144,13 +12222,15 @@ async function submitReturn() {
       if (!data.ok) throw new Error(data.error);
     }
 
-    // Update local state immediately
+    // Update local state immediately (instant UI), then pull server truth
+    // so the dashboard the customer lands back on is never a local guess.
     var retIds = returnSelected.slice();
     retIds.forEach(function(id) {
       var r = member.rentals.find(function(x) { return x.rental_id === id; });
       if (r) { r.status = 'return_pending'; member.return_pending.push(r); }
     });
     member.rentals = member.rentals.filter(function(r) { return !retIds.includes(r.rental_id); });
+    await refreshAfterRent();
 
     var rows = [{ k: 'NAME', v: member.display_name }];
     items.forEach(function(it, i2) {
