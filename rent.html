@@ -682,7 +682,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div class="section-heading">
       <div class="section-title">Return Items</div>
-      <div class="section-sub">Select the disc you are returning and place it in the Return Bin. Charges stop immediately; any remaining balance is billed to your card when staff check it in.</div>
+      <div class="section-sub">Select the disc you are returning and place it in the Return Bin. Charges stop immediately; any remaining balance is billed to your card when it is checked in.</div>
     </div>
     <div class="card d2">
       <div class="card-hdr">Items to Return<div class="card-hdr-line"></div></div>
@@ -11169,6 +11169,36 @@ function clearMemberCache() {
   try { localStorage.removeItem(memberCacheKey()); } catch(e) {}
 }
 
+// ----------------------------------------------------------------
+// Finalizing flag: set when arriving back from Stripe Checkout,
+// cleared the moment an active rental shows up. Lives in localStorage
+// so a slow or failed webhook shows a persistent "finalizing" banner
+// (with a refresh action) instead of a silent empty dashboard --
+// there is no staff on site to ask when a payment seems to vanish.
+// ----------------------------------------------------------------
+var FINALIZING_MAX_MS = 30 * 60000; // stop showing the banner after 30 min
+
+function finalizingKey() { return 'sfd_rent_finalizing_' + token; }
+function setFinalizing()   { try { localStorage.setItem(finalizingKey(), String(Date.now())); } catch(e) {} }
+function clearFinalizing() { try { localStorage.removeItem(finalizingKey()); } catch(e) {} }
+
+// Age in ms of the pending-finalize flag, or -1 when there isn't one.
+function finalizingAgeMs() {
+  try {
+    var t = parseInt(localStorage.getItem(finalizingKey()), 10);
+    if (!t) return -1;
+    var age = Date.now() - t;
+    if (age > FINALIZING_MAX_MS) { clearFinalizing(); return -1; }
+    return age;
+  } catch(e) { return -1; }
+}
+
+// Banner action: pull fresh account data, then repaint the dashboard.
+async function refreshFromBanner() {
+  await refreshAfterRent();
+  renderStatus();
+}
+
 // ================================================================
 // INIT
 // ================================================================
@@ -11194,6 +11224,9 @@ var rentedReturn = false; // true when arriving back from Stripe Checkout
   }
 
   if (rentedReturn) {
+    // Remember that a payment just happened (survives reloads) so the
+    // dashboard can show a "finalizing" banner until the rental lands.
+    setFinalizing();
     // Drop the rented flag from the URL so refreshes are clean
     try { history.replaceState(null, '', window.location.pathname + '?token=' + encodeURIComponent(token)); } catch(e) {}
   }
@@ -11246,10 +11279,10 @@ async function submitSignup() {
         [ { k: 'NAME', v: name },
           { k: 'ACCOUNT ID', v: data.customer_id },
           { k: 'STATUS', v: 'Pending review before rentals are enabled' },
-          { k: 'NEXT', v: 'A team member will follow up, or ask at the counter' } ]);
+          { k: 'NEXT', v: 'A team member will follow up with you' } ]);
     } else {
       showSuccess('co', 'Welcome to the Dojo!',
-        'Bookmark this page. It is your personal account link for every visit. Ask staff to print you an SFD card on your next visit.',
+        'Bookmark this page or add it to your home screen. It is your personal account link for every visit.',
         [ { k: 'NAME', v: name },
           { k: 'ACCOUNT ID', v: data.customer_id },
           { k: 'CABINET CODE', v: data.cabinet_code || 'See Access Cabinet' },
@@ -11279,7 +11312,7 @@ async function loginWithToken(tok, alertElId) {
     showScreen('screen-loading');
     loadMember(token);
   } catch(e) {
-    if (alertEl) alertEl.innerHTML = banner('err', '&#9888;', "That didn't match an account. Try scanning again, or ask staff for help.");
+    if (alertEl) alertEl.innerHTML = banner('err', '&#9888;', "That didn't match an account. Try scanning again, or use the email &amp; phone lookup below.");
   }
 }
 
@@ -11831,6 +11864,19 @@ function renderStatus() {
 
   // Banners
   var banners = '';
+  // Back from Stripe but the rental has not landed yet (webhook lag or
+  // failure). Persistent until the rental appears or 30 min pass -- a
+  // paid customer must never see a silent empty dashboard.
+  var finAge = finalizingAgeMs();
+  if (finAge >= 0 && (member.rentals.length || member.return_pending.length)) {
+    clearFinalizing();
+    finAge = -1;
+  }
+  if (finAge >= 0) {
+    banners += banner('info', '&#8987;', 'Payment received. Your rental is finalizing and will appear here shortly. ' +
+      '<a href="javascript:void(0)" onclick="refreshFromBanner()" style="color:inherit;">Tap to refresh</a>.' +
+      (finAge > 10 * 60000 ? ' Still not showing? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-FINALIZE" style="color:inherit;">Email us</a> and we will sort it out.' : ''));
+  }
   if (memberStale) {
     banners += banner('warn', '&#9888;', 'Showing saved account data — the server could not be reached. <a href="javascript:location.reload()" style="color:inherit;">Tap to refresh</a>.');
   }
@@ -11849,8 +11895,9 @@ function renderStatus() {
     banners += banner('info', '&#127903;', '<strong>' + esc(member.active_promo.title) + '</strong>' +
       (member.active_promo.description ? ' &mdash; ' + esc(member.active_promo.description) : ''));
   }
-  // Getting-started prompt -- only for customers with nothing out
-  if (member.rentals.length === 0 && member.return_pending.length === 0) {
+  // Getting-started prompt -- only for customers with nothing out, and
+  // never while a just-paid rental is still finalizing (contradictory).
+  if (member.rentals.length === 0 && member.return_pending.length === 0 && finAge < 0) {
     banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. You pay only when you rent, starting at $3 for 7 days.');
   }
   if (banners) {
@@ -12125,7 +12172,7 @@ function renderReturnBinSection() {
           '<div class="ri-meta">' + esc(r.item_id) + ' &middot; ' + esc(r.format) + '</div>' +
           '<div class="ri-due" style="color:var(--text-dim);">' +
             (dueStr ? 'Due back ' + dueStr + ' &middot; ' : '') +
-            'Awaiting staff check-in</div>' +
+            'Awaiting check-in</div>' +
         '</div>' +
         '</div>';
     }).join('') +
@@ -12160,7 +12207,7 @@ function renderReturnList() {
       : 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far' +
         (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' billed at check-in' : ' &middot; fully covered');
     var lockLine = locked
-      ? '<div class="ri-due" style="color:var(--warning);">Just rented &middot; returns unlock in ~' + returnUnlockMinutes(r) + ' min &middot; ask staff to return sooner</div>'
+      ? '<div class="ri-due" style="color:var(--warning);">Just rented &middot; returns unlock in ~' + returnUnlockMinutes(r) + ' min</div>'
       : '';
     return '<div class="return-item' + (sel ? ' selected' : '') + (locked ? ' return-locked' : '') + '" role="checkbox" tabindex="' + (locked ? '-1' : '0') + '" aria-checked="' + (sel ? 'true' : 'false') + '" aria-disabled="' + (locked ? 'true' : 'false') + '" data-id="' + esc(r.rental_id) + '" onclick="toggleReturn(this.dataset.id)">' +
       '<div class="ri-check">' + (sel ? '&#10003;' : '') + '</div>' +
