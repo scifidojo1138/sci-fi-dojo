@@ -314,6 +314,18 @@ select option{background:var(--panel2);color:var(--text);}
 .hours-row.today .hours-day,.hours-row.today .hours-time{color:var(--accent);font-weight:600;}
 .hours-today-tag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.1em;color:var(--accent);margin-left:8px;}
 
+/* ACCOUNT INFO ROWS (account screen) -- same row look as the hours table,
+   with an optional dim sub-line for rows that need a second detail. */
+.acct-row{padding:9px 0;border-bottom:1px solid var(--border);}
+.acct-row:last-child{border-bottom:none;}
+.acct-row-main{display:flex;justify-content:space-between;gap:16px;font-size:14px;}
+.acct-row-lbl{color:var(--text-mid);}
+.acct-row-val{color:var(--text);font-family:'Share Tech Mono',monospace;text-align:right;}
+.acct-row-val.success{color:var(--success);}
+.acct-row-val.danger {color:var(--danger);}
+.acct-row-val.dim    {color:var(--text-dim);}
+.acct-row-sub{font-size:11px;color:var(--text-dim);margin-top:4px;line-height:1.4;}
+
 /* PIPS */
 .pip-row{display:flex;align-items:center;gap:6px;margin-bottom:14px;}
 .pip{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .25s;}
@@ -656,45 +668,6 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="spacer"></div>
   </div>
 
-  <!-- CHECKOUT -->
-  <div class="screen" id="screen-checkout">
-    <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-      Back to Account
-    </div>
-    <div class="section-heading">
-      <div class="section-title">Rent a Disc</div>
-      <div class="section-sub" id="checkoutSubtitle">Scan or enter the code on the disc case.</div>
-    </div>
-    <div class="card d2">
-      <div class="card-hdr">Item Code<div class="card-hdr-line"></div></div>
-      <div class="card-body">
-        <div class="field">
-          <div class="scan-wrap">
-            <input type="text" id="checkoutCodeInput"
-              placeholder="SFD-0000" value="SFD-"
-              autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
-              oninput="onCheckoutCodeInput(this)"
-              style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;" />
-            <button class="scan-btn" onclick="openCamera('checkout')" aria-label="Scan">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
-                <rect x="7" y="7" width="3" height="3" rx=".5"/><rect x="14" y="7" width="3" height="3" rx=".5"/>
-                <rect x="7" y="14" width="3" height="3" rx=".5"/><rect x="14" y="14" width="3" height="3" rx=".5"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        <div id="itemConfirmArea"></div>
-      </div>
-    </div>
-    <div id="checkoutAlert"></div>
-    <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitRent()" disabled>PAY &amp; RENT</button>
-    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then $2 a day until the disc is returned or the maximum charge is reached.</p>
-    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
-    <div class="spacer"></div>
-  </div>
-
   <!-- RETURN LOG -->
   <div class="screen" id="screen-return">
     <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
@@ -745,24 +718,65 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="spacer"></div>
   </div>
 
-  <!-- FIX 4: ACCESS CABINET as a built-in screen -->
+  <!-- RENT: cabinet code + item entry, one flow -->
   <div class="screen" id="screen-code">
     <div class="back-nav" role="button" tabindex="0" aria-label="Back to account" onclick="goStatus()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       Back to Account
     </div>
     <div class="section-heading">
-      <div class="section-title">Access Cabinet</div>
-      <!-- FIX 10: tighter, member-only language -->
-      <div class="section-sub">Personal to your account. Do not share. Rotates weekly.</div>
+      <div class="section-title">Rent a Disc</div>
+      <div class="section-sub">Your cabinet code and disc entry, together.</div>
     </div>
+
+    <div class="section-hdr">CABINET CODE<div class="section-hdr-line"></div></div>
     <div id="codeContent"></div>
     <div class="banner banner-warn" style="margin-top:4px;">
       <span class="banner-icon">&#128274;</span>
       <div>This code is unique to your account. Do not share.</div>
     </div>
-    <button class="btn-primary d3" style="margin-top:8px;" onclick="goCheckout()">CONTINUE TO RENT A DISC</button>
-    <div id="locationContent"></div>
+
+    <div class="section-hdr" style="margin-top:8px;">ITEM CODE<div class="section-hdr-line"></div></div>
+    <div class="section-sub" style="margin:-8px 16px 14px;">Scan or enter the code on the disc case.</div>
+    <div class="card d2">
+      <div class="card-body">
+        <div class="field">
+          <div class="scan-wrap">
+            <input type="text" id="checkoutCodeInput"
+              placeholder="SFD-0000" value="SFD-"
+              autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+              oninput="onCheckoutCodeInput(this)"
+              style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;font-size:16px;letter-spacing:.06em;" />
+            <button class="scan-btn" onclick="openCamera('checkout')" aria-label="Scan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/>
+                <rect x="7" y="7" width="3" height="3" rx=".5"/><rect x="14" y="7" width="3" height="3" rx=".5"/>
+                <rect x="7" y="14" width="3" height="3" rx=".5"/><rect x="14" y="14" width="3" height="3" rx=".5"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div id="itemConfirmArea"></div>
+      </div>
+    </div>
+    <div id="checkoutAlert"></div>
+    <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitRent()" disabled>PAY &amp; RENT</button>
+    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then $2 a day until the disc is returned or the maximum charge is reached.</p>
+
+    <div class="card d2" id="hoursLocCard">
+      <div class="card-body">
+        <div class="note-toggle" id="noteToggleHoursLoc" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsHoursLoc" onclick="toggleNote('HoursLoc')">
+          <span class="note-toggle-lbl">Hours &amp; Location</span>
+          <span class="note-chevron" id="noteChevronHoursLoc">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsHoursLoc">
+          <hr class="note-divider">
+          <div id="locationContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-ghost" onclick="goStatus()">Cancel</button>
     <div class="spacer"></div>
   </div>
 
@@ -810,20 +824,15 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div class="section-heading">
       <div class="section-title">Account</div>
-      <div class="section-sub" id="accountSubtitle">Your Sci-Fi Dojo account.</div>
+      <div class="section-sub">Your Sci-Fi Dojo account.</div>
     </div>
-    <div class="member-tier tier-mat" style="margin:0 16px 14px;">
-      <div class="tier-dot"></div><div><div>Free Account</div><div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">No deposit, no monthly fee &bull; pay only when you rent</div></div>
-    </div>
-    <div class="status-grid" id="accountStatusGrid"></div>
     <button class="btn-primary" style="width:calc(100% - 32px);margin:0 16px 14px;display:block;" onclick="goRentals()">MY RENTALS</button>
-    <div class="billing-box">
-      <div class="billing-label">Payment Method</div>
-      <div class="billing-date" id="accountBillingDate">--</div>
-      <div id="accountTierLine" style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);margin-top:4px;"></div>
+    <div class="card d2">
+      <div class="card-hdr">Account Info<div class="card-hdr-line"></div></div>
+      <div class="card-body" id="accountInfoBody"></div>
     </div>
-    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CARD / CONTACT INFO</a>
-    <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">QUESTIONS? EMAIL US</a>
+    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE INFO</a>
+    <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">REPORT COMPROMISED ACCOUNT / CLOSE ACCOUNT</a>
     <p class="mgmt-note">The base price covers your first 7 days, then $2 a day is billed to your saved card until the disc is returned or the maximum charge is reached.</p>
     <div class="spacer"></div>
   </div>
@@ -11913,6 +11922,13 @@ function statCardFull(label, value, cls, sub) {
   return '<div class="stat-card" style="grid-column:span 2;"><div class="stat-label">' + label + '</div><div class="stat-value ' + cls + '">' + value + '</div>' + (sub ? '<div class="stat-sub">' + sub + '</div>' : '') + '</div>';
 }
 
+function acctRow(lbl, val, sub, cls) {
+  return '<div class="acct-row">' +
+    '<div class="acct-row-main"><span class="acct-row-lbl">' + lbl + '</span><span class="acct-row-val' + (cls ? ' ' + cls : '') + '">' + val + '</span></div>' +
+    (sub ? '<div class="acct-row-sub">' + sub + '</div>' : '') +
+    '</div>';
+}
+
 function actionBtn(cls, icon, label, sub, enabled, onclick) {
   return '<div class="action-btn ' + cls + (enabled ? '' : ' disabled') + '" role="button" tabindex="' + (enabled ? '0' : '-1') + '" aria-disabled="' + (enabled ? 'false' : 'true') + '" onclick="' + (enabled ? onclick : '') + '">' +
     '<span class="ab-icon">' + icon + '</span>' +
@@ -11941,27 +11957,10 @@ async function goFirstRental() {
   loadMember(token); // warm-up failed: full loader (it has retry/error UI)
 }
 
-// RENT opens the cabinet code + hours first (the code is always ready to
-// show, no rental needed) -- item entry is a separate forward step from
-// there, via the CONTINUE TO RENT A DISC button on screen-code.
+// RENT opens the cabinet code and item entry together on one screen --
+// the code is always ready to show, no rental needed first.
 function goRentFlow() {
   goCode();
-}
-
-function goCheckout() {
-  rentSelection = null;
-  document.getElementById('checkoutCodeInput').value = 'SFD-';
-  document.getElementById('itemConfirmArea').innerHTML = '';
-  document.getElementById('checkoutAlert').innerHTML  = '';
-  document.getElementById('checkoutSubtitle').textContent = 'Scan or enter the code on the disc case.';
-  // Terms line reflects any live promo daily rate (its links are static
-  // markup; only the hardcoded rate needs refreshing per member)
-  document.getElementById('rentTermsLine').innerHTML =
-    'By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. ' +
-    'The base price covers 7 days, then ' + dayRateStr() + ' a day until the disc is returned or the maximum charge is reached.';
-  document.getElementById('checkoutSubmitBtn').disabled = true;
-  document.getElementById('checkoutSubmitBtn').textContent = 'PAY & RENT';
-  showScreen('screen-checkout');
 }
 
 function onCheckoutCodeInput(el) {
@@ -12302,45 +12301,55 @@ function goCode() {
 
   document.getElementById('codeContent').innerHTML = html;
 
-  // Hours & Location now live on this screen, below the cabinet code.
-  document.getElementById('locationContent').innerHTML = buildLocationHtml();
+  var locHtml = buildLocationHtml();
+  document.getElementById('locationContent').innerHTML = locHtml;
+  document.getElementById('hoursLocCard').style.display = locHtml ? '' : 'none';
+
+  // Item entry resets fresh every time this screen opens.
+  rentSelection = null;
+  document.getElementById('checkoutCodeInput').value = 'SFD-';
+  document.getElementById('itemConfirmArea').innerHTML = '';
+  document.getElementById('checkoutAlert').innerHTML  = '';
+  // Terms line reflects any live promo daily rate (its links are static
+  // markup; only the hardcoded rate needs refreshing per member)
+  document.getElementById('rentTermsLine').innerHTML =
+    'By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. ' +
+    'The base price covers 7 days, then ' + dayRateStr() + ' a day until the disc is returned or the maximum charge is reached.';
+  document.getElementById('checkoutSubmitBtn').disabled = true;
+  document.getElementById('checkoutSubmitBtn').textContent = 'PAY & RENT';
+
   showScreen('screen-code');
 }
 
 // ================================================================
-// HOURS & LOCATION (rendered inside the Access Cabinet screen)
+// HOURS & LOCATION (rendered inside the Rent screen's accordion)
 // ================================================================
 function buildLocationHtml() {
   var loc = member.location || {};
   var html = '';
 
+  var rows = parseHours(loc.hours);
+  if (rows.length) {
+    var todayIdx = new Date().getDay(); // 0=Sun..6=Sat
+    html += rows.map(function(r) {
+      var isToday = r.dayIdx === todayIdx;
+      return '<div class="hours-row' + (isToday ? ' today' : '') + '">' +
+        '<span class="hours-day">' + esc(r.day) + (isToday ? '<span class="hours-today-tag">TODAY</span>' : '') + '</span>' +
+        '<span class="hours-time">' + esc(r.time) + '</span>' +
+      '</div>';
+    }).join('');
+  }
+
   if (loc.address) {
-    html += '<div class="section-hdr">HOURS &amp; LOCATION<div class="section-hdr-line"></div></div>' +
-      '<div class="card"><div class="card-body">' +
-      '<div class="field-lbl" style="margin-bottom:6px;">Address</div>' +
+    if (rows.length) html += '<hr class="note-divider">';
+    html += '<div class="field-lbl" style="margin-bottom:6px;">Address</div>' +
       '<div style="font-size:15px;color:var(--text);line-height:1.5;">' + esc(loc.address).replace(/\n/g, '<br>') + '</div>';
     if (loc.maps_url) {
       html += '<a class="feed-btn" style="margin-top:14px;" href="' + esc(loc.maps_url) + '" target="_blank" rel="noopener">&#129517; GET DIRECTIONS</a>';
     }
-    html += '</div></div>';
   }
 
-  var rows = parseHours(loc.hours);
-  if (rows.length) {
-    var todayIdx = new Date().getDay(); // 0=Sun..6=Sat
-    if (!loc.address) html += '<div class="section-hdr">HOURS<div class="section-hdr-line"></div></div>';
-    html += '<div class="card"><div class="card-body">' +
-      rows.map(function(r) {
-        var isToday = r.dayIdx === todayIdx;
-        return '<div class="hours-row' + (isToday ? ' today' : '') + '">' +
-          '<span class="hours-day">' + esc(r.day) + (isToday ? '<span class="hours-today-tag">TODAY</span>' : '') + '</span>' +
-          '<span class="hours-time">' + esc(r.time) + '</span>' +
-        '</div>';
-      }).join('') +
-      '</div></div>';
-  }
-
-  return html; // empty string when no location/hours configured -> nothing shown
+  return html; // empty string when no location/hours configured -> card hidden
 }
 
 // Parse a multi-line hours block ("Day<tab/spaces>hours" per line) into
@@ -12806,11 +12815,8 @@ async function submitTitleRequest() {
 // MEMBERSHIP SCREEN
 // ================================================================
 function goAccount() {
-  var billingEl  = document.getElementById('accountBillingDate');
-  var tierEl     = document.getElementById('accountTierLine');
   var changeLink = document.getElementById('accountChangeLink');
   var cancelLink = document.getElementById('accountCancelLink');
-  var subtitle   = document.getElementById('accountSubtitle');
 
   var statusText = member.active ? 'Enabled' : 'Paused';
   var statusCls  = member.active ? 'success'  : 'danger';
@@ -12820,17 +12826,14 @@ function goAccount() {
   var cardStatCls  = member.comp ? 'dim' :
                       member.payment_status === 'failed' ? 'danger' :
                       (member.has_card ? 'success' : 'dim');
-  document.getElementById('accountStatusGrid').innerHTML =
-    statCard('Account', statusText, statusCls, 'pay per rental') +
-    statCard('Card', cardStatText, cardStatCls, member.comp ? 'staff account' : (member.has_card ? 'charged per rental' : 'added at first rental'));
 
-  billingEl.textContent = member.payment_status === 'failed' ? 'Needs Update' :
-                          (member.has_card ? 'Card on File' : 'None Yet');
-  var contactBits = [];
-  if (member.email) contactBits.push(member.email);
-  if (member.phone) contactBits.push(member.phone);
-  tierEl.textContent   = (contactBits.join(' -- ') || 'No contact info on file');
-  subtitle.textContent = 'Account ' + member.customer_id + '.';
+  document.getElementById('accountInfoBody').innerHTML =
+    acctRow('Plan', 'Free Account', 'No deposit, no monthly fee &middot; pay only when you rent') +
+    acctRow('Status', statusText, 'pay per rental', statusCls) +
+    acctRow('Name', esc(member.display_name) || 'Not provided') +
+    acctRow('Email', esc(member.email) || 'Not provided') +
+    acctRow('Phone', esc(member.phone) || 'Not provided') +
+    acctRow('Card on File', cardStatText, member.comp ? 'staff account' : (member.has_card ? 'charged per rental' : 'added at first rental'), cardStatCls);
 
   var base = 'mailto:scifidojo@aol.com';
 
@@ -12839,7 +12842,7 @@ function goAccount() {
     '&body=' + encodeURIComponent('Hi,\n\nI would like to update my card or contact info.\n\nAccount: ' + member.customer_id + '\nName: ' + member.display_name + '\n\nThank you');
 
   cancelLink.href = base +
-    '?subject=' + encodeURIComponent('SFD Account - Question') +
+    '?subject=' + encodeURIComponent('SFD Account - Compromised / Close Account') +
     '&body=' + encodeURIComponent('Hi,\n\nAccount: ' + member.customer_id + ' (' + member.display_name + ')\n\n');
 
   showScreen('screen-account');
