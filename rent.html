@@ -580,36 +580,6 @@ select option{background:var(--panel2);color:var(--text);}
   <div class="screen" id="screen-signup">
     <div class="section-heading" style="padding-top:24px;">
       <div class="section-title">Welcome to Sci-Fi Dojo</div>
-      <div class="section-sub">Already have an account, or joining for the first time?</div>
-    </div>
-
-    <button class="btn-primary" style="margin-bottom:18px;" onclick="openCamera('login')">SCAN MY CARD TO LOG IN</button>
-
-    <div class="card d2">
-      <div class="card-body">
-        <div class="note-toggle" id="noteToggleLookup" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsLookup" onclick="toggleNote('Lookup')">
-          <span class="note-toggle-lbl">Or look up by email &amp; phone</span>
-          <span class="note-chevron" id="noteChevronLookup">+</span>
-        </div>
-        <div class="note-fields" id="noteFieldsLookup">
-          <hr class="note-divider">
-          <div class="field">
-            <label class="field-lbl" for="lookupEmail">Email</label>
-            <input type="email" id="lookupEmail" autocomplete="email" placeholder="you@example.com" />
-          </div>
-          <div class="field">
-            <label class="field-lbl" for="lookupPhone">Phone</label>
-            <input type="tel" id="lookupPhone" autocomplete="tel" placeholder="(555) 555-5555" />
-          </div>
-          <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">We ask for both to confirm it's you.</p>
-          <button class="btn-primary" id="lookupSubmitBtn" onclick="submitCustomerLookup()" style="width:100%;margin:0;">FIND MY ACCOUNT</button>
-        </div>
-      </div>
-    </div>
-    <div id="returningAlert"></div>
-
-    <div class="section-heading" style="padding-top:8px;">
-      <div class="section-title">New Here?</div>
       <div class="section-sub">Your account is free. No deposit, no monthly fee. Pay only when you rent, starting at $3 for 7 days.</div>
     </div>
     <div class="card d2">
@@ -636,33 +606,58 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="signupAlert"></div>
     <button class="btn-primary d3" id="signupSubmitBtn" onclick="submitSignup()">CREATE ACCOUNT</button>
     <p class="terms-line">Free account. No deposit, no subscription. Your card is only charged when you rent.</p>
+
+    <div class="section-heading" style="padding-top:28px;">
+      <div class="section-title">Already Have an Account?</div>
+      <div class="section-sub">Scan your card, or look yourself up by email &amp; phone.</div>
+    </div>
+    <button class="btn-primary" style="margin-bottom:18px;" onclick="openCamera('login')">SCAN MY CARD TO LOG IN</button>
+    <div class="card d2">
+      <div class="card-body">
+        <div class="note-toggle" id="noteToggleLookup" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsLookup" onclick="toggleNote('Lookup')">
+          <span class="note-toggle-lbl">Or look up by email &amp; phone</span>
+          <span class="note-chevron" id="noteChevronLookup">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsLookup">
+          <hr class="note-divider">
+          <div class="field">
+            <label class="field-lbl" for="lookupEmail">Email</label>
+            <input type="email" id="lookupEmail" autocomplete="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label class="field-lbl" for="lookupPhone">Phone</label>
+            <input type="tel" id="lookupPhone" autocomplete="tel" placeholder="(555) 555-5555" />
+          </div>
+          <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">We ask for both to confirm it's you.</p>
+          <button class="btn-primary" id="lookupSubmitBtn" onclick="submitCustomerLookup()" style="width:100%;margin:0;">FIND MY ACCOUNT</button>
+        </div>
+      </div>
+    </div>
+    <div id="returningAlert"></div>
     <div class="spacer"></div>
   </div>
 
   <!-- STATUS -->
   <div class="screen" id="screen-status">
     <div class="member-hero">
-      <div class="member-eyebrow">Sci-Fi Dojo Account</div>
       <div class="member-name" id="statusName">--</div>
-      <div id="systemStatusLine" style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);letter-spacing:.08em;text-transform:uppercase;margin-top:4px;margin-bottom:12px;display:none;">SYSTEM STATUS: ACTIVE</div>
-      <div class="member-tier" id="statusTier"><div class="tier-dot"></div>--</div>
     </div>
     <!-- FIX 2: single dedicated containers, cleared on every render -->
     <div id="statusNotifSection"></div>
-    <div id="sectionHdrStatus" class="section-hdr" style="display:none;">ACCOUNT STATUS<div class="section-hdr-line"></div></div>
-    <div class="status-grid" id="statusGrid"></div>
-    <div id="currentRentals"></div>
-    <!-- FIX 8: persistent slot clarification note -->
-    <div class="slot-note" id="slotNote" style="display:none;">
-      Charges stop the moment you log a return. Discs wait in the Return
-      Bin until staff check them in and settle any remaining balance.
-    </div>
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
-    <div id="rewindSection"></div>
-    <div id="eventsSection"></div>
-    <div id="perksSection"></div>
+    <div id="newsUpdatesWrap" style="display:none;">
+      <div class="note-toggle" id="noteToggleNewsUpdates" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsNewsUpdates" style="margin:8px 16px;" onclick="toggleNote('NewsUpdates')">
+        <span class="note-toggle-lbl">NEWS &amp; UPDATES <span id="newsUpdatesBadge"></span></span>
+        <span class="note-chevron" id="noteChevronNewsUpdates">+</span>
+      </div>
+      <div class="note-fields" id="noteFieldsNewsUpdates">
+        <div id="rewindSection"></div>
+        <div id="eventsSection"></div>
+        <div id="perksSection"></div>
+      </div>
+    </div>
     <!-- Version: update to the current date whenever this file is edited -->
     <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.10</div>
     <div class="spacer"></div>
@@ -723,7 +718,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div id="returnAlert"></div>
     <button class="btn-primary return-btn d4" id="returnSubmitBtn" onclick="submitReturn()" disabled>RETURN ITEMS</button>
-    
+    <div id="returnBinSection"></div>
     <button class="btn-ghost" onclick="goStatus()">Cancel</button>
     <div class="spacer"></div>
   </div>
@@ -773,6 +768,7 @@ select option{background:var(--panel2);color:var(--text);}
       <span class="banner-icon">&#128274;</span>
       <div>This code is unique to your account. Do not share.</div>
     </div>
+    <button class="btn-primary d3" style="margin-top:8px;" onclick="goCheckout()">CONTINUE TO RENT A DISC</button>
     <div id="locationContent"></div>
     <div class="spacer"></div>
   </div>
@@ -823,6 +819,11 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="section-title">Account</div>
       <div class="section-sub" id="accountSubtitle">Your Sci-Fi Dojo account.</div>
     </div>
+    <div class="member-tier tier-mat" style="margin:0 16px 14px;">
+      <div class="tier-dot"></div><div><div>Free Account</div><div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">No deposit, no monthly fee &bull; pay only when you rent</div></div>
+    </div>
+    <div class="status-grid" id="accountStatusGrid"></div>
+    <button class="btn-primary" style="width:calc(100% - 32px);margin:0 16px 14px;display:block;" onclick="goRentals()">MY RENTALS</button>
     <div class="billing-box">
       <div class="billing-label">Payment Method</div>
       <div class="billing-date" id="accountBillingDate">--</div>
@@ -830,7 +831,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CARD / CONTACT INFO</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">QUESTIONS? EMAIL US</a>
-    <p class="mgmt-note">Your account is free. No deposit, no monthly fee. The base price covers your first 7 days, then $2 a day is billed to your saved card until the disc is returned or the maximum charge is reached.</p>
+    <p class="mgmt-note">The base price covers your first 7 days, then $2 a day is billed to your saved card until the disc is returned or the maximum charge is reached.</p>
     <div class="spacer"></div>
   </div>
 
@@ -11604,6 +11605,16 @@ function renderFeeds() {
       perksEl.innerHTML = '';
     }
   }
+  // Single collapsed News & Updates section (was three always-expanded
+  // sections) -- badge shows the combined count, wrapper hides entirely
+  // when nothing has loaded yet or all three feeds are empty.
+  var total = (updatesCache ? updatesCache.length : 0) +
+              (eventsCache  ? eventsCache.length  : 0) +
+              (perksCache   ? perksCache.length   : 0);
+  var newsWrap = document.getElementById('newsUpdatesWrap');
+  if (newsWrap) newsWrap.style.display = total > 0 ? '' : 'none';
+  var newsBadge = document.getElementById('newsUpdatesBadge');
+  if (newsBadge) newsBadge.textContent = total > 0 ? '(' + total + ')' : '';
 }
 
 function renderEventCard(ev) {
@@ -11829,21 +11840,11 @@ function renderStatus() {
 
   // FIX 2: clear all mutable containers before writing
   document.getElementById('statusNotifSection').innerHTML = '';
-  document.getElementById('statusGrid').innerHTML         = '';
   document.getElementById('statusHints').innerHTML        = '';
   document.getElementById('actionGrid').innerHTML         = '';
-  document.getElementById('sectionHdrStatus').style.display  = 'none';
   document.getElementById('sectionHdrActions').style.display = 'none';
 
-  // Name only in hero -- tier moves into status card
   document.getElementById('statusName').textContent = member.display_name;
-  var statusLine = document.getElementById('systemStatusLine');
-  if (statusLine) statusLine.style.display = member.active ? 'block' : 'none';
-  // Show tier + plan details under member name
-  var tierEl  = document.getElementById('statusTier');
-  tierEl.className   = 'member-tier tier-mat';
-  tierEl.style.display = '';
-  tierEl.innerHTML = '<div class="tier-dot"></div><div><div>Free Account</div><div style="font-family:\'Share Tech Mono\',monospace;font-size:12px;color:var(--text-dim);margin-top:6px;letter-spacing:.03em;">No deposit, no monthly fee &bull; pay only when you rent</div></div>';
 
   // Banners
   var banners = '';
@@ -11865,9 +11866,6 @@ function renderStatus() {
     banners += banner('info', '&#127903;', '<strong>' + esc(member.active_promo.title) + '</strong>' +
       (member.active_promo.description ? ' &mdash; ' + esc(member.active_promo.description) : ''));
   }
-  if (member.return_pending.length > 0) {
-    banners += banner('info', '&#128236;', 'Return Bin: ' + member.return_pending.length + ' disc' + (member.return_pending.length > 1 ? 's' : '') + ' waiting for staff check-in. Charges have stopped.');
-  }
   // Getting-started prompt -- only for customers with nothing out
   if (member.rentals.length === 0 && member.return_pending.length === 0) {
     banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. You pay only when you rent, starting at $3 for 7 days.');
@@ -11877,53 +11875,29 @@ function renderStatus() {
       '<div class="section-hdr" style="padding-top:8px;">NOTIFICATIONS<div class="section-hdr-line"></div></div>' + banners;
   }
 
-  // Stats grid
-  var statusText = member.active ? 'Enabled' : 'Paused';
-  var statusCls  = member.active ? 'success'  : 'danger';
-  var slotsCls   = st.slotsLeft === 0 ? 'warning' : 'accent';
-  var cardText   = member.comp ? 'Not Needed' :
-                   member.payment_status === 'failed' ? 'Needs Update' :
-                   (member.has_card ? 'On File' : 'None Yet');
-  var cardCls    = member.comp ? 'dim' :
-                   member.payment_status === 'failed' ? 'danger' :
-                   (member.has_card ? 'success' : 'dim');
-
-  document.getElementById('sectionHdrStatus').style.display = '';
-  document.getElementById('statusGrid').innerHTML =
-    statCard('Account',   statusText, statusCls, 'pay per rental') +
-    statCard('Available', st.slotsLeft + ' of ' + esc(member.rental_limit), slotsCls, st.slotsUsed + ' out now') +
-    statCard('Return Bin', String(member.return_pending.length), member.return_pending.length > 0 ? 'warning' : 'dim', 'awaiting check-in') +
-    statCard('Card', cardText, cardCls, member.comp ? 'staff account' : (member.has_card ? 'charged per rental' : 'added at first rental'));
-
-  // Running cost card for each open rental
-  renderCurrentRentals();
-
-  // Slot note -- visible whenever there are pending items
-  document.getElementById('slotNote').style.display = member.return_pending.length > 0 ? '' : 'none';
-
   var hints = '';
   if (st.slotsLeft === 0 && member.active && member.payment_status !== 'failed') {
     hints = '<div class="banner banner-info" style="animation:none;"><span class="banner-icon">&#128161;</span><div>Rental limit reached. Return your current disc to rent another.</div></div>';
   }
   document.getElementById('statusHints').innerHTML = hints;
 
-  // Action grid
+  // Action grid -- four tiles: RENT (leads to cabinet code + hours first,
+  // item entry happens after), RETURN (logs a return only -- no history
+  // here), BROWSE, ACCOUNT (absorbs the free-account blurb, status
+  // detail, and My Rentals).
   var canReturn  = member.rentals.length > 0;
-  var hasRentals = member.rentals.length > 0 || member.return_pending.length > 0;
 
   var catalogReady = (catalogStatus !== 'failed' && catalogCache !== null);
   var rentEnabled  = st.canCheckout && catalogReady;
   var rentSub = catalogStatus === 'failed' ? 'Catalog unavailable. Tap Browse to retry.' :
                 !catalogReady ? 'Catalog loading — please wait' :
                 (member.payment_status === 'failed' ? 'Card needs attention' :
-                (st.slotsLeft === 0 ? 'Return your disc first' : 'First 7 days from $3'));
+                (st.slotsLeft === 0 ? 'Limit reached' : st.slotsLeft + ' available'));
   document.getElementById('actionGrid').innerHTML =
-    actionBtn('ab-checkout', '&#128192;', 'RENT A DISC', rentSub, rentEnabled, 'goCheckout()') +
+    actionBtn('ab-checkout', '&#128192;', 'RENT', rentSub, rentEnabled, 'goRentFlow()') +
     actionBtn('ab-return',   '&#8629;', 'RETURN',  canReturn ? 'Stop the daily charge' : 'Nothing out right now.', canReturn, 'goReturn()') +
-    actionBtn('ab-rentals',  '&#128203;', 'MY RENTALS', hasRentals ? (member.rentals.length + ' out, ' + member.return_pending.length + ' pending') : 'History &amp; receipts', true, 'goRentals()') +
-    (st.showCode ? actionBtn('ab-code', '&#128273;', 'ACCESS CABINET', 'Tap to view your code &amp; check current hours', true, 'goCode()') : '') +
     actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'See what is on the shelf', true, 'goBrowse()') +
-    actionBtn('ab-account', '&#9881;',   'ACCOUNT',  'Card &amp; contact info', true, 'goAccount()');
+    actionBtn('ab-account', '&#9881;',   'ACCOUNT',  'Rentals, card &amp; contact info', true, 'goAccount()');
   document.getElementById('sectionHdrActions').style.display = '';
 
   // Events / perks feeds (paint from cache if already loaded)
@@ -11986,13 +11960,20 @@ var rentSelection = null; // { item_id, title } pending payment
 // cold starts run seconds), and the rent screen needs member data for
 // its checks -- wait for the warm-up before opening it.
 async function goFirstRental() {
-  if (member) { goCheckout(); return; }
+  if (member) { goRentFlow(); return; }
   showScreen('screen-loading');
   var msgEl = document.getElementById('loadingMsg');
   if (msgEl) msgEl.textContent = 'Loading your account...';
   if (signupWarm) { try { await signupWarm; } catch(e) {} }
-  if (member) { goCheckout(); return; }
+  if (member) { goRentFlow(); return; }
   loadMember(token); // warm-up failed: full loader (it has retry/error UI)
+}
+
+// RENT opens the cabinet code + hours first (the code is always ready to
+// show, no rental needed) -- item entry is a separate forward step from
+// there, via the CONTINUE TO RENT A DISC button on screen-code.
+function goRentFlow() {
+  goCode();
 }
 
 function goCheckout() {
@@ -12144,8 +12125,38 @@ function goReturn() {
   returnSelected = [];
   document.getElementById('returnAlert').innerHTML = '';
   renderReturnList();
+  renderReturnBinSection();
   document.getElementById('returnSubmitBtn').disabled = true;
   showScreen('screen-return');
+}
+
+// Read-only view of discs already in the Return Bin -- no customer
+// action here; check-in is a staff-verified physical action. The
+// included window is a fixed 7 days, so "due back by" is derived
+// straight from start_date -- no extra data needed from the backend.
+function renderReturnBinSection() {
+  var el = document.getElementById('returnBinSection');
+  if (!el) return;
+  if (!member.return_pending.length) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<div class="section-hdr" style="margin-top:8px;">IN THE RETURN BIN<div class="section-hdr-line"></div></div>' +
+    '<div class="card"><div class="card-body">' +
+    member.return_pending.map(function(r) {
+      var startMs = new Date(r.start_date).getTime();
+      var dueStr  = isNaN(startMs) ? '' :
+        new Date(startMs + 7 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return '<div class="rental-item">' +
+        '<div class="ri-disc">&#128236;</div>' +
+        '<div class="ri-info">' +
+          '<div class="ri-title">' + esc(r.title) + '</div>' +
+          '<div class="ri-meta">' + esc(r.item_id) + ' &middot; ' + esc(r.format) + '</div>' +
+          '<div class="ri-due" style="color:var(--text-dim);">' +
+            (dueStr ? 'Due back ' + dueStr + ' &middot; ' : '') +
+            'Awaiting staff check-in</div>' +
+        '</div>' +
+        '</div>';
+    }).join('') +
+    '</div></div>';
 }
 
 // Minutes until a rental's return unlocks (0 = returnable now). Mirrors
@@ -12828,6 +12839,18 @@ function goAccount() {
   var changeLink = document.getElementById('accountChangeLink');
   var cancelLink = document.getElementById('accountCancelLink');
   var subtitle   = document.getElementById('accountSubtitle');
+
+  var statusText = member.active ? 'Enabled' : 'Paused';
+  var statusCls  = member.active ? 'success'  : 'danger';
+  var cardStatText = member.comp ? 'Not Needed' :
+                      member.payment_status === 'failed' ? 'Needs Update' :
+                      (member.has_card ? 'On File' : 'None Yet');
+  var cardStatCls  = member.comp ? 'dim' :
+                      member.payment_status === 'failed' ? 'danger' :
+                      (member.has_card ? 'success' : 'dim');
+  document.getElementById('accountStatusGrid').innerHTML =
+    statCard('Account', statusText, statusCls, 'pay per rental') +
+    statCard('Card', cardStatText, cardStatCls, member.comp ? 'staff account' : (member.has_card ? 'charged per rental' : 'added at first rental'));
 
   billingEl.textContent = member.payment_status === 'failed' ? 'Needs Update' :
                           (member.has_card ? 'Card on File' : 'None Yet');
