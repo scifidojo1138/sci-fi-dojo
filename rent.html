@@ -647,19 +647,12 @@ select option{background:var(--panel2);color:var(--text);}
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
-    <div id="newsUpdatesWrap" style="display:none;">
-      <div class="note-toggle" id="noteToggleNewsUpdates" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsNewsUpdates" style="margin:8px 16px;" onclick="toggleNote('NewsUpdates')">
-        <span class="note-toggle-lbl">NEWS &amp; UPDATES <span id="newsUpdatesBadge"></span></span>
-        <span class="note-chevron" id="noteChevronNewsUpdates">+</span>
-      </div>
-      <div class="note-fields" id="noteFieldsNewsUpdates">
-        <div id="rewindSection"></div>
-        <div id="eventsSection"></div>
-        <div id="perksSection"></div>
-      </div>
-    </div>
+    <!-- Weekly Rewind: newest post always visible, older active posts
+         expand on tap -- Events/Perks feeds are retired, folded into
+         Rewind posts going forward. -->
+    <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.10</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.12</div>
     <div class="spacer"></div>
   </div>
 
@@ -11231,8 +11224,6 @@ async function submitSignup() {
     // to the rent screen, and item lookups validate against the catalog.
     signupWarm = refreshAfterRent();
     loadCatalog(token);
-    loadEvents(token);
-    loadPerks(token);
     loadUpdates(token);
 
     if (data.flagged) {
@@ -11367,8 +11358,6 @@ async function loadMember(tok) {
 
     // Load catalog + feeds in background
     loadCatalog(tok);
-    loadEvents(tok);
-    loadPerks(tok);
     loadUpdates(tok);
 
 } catch(e) {
@@ -11390,8 +11379,6 @@ async function loadMember(tok) {
       memberStale = true;
       renderStatus();
       loadCatalog(tok);
-      loadEvents(tok);
-      loadPerks(tok);
       loadUpdates(tok);
     } else {
       showError('Connection Interrupted',
@@ -11573,48 +11560,33 @@ async function loadPerks(tok) {
 }
 
 // Selectively fill the feed containers without re-running renderStatus
+// Events/Perks feeds are retired (2026-07-12) -- all future events and
+// perks are posted as Weekly Rewind updates instead. Only the newest
+// active update shows by default; older ones expand on tap.
 function renderFeeds() {
   var rewindEl = document.getElementById('rewindSection');
-  if (rewindEl) {
-    if (updatesCache && updatesCache.length) {
-      var seen = getRewindSeen();
-      rewindEl.innerHTML =
-        '<div class="section-hdr">THE WEEKLY REWIND<div class="section-hdr-line"></div></div>' +
-        updatesCache.map(function(u, i) { return renderUpdateCard(u, i === 0 && String(u.update_id) !== seen); }).join('');
-    } else {
-      rewindEl.innerHTML = '';
-    }
+  if (!rewindEl) return;
+  if (!updatesCache || !updatesCache.length) {
+    rewindEl.innerHTML = '';
+    return;
   }
-  var eventsEl = document.getElementById('eventsSection');
-  var perksEl  = document.getElementById('perksSection');
-  if (eventsEl) {
-    if (eventsCache && eventsCache.length) {
-      eventsEl.innerHTML =
-        '<div class="section-hdr">UPCOMING EVENTS<div class="section-hdr-line"></div></div>' +
-        eventsCache.map(renderEventCard).join('');
-    } else {
-      eventsEl.innerHTML = '';
-    }
+  var seen   = getRewindSeen();
+  var latest = updatesCache[0];
+  var older  = updatesCache.slice(1);
+  var html =
+    '<div class="section-hdr">THE WEEKLY REWIND<div class="section-hdr-line"></div></div>' +
+    renderUpdateCard(latest, String(latest.update_id) !== seen);
+  if (older.length) {
+    html +=
+      '<div class="note-toggle" id="noteToggleOlderUpdates" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsOlderUpdates" onclick="toggleNote(\'OlderUpdates\')">' +
+        '<span class="note-toggle-lbl">Show older posts (' + older.length + ')</span>' +
+        '<span class="note-chevron" id="noteChevronOlderUpdates">+</span>' +
+      '</div>' +
+      '<div class="note-fields" id="noteFieldsOlderUpdates">' +
+        older.map(function(u) { return renderUpdateCard(u, false); }).join('') +
+      '</div>';
   }
-  if (perksEl) {
-    if (perksCache && perksCache.length) {
-      perksEl.innerHTML =
-        '<div class="section-hdr">MEMBER PERKS<div class="section-hdr-line"></div></div>' +
-        perksCache.map(renderPerkCard).join('');
-    } else {
-      perksEl.innerHTML = '';
-    }
-  }
-  // Single collapsed News & Updates section (was three always-expanded
-  // sections) -- badge shows the combined count, wrapper hides entirely
-  // when nothing has loaded yet or all three feeds are empty.
-  var total = (updatesCache ? updatesCache.length : 0) +
-              (eventsCache  ? eventsCache.length  : 0) +
-              (perksCache   ? perksCache.length   : 0);
-  var newsWrap = document.getElementById('newsUpdatesWrap');
-  if (newsWrap) newsWrap.style.display = total > 0 ? '' : 'none';
-  var newsBadge = document.getElementById('newsUpdatesBadge');
-  if (newsBadge) newsBadge.textContent = total > 0 ? '(' + total + ')' : '';
+  rewindEl.innerHTML = html;
 }
 
 function renderEventCard(ev) {
