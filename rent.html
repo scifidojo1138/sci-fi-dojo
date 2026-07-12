@@ -460,13 +460,19 @@ select option{background:var(--panel2);color:var(--text);}
 .r-key{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-lbl);letter-spacing:.1em;flex-shrink:0;padding-top:1px;}
 .r-val{font-size:14px;color:var(--text);text-align:right;line-height:1.5;word-break:break-word;}
 
-/* ACCESS CABINET -- FIX 4: built-in screen, FIX 10: tighter language */
+/* ACCESS CABINET -- FIX 4: built-in screen, FIX 10: tighter language.
+   General reads in the app's normal accent; only an actual Vault code
+   (the .vault modifier) gets the purple treatment -- previously both
+   used the same hardcoded purple, so they were indistinguishable. */
 .code-display{
-  background:var(--panel2);border:1.5px solid rgba(192,132,252,.3);
+  background:var(--panel2);border:1.5px solid rgba(0,212,255,.3);
   border-radius:var(--r);padding:28px 20px;text-align:center;margin:0 16px 14px;
 }
-.code-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--vault);margin-bottom:16px;opacity:.8;}
-.code-value{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--vault);letter-spacing:12px;text-shadow:0 0 24px rgba(192,132,252,.5);margin-bottom:12px;}
+.code-display.vault{border-color:rgba(192,132,252,.4);}
+.code-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;opacity:.8;}
+.code-display.vault .code-label{color:var(--vault);}
+.code-value{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--accent);letter-spacing:12px;text-shadow:0 0 24px rgba(0,212,255,.35);margin-bottom:12px;}
+.code-display.vault .code-value{color:var(--vault);text-shadow:0 0 24px rgba(192,132,252,.5);}
 .code-expires{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
 
 /* CAMERA */
@@ -731,10 +737,6 @@ select option{background:var(--panel2);color:var(--text);}
 
     <div class="section-hdr">CABINET CODE<div class="section-hdr-line"></div></div>
     <div id="codeContent"></div>
-    <div class="banner banner-warn" style="margin-top:4px;">
-      <span class="banner-icon">&#128274;</span>
-      <div>This code is unique to your account. Do not share.</div>
-    </div>
 
     <div class="section-hdr" style="margin-top:8px;">ITEM CODE<div class="section-hdr-line"></div></div>
     <div class="section-sub" style="margin:-8px 16px 14px;">Scan or enter the code on the disc case.</div>
@@ -12287,15 +12289,15 @@ function goCode() {
     '<div class="code-display">' +
       '<div class="code-label">General Collection</div>' +
       '<div class="code-value">' + esc(member.cabinet_code || '----') + '</div>' +
-      '<div class="code-expires">Rotates weekly. Personal to your account.</div>' +
+      '<div class="code-expires">Rotates weekly. Personal to your account. Do not share.</div>' +
     '</div>';
 
   if (member.vault_access && member.vault_code) {
     html +=
-      '<div class="code-display" style="border-color:rgba(192,132,252,.4);">' +
+      '<div class="code-display vault">' +
         '<div class="code-label">Vault Collection</div>' +
-        '<div class="code-value" style="text-shadow:0 0 24px rgba(192,132,252,.5);">' + esc(member.vault_code) + '</div>' +
-        '<div class="code-expires">Rotates weekly. Personal to your account.</div>' +
+        '<div class="code-value">' + esc(member.vault_code) + '</div>' +
+        '<div class="code-expires">Rotates weekly. Personal to your account. Do not share.</div>' +
       '</div>';
   }
 
