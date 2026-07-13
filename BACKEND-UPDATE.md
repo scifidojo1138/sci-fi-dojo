@@ -254,6 +254,14 @@ exactly as before). No Stripe dashboard change needed: setup sessions
 fire the same `checkout.session.completed` event the endpoint already
 listens for.
 
+**Also updated 2026-07-13:** `start-rental.js`'s Checkout line-item
+description said "up to the price of the disc" — replacement-cost
+phrasing the project deliberately avoids everywhere else. It now reads
+"up to a maximum charge of $X", using the real `cap_cents` that
+`rent_start` already returns (previously unused by this file) instead
+of a vague reference to the disc's value. The day rate shown is
+unchanged — it already reflected any live Rental Promo correctly.
+
 Then in Netlify → Site settings → Environment variables, add:
 
 | Variable | Value |
