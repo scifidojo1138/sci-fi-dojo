@@ -228,10 +228,28 @@ rental paid" actions, so the public page key can't fake payments).
   recoveries should ever need; if a test blows through it, emails silently
   stop until the next day — signups keep working regardless.
 
+**Self-service card update (added 2026-07-13):** two new server-to-server
+actions, `rent_card_lookup` (the update-card Netlify function asks who a
+token belongs to) and `rent_card_updated` (the webhook clears a failed
+`payment_status` once a new card is saved). A customer whose card fails
+now taps UPDATE CARD in the app (failed-card banner, rent screen, or
+Account) and fixes it themselves through a Stripe page — no money moves
+there, it only saves the new card. Owed charges are NOT retried on the
+spot; the next RUN BILLING SWEEP (or CHARGE & CLOSE at return) collects
+them, so run a sweep after you see a customer un-flag if you want the
+money sooner.
+
 ## 3. Netlify (onboarding repo)
 
 Commit the four delivered function files into `netlify/functions/`:
 `start-rental.js`, `rental-webhook.js`, `charge-rental.js`, `billing-sweep.js`.
+
+**Added 2026-07-13:** also commit `update-card.js` (opens the Stripe
+Checkout setup-mode session for a card update — same env vars, nothing
+new to configure), and update `rental-webhook.js` so a completed
+**setup-mode** session makes the new card the customer's card and calls
+`rent_card_updated` (the delivered webhook file includes this once it
+ships — see the session notes).
 
 Then in Netlify → Site settings → Environment variables, add:
 

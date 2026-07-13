@@ -829,7 +829,8 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="card-hdr">Account Info<div class="card-hdr-line"></div></div>
       <div class="card-body" id="accountInfoBody"></div>
     </div>
-    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE INFO</a>
+    <a class="mgmt-btn mgmt-change" id="accountCardLink" href="javascript:void(0)" role="button" onclick="goUpdateCard(this)" style="display:none;">UPDATE CARD</a>
+    <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CONTACT INFO</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">REPORT COMPROMISED ACCOUNT / CLOSE ACCOUNT</a>
     <p class="mgmt-note">The base price covers your first 7 days, then $2 a day is billed to your saved card until the disc is returned or the maximum charge is reached.</p>
     <div class="spacer"></div>
@@ -11195,6 +11196,34 @@ async function refreshFromBanner() {
   renderStatus();
 }
 
+// Self-service card update: the Netlify function opens a Stripe Checkout
+// SETUP-mode session (no charge) for this customer; the webhook clears
+// the failed status once the new card saves. `el` is the tapped
+// button/link -- errors surface inline on it, so this works from the
+// failed-card banner, the rent screen, and the Account screen alike.
+async function goUpdateCard(el) {
+  var orig = el ? el.textContent : '';
+  if (el) { el.textContent = 'OPENING...'; el.setAttribute('aria-disabled', 'true'); }
+  appBusy(true);
+  try {
+    var res  = await fetchWithTimeout(RENTAL_FN_BASE + '/update-card', {
+      method: 'POST',
+      body: JSON.stringify({ token: token }),
+    });
+    var data = await res.json();
+    if (!data.ok || !data.url) throw new Error(data.error || 'Could not open the card update page.');
+    if (el) el.textContent = 'REDIRECTING...';
+    window.location.href = data.url;
+  } catch(e) {
+    appBusy(false);
+    if (el) {
+      el.textContent = 'COULD NOT OPEN - TAP TO RETRY';
+      el.removeAttribute('aria-disabled');
+      setTimeout(function() { if (el.textContent === 'COULD NOT OPEN - TAP TO RETRY') el.textContent = orig; }, 5000);
+    }
+  }
+}
+
 // ================================================================
 // INIT
 // ================================================================
@@ -11206,12 +11235,14 @@ window.onerror = function(msg, src, line, col, err) {
   return true;
 };
 
-var rentedReturn = false; // true when arriving back from Stripe Checkout
+var rentedReturn = false;      // true when arriving back from Stripe Checkout (payment)
+var cardUpdatedReturn = false; // true when arriving back from Stripe Checkout (card update)
 
 (function init() {
   var p = new URLSearchParams(window.location.search);
   token = p.get('token') || p.get('t') || null;
   rentedReturn = p.get('rented') === '1';
+  cardUpdatedReturn = p.get('card_updated') === '1';
 
   if (!token) {
     // New customer: the signup screen IS the front door
@@ -11223,7 +11254,9 @@ var rentedReturn = false; // true when arriving back from Stripe Checkout
     // Remember that a payment just happened (survives reloads) so the
     // dashboard can show a "finalizing" banner until the rental lands.
     setFinalizing();
-    // Drop the rented flag from the URL so refreshes are clean
+  }
+  if (rentedReturn || cardUpdatedReturn) {
+    // Drop the flags from the URL so refreshes are clean
     try { history.replaceState(null, '', window.location.pathname + '?token=' + encodeURIComponent(token)); } catch(e) {}
   }
 
@@ -11420,6 +11453,21 @@ async function loadMember(tok) {
       }
     }
     rentedReturn = false;
+
+    // Back from a card-update Checkout: same webhook lag, different flag.
+    // Poll briefly until the failed status clears; if it doesn't, the
+    // dashboard shows a "can take a minute" banner with tap-to-refresh.
+    if (cardUpdatedReturn && member.payment_status === 'failed') {
+      for (var ctries = 0; ctries < 4 && member.payment_status === 'failed'; ctries++) {
+        setMsg('Saving your card...');
+        await new Promise(function(r) { setTimeout(r, 2500); });
+        try {
+          var res3  = await fetchWithTimeout(BACKEND_URL + '?action=customer&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
+          var data3 = await res3.json();
+          if (data3.ok) member = normalizeCustomer(data3.customer);
+        } catch(e3) {}
+      }
+    }
 
     memberFromCache = false;
     memberStale     = false;
@@ -11914,7 +11962,15 @@ function renderStatus() {
     banners += banner('err', '&#9888;', 'Account paused. New rentals are unavailable. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-INACTIVE" style="color:inherit;">Email us</a> to resolve.');
   }
   if (member.payment_status === 'failed') {
-    banners += banner('err', '&#128179;', 'Your card could not be charged. New rentals are paused until it is updated. <a href="mailto:scifidojo@aol.com?subject=SFD - Update My Card" style="color:inherit;">Email us</a> to fix it.');
+    if (cardUpdatedReturn) {
+      // Just came back from the card-update Checkout; the webhook that
+      // clears the flag can lag. Don't scold about the old card.
+      banners += banner('info', '&#128179;', 'Card saved. Your account can take a minute to unlock. <a href="javascript:void(0)" onclick="refreshFromBanner()" style="color:inherit;">Tap to refresh</a>.');
+    } else {
+      banners += banner('err', '&#128179;', 'Your card could not be charged. New rentals are paused until it is updated. <a href="javascript:void(0)" role="button" onclick="goUpdateCard(this)" style="color:inherit;font-weight:700;">UPDATE CARD</a>');
+    }
+  } else if (cardUpdatedReturn) {
+    banners += banner('ok', '&#10003;', 'Card updated. You are all set.');
   }
   if (member.comp) {
     banners += banner('info', '&#127916;', 'Staff account. Rentals are logged like any other, but nothing is ever charged.');
@@ -12110,7 +12166,7 @@ async function submitRent() {
   var st = backendGetMemberStatus(member);
   if (!st.canCheckout) {
     alertEl.innerHTML = banner('err', '&#9888;', member.payment_status === 'failed'
-      ? 'Your card needs attention first. <a href="mailto:scifidojo@aol.com?subject=SFD - Update My Card">Email us</a>.'
+      ? 'Your card needs attention first. <a href="javascript:void(0)" role="button" onclick="goUpdateCard(this)" style="color:inherit;font-weight:700;">UPDATE CARD</a>'
       : 'Rental limit reached. Return your current disc first.');
     return;
   }
@@ -12914,11 +12970,16 @@ function goAccount() {
     acctRow('Phone', esc(member.phone) || 'Not provided') +
     acctRow('Card on File', cardStatText, member.comp ? 'staff account' : (member.has_card ? 'charged per rental' : 'added at first rental'), cardStatCls);
 
+  // UPDATE CARD is self-service (Stripe setup session) -- only shown once
+  // a Stripe customer exists, since the first rental is what creates one.
+  document.getElementById('accountCardLink').style.display =
+    (member.has_card && !member.comp) ? '' : 'none';
+
   var base = 'mailto:scifidojo@aol.com';
 
   changeLink.href = base +
-    '?subject=' + encodeURIComponent('SFD Account - Update My Info') +
-    '&body=' + encodeURIComponent('Hi,\n\nI would like to update my card or contact info.\n\nAccount: ' + member.customer_id + '\nName: ' + member.display_name + '\n\nThank you');
+    '?subject=' + encodeURIComponent('SFD Account - Update My Contact Info') +
+    '&body=' + encodeURIComponent('Hi,\n\nI would like to update my contact info (name, email, or phone).\n\nAccount: ' + member.customer_id + '\nName: ' + member.display_name + '\n\nThank you');
 
   cancelLink.href = base +
     '?subject=' + encodeURIComponent('SFD Account - Compromised / Close Account') +
