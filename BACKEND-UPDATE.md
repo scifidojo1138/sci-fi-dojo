@@ -269,8 +269,9 @@ description said "up to the price of the disc" — replacement-cost
 phrasing the project deliberately avoids everywhere else. It now reads
 "up to a maximum charge of $X", using the real `cap_cents` that
 `rent_start` already returns (previously unused by this file) instead
-of a vague reference to the disc's value. The day rate shown is
-unchanged — it already reflected any live Rental Promo correctly.
+of a vague reference to the disc's value. The day rate is now
+consistently labeled "a $X/day extended rental fee" (was "$X per
+day") to match the wording used everywhere else in the app and terms.
 
 Then in Netlify → Site settings → Environment variables, add:
 

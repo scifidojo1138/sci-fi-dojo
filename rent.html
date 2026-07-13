@@ -759,7 +759,7 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div id="checkoutAlert"></div>
     <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitRent()" disabled>PAY &amp; RENT</button>
-    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then $2 a day until the disc is returned or the maximum charge is reached.</p>
+    <p class="terms-line" id="rentTermsLine">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then a $2/day extended rental fee applies until the disc is returned or the maximum charge is reached.</p>
 
     <div class="card d2" id="hoursLocCard">
       <div class="card-body">
@@ -832,7 +832,7 @@ select option{background:var(--panel2);color:var(--text);}
     <a class="mgmt-btn mgmt-change" id="accountCardLink" href="javascript:void(0)" role="button" onclick="goUpdateCard(this)" style="display:none;">UPDATE CARD</a>
     <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CONTACT INFO</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">REPORT COMPROMISED ACCOUNT / CLOSE ACCOUNT</a>
-    <p class="mgmt-note">The base price covers your first 7 days, then $2 a day is billed to your saved card until the disc is returned or the maximum charge is reached.</p>
+    <p class="mgmt-note">The base price covers your first 7 days, then a $2/day extended rental fee is billed to your saved card until the disc is returned or the maximum charge is reached.</p>
     <div class="spacer"></div>
   </div>
 
@@ -12126,8 +12126,8 @@ function lookupItem(code) {
   var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
   var priceLine = member.comp
     ? '<strong>Staff account</strong>: no charge. The rental is still logged.'
-    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then ' + dayRateStr() +
-      ' a day, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
+    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then a ' + dayRateStr() +
+      '/day extended rental fee applies, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
       (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
   area.innerHTML = itemConfirmCard('ok', priceLine, item);
@@ -12199,7 +12199,7 @@ async function submitRent() {
       member.comp ? 'Logged and ready. Grab your disc from the cabinet.' : 'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
         { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : money(rentSelection.base_cents) + ' (covers 7 days)' },
-        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + ' a day until returned, up to the maximum charge' },
+        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee until returned, up to the maximum charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
     btn.disabled = false;
@@ -12459,7 +12459,7 @@ function goCode() {
   // markup; only the hardcoded rate needs refreshing per member)
   document.getElementById('rentTermsLine').innerHTML =
     'By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. ' +
-    'The base price covers 7 days, then ' + dayRateStr() + ' a day until the disc is returned or the maximum charge is reached.';
+    'The base price covers 7 days, then a ' + dayRateStr() + '/day extended rental fee applies until the disc is returned or the maximum charge is reached.';
   document.getElementById('checkoutSubmitBtn').disabled = true;
   document.getElementById('checkoutSubmitBtn').textContent = 'PAY & RENT';
 
@@ -12842,7 +12842,7 @@ function browseDetailHtml(it) {
   if (Object.prototype.hasOwnProperty.call(it, 'rental_price')) {
     var p = parseFloat(it.rental_price);
     var baseCents = Math.round((p > 0 ? p : 3) * 100);
-    facts.push('<strong>' + money(baseCents) + '</strong> &middot; first 7 days, then ' + dayRateStr() + '/day');
+    facts.push('<strong>' + money(baseCents) + '</strong> &middot; first 7 days, then ' + dayRateStr() + '/day extended rental fee');
   }
   // Same hide-if-absent rule as the price line above -- an older deploy
   // without cap_cents in the catalog payload should never show a guess.
