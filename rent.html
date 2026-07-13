@@ -627,7 +627,7 @@ select option{background:var(--panel2);color:var(--text);}
 
     <div class="section-heading" style="padding-top:28px;">
       <div class="section-title">Already Have an Account?</div>
-      <div class="section-sub">Scan your card, or look yourself up by email &amp; phone.</div>
+      <div class="section-sub">Scan your card, look yourself up by email &amp; phone, or have your account link emailed to you.</div>
     </div>
     <button class="btn-primary" style="margin-bottom:18px;" onclick="openCamera('login')">SCAN MY CARD TO LOG IN</button>
     <div class="card d2">
@@ -648,6 +648,9 @@ select option{background:var(--panel2);color:var(--text);}
           </div>
           <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">We ask for both to confirm it's you.</p>
           <button class="btn-primary" id="lookupSubmitBtn" onclick="submitCustomerLookup()" style="width:100%;margin:0;">FIND MY ACCOUNT</button>
+          <hr class="note-divider">
+          <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">Lost your link? Enter your email above and we will send it to the address on your account.</p>
+          <button class="btn-ghost" id="sendLinkBtn" onclick="submitSendLink()" style="width:100%;margin:0;">EMAIL ME MY LINK</button>
         </div>
       </div>
     </div>
@@ -670,7 +673,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.12</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.13</div>
     <div class="spacer"></div>
   </div>
 
@@ -11246,7 +11249,7 @@ async function submitSignup() {
   alertEl.innerHTML = '';
 
   if (!name)            { alertEl.innerHTML = banner('warn', '&#9888;', 'Please enter your name.'); return; }
-  if (!email && !phone) { alertEl.innerHTML = banner('warn', '&#9888;', 'Please enter an email or phone number so we can reach you about your rentals.'); return; }
+  if (!email || !phone) { alertEl.innerHTML = banner('warn', '&#9888;', 'Please enter both an email and a phone number. We email your account link to you, and together they are how you recover your account.'); return; }
   if (!terms)           { alertEl.innerHTML = banner('warn', '&#9888;', 'Please agree to the SFD Rental Terms to continue.'); return; }
 
   var btn = document.getElementById('signupSubmitBtn');
@@ -11270,19 +11273,20 @@ async function submitSignup() {
     loadCatalog(token);
     loadUpdates(token);
 
+    var linkNote = data.link_emailed ? ' We also emailed it to you.' : '';
     if (data.flagged) {
       // Account created but held for staff review (e.g. a blacklist
       // match) -- no cabinet code yet, and rentals stay blocked until
       // a staff member clears it.
       showSuccess('co', 'Account Created',
-        'Bookmark this page. It is your personal account link for every visit.',
+        'Bookmark this page. It is your personal account link for every visit.' + linkNote,
         [ { k: 'NAME', v: name },
           { k: 'ACCOUNT ID', v: data.customer_id },
           { k: 'STATUS', v: 'Pending review before rentals are enabled' },
           { k: 'NEXT', v: 'A team member will follow up with you' } ]);
     } else {
       showSuccess('co', 'Welcome to the Dojo!',
-        'Bookmark this page or add it to your home screen. It is your personal account link for every visit.',
+        'Bookmark this page or add it to your home screen. It is your personal account link for every visit.' + linkNote,
         [ { k: 'NAME', v: name },
           { k: 'ACCOUNT ID', v: data.customer_id },
           { k: 'CABINET CODE', v: data.cabinet_code || 'See Access Cabinet' },
@@ -11340,6 +11344,35 @@ async function submitCustomerLookup() {
     alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'No matching account found.'));
   }
   btn.disabled = false; btn.textContent = 'FIND MY ACCOUNT';
+}
+
+// Self-service recovery: mails the account link to the address already
+// on file. The backend answers identically whether or not the email
+// matched an account (no probing), so the confirmation here is the
+// same generic message every time.
+async function submitSendLink() {
+  var email   = document.getElementById('lookupEmail').value.trim();
+  var alertEl = document.getElementById('returningAlert');
+  alertEl.innerHTML = '';
+
+  if (!email) {
+    alertEl.innerHTML = banner('warn', '&#9888;', 'Enter your email in the field above, then tap EMAIL ME MY LINK.');
+    return;
+  }
+
+  var btn = document.getElementById('sendLinkBtn');
+  btn.disabled = true; btn.textContent = 'SENDING...';
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL, { method: 'POST', body: JSON.stringify({
+      action: 'send_link', api_key: API_KEY, email: email,
+    }) });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Could not send the link.');
+    alertEl.innerHTML = banner('ok', '&#9993;', 'If that email is on an account, your link is on its way. Give it a minute and check spam too.');
+  } catch(e) {
+    alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Could not send the link.') + ' Try again in a moment.');
+  }
+  btn.disabled = false; btn.textContent = 'EMAIL ME MY LINK';
 }
 
 // The customer payload arrives with one open-rentals array; split it into

@@ -109,6 +109,12 @@ it in for items you rent out (blank falls back to the default below).
 | `trusted_on_time_threshold` | `10` |
 | `trusted_rental_limit` | `2` |
 | `return_cooldown_minutes` | `60` |
+| `rent_app_url` | (leave blank) |
+
+`rent_app_url` is optional and only matters for testing: the account-link
+emails (below) point at `https://scifidojo.com/rent` when it's blank. Set
+it to a test URL if you ever want those emails to point somewhere else;
+no redeploy needed.
 
 `return_cooldown_minutes` is how long after checkout a customer must wait
 before they can log a return. Logging a return frees their rental slot
@@ -178,6 +184,29 @@ of quietly creating a second account), the catalog payload now includes
 accounts (`comp` column — logged but never charged), and a new
 `SERVER_KEY` that only the Netlify functions know (it gates the "mark this
 rental paid" actions, so the public page key can't fake payments).
+
+**Account link emails (added 2026-07-13, for the unstaffed store):**
+
+- Signup now **requires both** an email and a phone number (was either/or).
+  The pair is what makes the lookup recovery work, and the email is where
+  the account link gets sent.
+- Every successful signup **emails the customer their personal account
+  link** automatically, so a lost bookmark is no longer fatal. A mail
+  failure never fails the signup — the app just skips the "we emailed it
+  to you" line.
+- New `send_link` action behind the app's EMAIL ME MY LINK button (on the
+  sign-in screen, inside the email & phone lookup card): the customer
+  types their email and the link is mailed **to the address on file**. The
+  response is identical whether or not the email matched an account, so it
+  can't be used to find out who's registered, and there's a 10-minute
+  per-address cooldown so it can't flood an inbox.
+- The mail goes out via Apps Script's MailApp, which means it is **sent
+  from the Google account that owns the script** (not the AOL address).
+  Gmail's daily sending quota (about 100/day on a consumer account) is far
+  above what signups + recoveries should ever need, but if a test blows
+  through it the emails silently stop until the next day — signups keep
+  working regardless. Send yourself one test email first and check it
+  isn't landing in spam.
 
 ## 3. Netlify (onboarding repo)
 
@@ -249,18 +278,26 @@ card on a later one.
 
 ## 6. Test in Stripe test mode
 
-1. Open `scifidojo.com/rent` in a private window → sign up. The success
-   screen should show the cabinet code immediately (no rental needed yet).
+1. Open `scifidojo.com/rent` in a private window → sign up with a real
+   email you can check (both email AND phone are now required — try
+   leaving one blank first and confirm the app blocks it). The success
+   screen should show the cabinet code immediately (no rental needed yet)
+   and say the link was emailed; confirm the welcome email arrives with a
+   working account link (check spam the first time).
 2. Sign up again with an email/phone you've added to the Blacklist tab →
    the success screen should say the account is pending review, with no
    cabinet code, and the Rentals tab should still be empty for that account.
 3. Reload `scifidojo.com/rent` with no token (simulating a lost bookmark) →
    expand "Or look up by email & phone" → try just the email, or just the
    phone, from step 1's account (should be rejected) → then both together
-   (should log you straight into that account). Scanning the QR from the
-   printed card should also work — commit the delivered `print-cards.html`
-   into the onboarding repo's `cards/` first, so customer cards encode the
-   `/rent` link instead of the legacy `/member` one.
+   (should log you straight into that account). Also tap EMAIL ME MY LINK
+   with step 1's email: the app shows the same "if that email is on an
+   account" message either way, and the recovery email with the link should
+   arrive (a second tap within 10 minutes sends nothing — that's the
+   cooldown). Scanning the QR from the printed card should also work —
+   commit the delivered `print-cards.html` into the onboarding repo's
+   `cards/` first, so customer cards encode the `/rent` link instead of
+   the legacy `/member` one.
 4. Rent a disc on the first (non-blacklisted) account → Stripe Checkout →
    card `4242 4242 4242 4242`, any future expiry/CVC → back in the app the
    rental shows active.
