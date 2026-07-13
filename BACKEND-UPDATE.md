@@ -200,13 +200,30 @@ rental paid" actions, so the public page key can't fake payments).
   response is identical whether or not the email matched an account, so it
   can't be used to find out who's registered, and there's a 10-minute
   per-address cooldown so it can't flood an inbox.
-- The mail goes out via Apps Script's MailApp, which means it is **sent
-  from the Google account that owns the script** (not the AOL address).
-  Gmail's daily sending quota (about 100/day on a consumer account) is far
-  above what signups + recoveries should ever need, but if a test blows
-  through it the emails silently stop until the next day — signups keep
-  working regardless. Send yourself one test email first and check it
-  isn't landing in spam.
+- **The emails send through a separate "SFD Mailer" relay script that
+  lives in a Gmail account — this is required, not optional.** The main
+  script's Google account signs in as scifidojo@aol.com, and mail stamped
+  from an aol.com address but sent through Google's servers fails AOL's
+  DMARC policy — every major provider bounces it on arrival (that's the
+  554 5.7.9 error). Setup, one time:
+  1. Create (or pick) a Gmail account for the shop.
+  2. In that account: script.google.com → New project → name it "SFD
+     Mailer" → paste the delivered `sfd-mailer` file → save.
+  3. Run its `testMailer` function once from the toolbar and approve the
+     permission prompt. Check the account's own inbox for the test email.
+  4. Deploy → New deployment → Web app → Execute as **Me**, access
+     **Anyone** → Deploy → copy the `/exec` URL.
+  5. In the MAIN backend script, paste that URL into `MAILER_URL` near
+     the top (the shared `MAILER_KEY` already matches in both delivered
+     files), run `testAccountLinkEmail` once (approve its prompt too —
+     it now calls an external URL), confirm the log says SENT and the
+     email arrives at the AOL inbox, then deploy a new version.
+
+  Customers see mail from "Sci-Fi Dojo" at the Gmail address, and replies
+  go to scifidojo@aol.com automatically (replyTo). Gmail's daily sending
+  quota (about 100/day on a consumer account) is far above what signups +
+  recoveries should ever need; if a test blows through it, emails silently
+  stop until the next day — signups keep working regardless.
 
 ## 3. Netlify (onboarding repo)
 
