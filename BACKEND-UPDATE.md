@@ -246,10 +246,13 @@ Commit the four delivered function files into `netlify/functions/`:
 
 **Added 2026-07-13:** also commit `update-card.js` (opens the Stripe
 Checkout setup-mode session for a card update — same env vars, nothing
-new to configure), and update `rental-webhook.js` so a completed
-**setup-mode** session makes the new card the customer's card and calls
-`rent_card_updated` (the delivered webhook file includes this once it
-ships — see the session notes).
+new to configure) and the updated `rental-webhook.js` (a completed
+**setup-mode** session now makes the new card the customer's card —
+invoice default set, old cards detached — then calls
+`rent_card_updated` to unblock the account; payment sessions behave
+exactly as before). No Stripe dashboard change needed: setup sessions
+fire the same `checkout.session.completed` event the endpoint already
+listens for.
 
 Then in Netlify → Site settings → Environment variables, add:
 
