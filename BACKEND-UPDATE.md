@@ -239,6 +239,16 @@ spot; the next RUN BILLING SWEEP (or CHARGE & CLOSE at return) collects
 them, so run a sweep after you see a customer un-flag if you want the
 money sooner.
 
+**Maximum charge now rides the catalog payload (added 2026-07-13):**
+`getCatalog` sends a resolved `cap_cents` per item (the same value
+`payoffCapCents_` already computes for accrual — the item's
+`replacement_cost`, or the Settings `default_payoff_cost` when blank)
+so the app can show the real ceiling before a customer pays instead of
+only after, in Rentals history. This also fixed a latent bug:
+`mapSheetItem` (used by `getCatalog` and a few other reads) never
+passed through `replacement_cost` at all, so nothing built on it going
+forward would have picked up a per-title override — now it does.
+
 ## 3. Netlify (onboarding repo)
 
 Commit the four delivered function files into `netlify/functions/`:
@@ -384,7 +394,15 @@ card on a later one.
     Cards To Print, check both, tap PRINT SELECTED, confirm the print sheet
     opens with both names filled in and both disappear from the pending
     list afterward.
-13. Flip to live keys (and a live-mode webhook) when everything passes.
+13. Maximum charge & due date (added 2026-07-13): in Browse, expand a
+    catalog item and confirm a "Maximum charge $X" fact appears (set that
+    item's `replacement_cost` first to confirm it's the real per-title
+    value, not the $10 default). Enter that item's code on the Rent
+    screen and confirm the item-confirm card says "...up to a maximum
+    charge of $X" before you pay. With an active rental from step 4,
+    check My Rentals and the Return screen's list both show "Due back
+    [date]" (start date + 7 days) alongside the existing accrual info.
+14. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 

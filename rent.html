@@ -12126,7 +12126,8 @@ function lookupItem(code) {
   var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
   var priceLine = member.comp
     ? '<strong>Staff account</strong>: no charge. The rental is still logged.'
-    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then ' + dayRateStr() + ' a day.' +
+    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then ' + dayRateStr() +
+      ' a day, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
       (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
   area.innerHTML = itemConfirmCard('ok', priceLine, item);
@@ -12236,10 +12237,18 @@ function goReturn() {
   showScreen('screen-return');
 }
 
+// Due-back date for an active or return-pending rental: start_date plus
+// the fixed 7-day included window. Client-side only -- the window is a
+// constant, so this is exact, not an estimate, and needs no extra
+// backend field. Returns '' when start_date is missing/unparseable.
+function dueDateStr(startDate) {
+  var startMs = new Date(startDate).getTime();
+  if (isNaN(startMs)) return '';
+  return new Date(startMs + 7 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // Read-only view of discs already in the Return Bin -- no customer
-// action here; check-in is a staff-verified physical action. The
-// included window is a fixed 7 days, so "due back by" is derived
-// straight from start_date -- no extra data needed from the backend.
+// action here; check-in is a staff-verified physical action.
 function renderReturnBinSection() {
   var el = document.getElementById('returnBinSection');
   if (!el) return;
@@ -12248,9 +12257,7 @@ function renderReturnBinSection() {
     '<div class="section-hdr" style="margin-top:8px;">IN THE RETURN BIN<div class="section-hdr-line"></div></div>' +
     '<div class="card"><div class="card-body">' +
     member.return_pending.map(function(r) {
-      var startMs = new Date(r.start_date).getTime();
-      var dueStr  = isNaN(startMs) ? '' :
-        new Date(startMs + 7 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      var dueStr = dueDateStr(r.start_date);
       return '<div class="rental-item">' +
         '<div class="ri-disc">&#128236;</div>' +
         '<div class="ri-info">' +
@@ -12288,10 +12295,11 @@ function renderReturnList() {
   list.innerHTML = member.rentals.map(function(r) {
     var sel    = returnSelected.includes(r.rental_id);
     var locked = returnUnlockMinutes(r) > 0;
-    var costLine = member.comp
+    var dueStr = dueDateStr(r.start_date);
+    var costLine = (dueStr ? 'Due back ' + dueStr + ' &middot; ' : '') + (member.comp
       ? 'Day ' + esc(r.days_out) + ' &middot; no charge (staff account)'
       : 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far' +
-        (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' billed at check-in' : ' &middot; fully covered');
+        (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' billed at check-in' : ' &middot; fully covered'));
     var lockLine = locked
       ? '<div class="ri-due" style="color:var(--warning);">Just rented &middot; returns unlock in ~' + returnUnlockMinutes(r) + ' min</div>'
       : '';
@@ -12389,11 +12397,13 @@ function goRentals() {
       var stateTag = pending
         ? '<span class="ri-tag ri-tag-pending">RETURN BIN</span>'
         : '<span class="ri-tag ri-tag-out">OUT NOW</span>';
+      var dueStr = !pending ? dueDateStr(r.start_date) : ''; // bin items are already back
+      var duePrefix = dueStr ? 'Due back ' + dueStr + ' &middot; ' : '';
       var costBlock = pending
         ? '<div class="ri-due" style="color:var(--text-dim);">Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' billed at check-in.' : 'Nothing more owed.') + '</div>'
         : member.comp
-          ? '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; no charge (staff account)</div>'
-          : '<div class="ri-due due-ok">Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; yours to keep at ' + money(r.cap) + '</div>';
+          ? '<div class="ri-due due-ok">' + duePrefix + 'Day ' + esc(r.days_out) + ' &middot; no charge (staff account)</div>'
+          : '<div class="ri-due due-ok">' + duePrefix + 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; yours to keep at ' + money(r.cap) + '</div>';
       return '<div class="rental-item">' +
         '<div class="ri-disc">' + (pending ? '&#128236;' : '&#128192;') + '</div>' +
         '<div class="ri-info">' +
@@ -12833,6 +12843,11 @@ function browseDetailHtml(it) {
     var p = parseFloat(it.rental_price);
     var baseCents = Math.round((p > 0 ? p : 3) * 100);
     facts.push('<strong>' + money(baseCents) + '</strong> &middot; first 7 days, then ' + dayRateStr() + '/day');
+  }
+  // Same hide-if-absent rule as the price line above -- an older deploy
+  // without cap_cents in the catalog payload should never show a guess.
+  if (Object.prototype.hasOwnProperty.call(it, 'cap_cents') && it.cap_cents > 0) {
+    facts.push('Maximum charge ' + money(it.cap_cents));
   }
   if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(it.subcategory));
   if (it.group_name) facts.push(esc(it.group_name));
