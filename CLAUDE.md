@@ -257,7 +257,7 @@ Every app file shows a date-based version in its footer: `v2026.06.10`. **Bump i
 - Enable the `onboard`/`update_stripe` key gate (needs `api_key` added to the two Netlify functions first)
 - Stripe Customer Portal for self-service plan changes
 - **Self-service card update for rent.html** (unstaffed-store review, 2026-07-12): a `payment_status=failed` customer currently has no way out but email. Plan: Netlify function opens a Stripe Checkout **setup-mode** session for the existing `stripe_customer_id`; webhook on completion clears `payment_status` (and ideally retries owed charges). Replaces the "Email us to fix it" dead end in the failed-card banner and the Account screen's mailto-only UPDATE INFO.
-- ~~"Send me my account link" recovery~~ — DONE 2026-07-13: signup requires both email + phone, emails the link at signup, and the `send_link` action + EMAIL ME MY LINK button cover lost bookmarks. Needs the 2026-07-13 backend deployed (see BACKEND-UPDATE.md).
+- ~~"Send me my account link" recovery~~ — DONE and deployed 2026-07-13: signup requires both email + phone, emails the link at signup, and the `send_link` action + EMAIL ME MY LINK button cover lost bookmarks. Verified live end to end (welcome email, recovery email, SFD Mailer relay).
 
 ### Deferred
 - Vault visual treatment in Browse (no vault titles in collection yet — real library currently has zero `collection=vault` items)
