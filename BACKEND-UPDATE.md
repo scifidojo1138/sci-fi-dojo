@@ -194,12 +194,15 @@ rental paid" actions, so the public page key can't fake payments).
   link** automatically, so a lost bookmark is no longer fatal. A mail
   failure never fails the signup — the app just skips the "we emailed it
   to you" line.
-- New `send_link` action behind the app's EMAIL ME MY LINK button (on the
-  sign-in screen, inside the email & phone lookup card): the customer
+- New `send_link` action behind the app's EMAIL ME MY LINK button (the
+  sign-in screen's only non-scan recovery — the old email+phone FIND MY
+  ACCOUNT form was retired the same day, since controlling the inbox is
+  stronger proof than knowing two facts about someone): the customer
   types their email and the link is mailed **to the address on file**. The
   response is identical whether or not the email matched an account, so it
   can't be used to find out who's registered, and there's a 10-minute
-  per-address cooldown so it can't flood an inbox.
+  per-address cooldown so it can't flood an inbox. The `customer_lookup`
+  action stays live server-side, just unused by the app.
 - **The emails send through a separate "SFD Mailer" relay script that
   lives in a Gmail account — this is required, not optional.** The main
   script's Google account signs in as scifidojo@aol.com, and mail stamped
@@ -305,11 +308,9 @@ card on a later one.
    the success screen should say the account is pending review, with no
    cabinet code, and the Rentals tab should still be empty for that account.
 3. Reload `scifidojo.com/rent` with no token (simulating a lost bookmark) →
-   expand "Or look up by email & phone" → try just the email, or just the
-   phone, from step 1's account (should be rejected) → then both together
-   (should log you straight into that account). Also tap EMAIL ME MY LINK
-   with step 1's email: the app shows the same "if that email is on an
-   account" message either way, and the recovery email with the link should
+   expand "Or email me my account link" → submit step 1's email: the app
+   shows the same "if that email is on an account" message whether or not
+   the email matches anything, and the recovery email with the link should
    arrive (a second tap within 10 minutes sends nothing — that's the
    cooldown). Scanning the QR from the printed card should also work —
    commit the delivered `print-cards.html` into the onboarding repo's

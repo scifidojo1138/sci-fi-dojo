@@ -627,13 +627,13 @@ select option{background:var(--panel2);color:var(--text);}
 
     <div class="section-heading" style="padding-top:28px;">
       <div class="section-title">Already Have an Account?</div>
-      <div class="section-sub">Scan your card, look yourself up by email &amp; phone, or have your account link emailed to you.</div>
+      <div class="section-sub">Scan your card, or have your account link emailed to you.</div>
     </div>
     <button class="btn-primary" style="margin-bottom:18px;" onclick="openCamera('login')">SCAN MY CARD TO LOG IN</button>
     <div class="card d2">
       <div class="card-body">
         <div class="note-toggle" id="noteToggleLookup" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsLookup" onclick="toggleNote('Lookup')">
-          <span class="note-toggle-lbl">Or look up by email &amp; phone</span>
+          <span class="note-toggle-lbl">Or email me my account link</span>
           <span class="note-chevron" id="noteChevronLookup">+</span>
         </div>
         <div class="note-fields" id="noteFieldsLookup">
@@ -642,15 +642,8 @@ select option{background:var(--panel2);color:var(--text);}
             <label class="field-lbl" for="lookupEmail">Email</label>
             <input type="email" id="lookupEmail" autocomplete="email" placeholder="you@example.com" />
           </div>
-          <div class="field">
-            <label class="field-lbl" for="lookupPhone">Phone</label>
-            <input type="tel" id="lookupPhone" autocomplete="tel" placeholder="(555) 555-5555" />
-          </div>
-          <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">We ask for both to confirm it's you.</p>
-          <button class="btn-primary" id="lookupSubmitBtn" onclick="submitCustomerLookup()" style="width:100%;margin:0;">FIND MY ACCOUNT</button>
-          <hr class="note-divider">
-          <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">Lost your link? Enter your email above and we will send it to the address on your account.</p>
-          <button class="btn-ghost" id="sendLinkBtn" onclick="submitSendLink()" style="width:100%;margin:0;">EMAIL ME MY LINK</button>
+          <p style="font-size:12px;color:var(--text-dim);margin:2px 0 12px;">We will email your personal link to the address on your account.</p>
+          <button class="btn-primary" id="sendLinkBtn" onclick="submitSendLink()" style="width:100%;margin:0;">EMAIL ME MY LINK</button>
         </div>
       </div>
     </div>
@@ -11316,10 +11309,14 @@ async function loginWithToken(tok, alertElId) {
     showScreen('screen-loading');
     loadMember(token);
   } catch(e) {
-    if (alertEl) alertEl.innerHTML = banner('err', '&#9888;', "That didn't match an account. Try scanning again, or use the email &amp; phone lookup below.");
+    if (alertEl) alertEl.innerHTML = banner('err', '&#9888;', "That didn't match an account. Try scanning again, or have your account link emailed to you below.");
   }
 }
 
+// RETIRED 2026-07-13 (left in place, unused): the email+phone instant
+// login was dropped in favor of EMAIL ME MY LINK -- inbox possession is
+// stronger proof than knowing two facts about someone. The backend's
+// customer_lookup action is still live if this ever comes back.
 async function submitCustomerLookup() {
   var email = document.getElementById('lookupEmail').value.trim();
   var phone = document.getElementById('lookupPhone').value.trim();
