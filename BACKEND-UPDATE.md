@@ -285,6 +285,17 @@ technical failure, so this closes that gap two ways:
   fix. Requires the mailer relay to already be set up (see the account
   link email section above); if it isn't, error reports simply don't
   send, same as any other email from this backend.
+- **Server-side exception alerting** — `doGet`/`doPost`'s own top-level
+  `catch` blocks now also email you when Apps Script itself throws (a
+  bad column name, a Sheets quota error, a malformed request body).
+  This is the backstop `client_error` can't cover: it also catches
+  failures in the server-to-server calls from Netlify (`onboard`,
+  `update_stripe`, `rent_confirm`, etc.) that never reach a customer's
+  browser at all. Shares the same rate limiting as `client_error`
+  (15-min per-signature cooldown, 10/hour cap total across both), with
+  item/customer codes stripped from the dedup key first so the same
+  underlying bug hitting different items/customers still counts as one
+  alert instead of flooding the cap.
 
 ## 3. Netlify (onboarding repo)
 
@@ -470,7 +481,15 @@ card on a later one.
     Finally set up the actual uptime monitor (UptimeRobot or similar)
     pointed at both the ping URL and `scifidojo.com/rent`, with alerts
     going to your email or phone.
-16. Flip to live keys (and a live-mode webhook) when everything passes.
+16. Server-side alerting (added 2026-07-14): from the Apps Script
+    editor, temporarily break something on purpose — e.g. rename a
+    Catalog header — hit `?action=catalog&key=<your key>&token=<any
+    token>` in a browser, and confirm both a JSON error in the response
+    AND an email titled "SFD Server Error: doGet:catalog" arrive. Fix
+    the header back afterward. Hit it a second time before 15 minutes
+    pass and confirm no second email (shared cooldown with
+    `client_error`).
+17. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 
