@@ -149,6 +149,29 @@ customers see in the app. For the launch special, add:
 **Rentals tab** — add one column: `daily_rate` (leave the cells blank;
 the backend stamps it when a promo rental starts).
 
+**Promo Codes** (new tab, added 2026-07-14), row 1 headers:
+
+| code | active | notes |
+|---|---|---|
+
+Generic, reusable marketing codes — NOT the same thing as Rental Promos
+above, and NOT single-use. The same code can be redeemed by any number
+of different customers (give it out on flyers, social media, verbally —
+something on-theme and easy to say, like `usetheforce`); what's actually
+limited is one lifetime redemption **per customer**, tracked on their
+own Customers row, not on the code. Matching is case/whitespace-insensitive,
+so `usetheforce`, `UseTheForce`, and `use the force` all redeem the same
+row. Add a row, set `active` to TRUE, and it's live immediately — no
+dates, no redemption counter to reset. To retire a code, flip `active`
+to FALSE (or just leave the row as a record and add a new one for the
+next campaign).
+
+**Customers tab** — add two columns: `promo_redeemed_date` (leave
+blank; stamped the first time a customer redeems any code) and
+`free_rental_credits` (leave blank; an integer, incremented by
+`redeem_promo`, consumed by `rent_confirm` when a free rental actually
+activates).
+
 **Grace period:** extended fees now start only once a disc is more than
 24 hours past the 7-day window (so day 9, not day 8). This is deliberate
 slack for returns nobody has seen yet — the apps still say "7 days"
@@ -326,6 +349,19 @@ unauthorized). `onboard-member.js` also no longer forwards client-sent
 them, so this just stops the Netlify function from pretending to pass
 through fields it doesn't actually control. No new env var needed,
 `SFD_SERVER_KEY` already exists from the rental functions above.
+
+**Added 2026-07-14 (Promo Codes free rental):** also commit the updated
+`start-rental.js` and `rental-webhook.js`. `start-rental.js` now branches
+on `rent_start`'s new `free_credit` flag: if the customer already has a
+card, it confirms the rental directly with no Stripe call at all (same
+shape as the staff-comp path); if they don't, it opens a Stripe Checkout
+**setup-mode** session (collects + saves a card, charges nothing) tagged
+`sfd_kind: 'free_promo_rental'`. `rental-webhook.js` recognizes that tag
+on completion, sets the new card as the invoice default (same as its
+card-update branch), and calls `rent_confirm` instead of
+`rent_card_updated`. No new env vars, no Stripe dashboard change —
+setup-mode sessions fire the same `checkout.session.completed` event the
+endpoint already listens for.
 
 **Added 2026-07-13:** also commit `update-card.js` (opens the Stripe
 Checkout setup-mode session for a card update — same env vars, nothing
@@ -506,7 +542,23 @@ card on a later one.
     account, and confirm it does NOT reuse the deleted id (it should
     continue from the highest id still present, including in Rentals
     history if any exists).
-18. Flip to live keys (and a live-mode webhook) when everything passes.
+18. Promo Codes (added 2026-07-14): add a row to the Promo Codes tab
+    (e.g. `usetheforce`, `active` TRUE). On a test account with no card
+    on file, open the Rent screen, expand "Have a promo code?", enter
+    the code (try mixed case / extra spaces to confirm the match is
+    forgiving) — confirm the card disappears and a "Your next rental is
+    free!" banner appears. Enter the SAME or a different code again and
+    confirm it's rejected (one lifetime redemption). Scan an item: the
+    confirm card should say "Free!" and the button "CONFIRM FREE
+    RENTAL". Complete it via Stripe Checkout (card `4242 4242 4242
+    4242`) — this should be a **setup-mode** session (no charge shown),
+    and the app should return to a success receipt reading "Free (promo
+    credit)". Check the sheet: Rentals row `base_price` is `0` (not
+    blank), Customers row `free_rental_credits` back to 0. Repeat once
+    more on an account that ALREADY has a saved card (e.g. from a prior
+    test rental) and confirm this time there's no Stripe redirect at
+    all — it confirms instantly.
+19. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 

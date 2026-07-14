@@ -734,6 +734,24 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="section-hdr">CABINET CODE<div class="section-hdr-line"></div></div>
     <div id="codeContent"></div>
 
+    <div class="card d2" id="promoCodeCard">
+      <div class="card-body">
+        <div class="note-toggle" id="noteTogglePromo" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsPromo" onclick="toggleNote('Promo')">
+          <span class="note-toggle-lbl">Have a promo code?</span>
+          <span class="note-chevron" id="noteChevronPromo">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsPromo">
+          <hr class="note-divider">
+          <div class="field">
+            <input type="text" id="promoCodeInput" placeholder="Enter code" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+          </div>
+          <div id="promoCodeAlert"></div>
+          <button class="btn-primary" id="promoCodeSubmitBtn" onclick="submitPromoCode()" style="width:100%;margin:0;">APPLY CODE</button>
+        </div>
+      </div>
+    </div>
+    <div id="freeCreditBanner"></div>
+
     <div class="section-hdr" style="margin-top:8px;">ITEM CODE<div class="section-hdr-line"></div></div>
     <div class="section-sub" style="margin:-8px 16px 14px;">Scan or enter the code on the disc case.</div>
     <div class="card d2">
@@ -12183,23 +12201,28 @@ function lookupItem(code) {
     return;
   }
 
-  var item      = result.item;
-  var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
-  var baseWasCents = (item.rental_price_was > 0) ? Math.round(parseFloat(item.rental_price_was) * 100) : 0;
+  var item       = result.item;
+  var freeCredit = !member.comp && (member.free_rental_credits || 0) > 0;
+  var baseCents  = freeCredit ? 0 : Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
+  var baseWasCents = (!freeCredit && item.rental_price_was > 0) ? Math.round(parseFloat(item.rental_price_was) * 100) : 0;
   var dayRateHtml = dayRatePromoActive()
     ? '<s style="opacity:.6;">' + money(standardDayRateCents()) + '</s> ' + dayRateStr()
     : dayRateStr();
   var priceLine = member.comp
     ? '<strong>Staff account</strong>: no charge. The rental is still logged.'
-    : promoPriceHtml(baseCents, baseWasCents) + ' covers your first 7 days, then a ' + dayRateHtml +
-      '/day extended rental fee applies, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
-      (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
+    : freeCredit
+      ? '<strong>Free!</strong> Your promo credit covers this rental for 7 days, then a ' + dayRateHtml +
+        '/day extended rental fee applies if you keep it, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
+        (member.has_card ? ' Your saved card is on file for any extended fee.' : ' You will enter a card on the next screen — not charged now.')
+      : promoPriceHtml(baseCents, baseWasCents) + ' covers your first 7 days, then a ' + dayRateHtml +
+        '/day extended rental fee applies, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
+        (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
   area.innerHTML = itemConfirmCard('ok', priceLine, item);
   rentSelection = { item_id: item.item_id, title: item.title, base_cents: baseCents };
   var btn = document.getElementById('checkoutSubmitBtn');
   btn.disabled = false;
-  btn.textContent = member.comp ? 'RENT (NO CHARGE)' : 'PAY ' + money(baseCents) + ' & RENT';
+  btn.textContent = member.comp ? 'RENT (NO CHARGE)' : freeCredit ? 'CONFIRM FREE RENTAL' : 'PAY ' + money(baseCents) + ' & RENT';
 }
 
 function itemConfirmCard(status, msg, item) {
@@ -12237,13 +12260,16 @@ async function submitRent() {
     return;
   }
 
+  var wasFree = !member.comp && rentSelection.base_cents === 0;
   var btn = document.getElementById('checkoutSubmitBtn');
   btn.disabled = true;
-  btn.textContent = member.comp ? 'LOGGING RENTAL...' : (member.has_card ? 'CHARGING CARD...' : 'OPENING CHECKOUT...');
+  btn.textContent = member.comp ? 'LOGGING RENTAL...' : wasFree ? (member.has_card ? 'CONFIRMING...' : 'OPENING CHECKOUT...') : (member.has_card ? 'CHARGING CARD...' : 'OPENING CHECKOUT...');
 
   try {
     // The Netlify function validates via the backend, then either returns a
-    // Stripe Checkout URL (first rental) or charges the saved card now.
+    // Stripe Checkout URL (first rental, or a free rental with no card on
+    // file yet) or charges/confirms directly (saved card, comp, or a free
+    // rental that already has a card).
     var res  = await fetchWithTimeout(RENTAL_FN_BASE + '/start-rental', {
       method: 'POST',
       body: JSON.stringify({ token: token, item_id: rentSelection.item_id }),
@@ -12252,24 +12278,28 @@ async function submitRent() {
     if (!data.ok) throw new Error(data.error || 'Could not start the rental');
 
     if (data.url) {
-      // First rental: hand off to Stripe Checkout to collect + save the card
+      // First rental (or a free rental collecting its first card): hand
+      // off to Stripe Checkout.
       btn.textContent = 'REDIRECTING...';
       window.location.href = data.url;
       return;
     }
 
-    // Saved card charged instantly -- refresh the account and celebrate
+    // Saved card charged instantly, or a free/comp rental confirmed
+    // directly -- refresh the account and celebrate.
     await refreshAfterRent();
     showSuccess('co', 'Enjoy the Movie!',
-      member.comp ? 'Logged and ready. Grab your disc from the cabinet.' : 'Paid and ready. Grab your disc from the cabinet.',
+      member.comp ? 'Logged and ready. Grab your disc from the cabinet.' :
+      wasFree     ? 'Your promo credit covered this one. Grab your disc from the cabinet.' :
+                    'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
-        { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : money(rentSelection.base_cents) + ' (covers 7 days)' },
+        { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' (covers 7 days)' },
         { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee until returned, up to the maximum charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
     btn.disabled = false;
-    btn.textContent = member.comp ? 'RENT (NO CHARGE)' : 'PAY ' + money(rentSelection.base_cents) + ' & RENT';
+    btn.textContent = member.comp ? 'RENT (NO CHARGE)' : wasFree ? 'CONFIRM FREE RENTAL' : 'PAY ' + money(rentSelection.base_cents) + ' & RENT';
     alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RENT">Email support</a>.');
   }
 }
@@ -12520,6 +12550,19 @@ function goCode() {
   document.getElementById('locationContent').innerHTML = locHtml;
   document.getElementById('hoursLocCard').style.display = locHtml ? '' : 'none';
 
+  // Promo code: one lifetime redemption per customer, so once used the
+  // whole card disappears rather than staying around to invite a
+  // rejected retry. Reset the input/alert fresh each time this screen
+  // opens, same as the item-entry fields below.
+  document.getElementById('promoCodeCard').style.display = member.promo_redeemed ? 'none' : '';
+  document.getElementById('promoCodeInput').value = '';
+  document.getElementById('promoCodeAlert').innerHTML = '';
+  document.getElementById('promoCodeSubmitBtn').disabled = false;
+  document.getElementById('promoCodeSubmitBtn').textContent = 'APPLY CODE';
+  document.getElementById('freeCreditBanner').innerHTML = (member.free_rental_credits > 0)
+    ? banner('ok', '&#127881;', '<strong>Your next rental is free!</strong> Pick a disc below — the extended rental fee still applies if you keep it past 7 days.')
+    : '';
+
   // Item entry resets fresh every time this screen opens.
   rentSelection = null;
   document.getElementById('checkoutCodeInput').value = 'SFD-';
@@ -12534,6 +12577,41 @@ function goCode() {
   document.getElementById('checkoutSubmitBtn').textContent = 'PAY & RENT';
 
   showScreen('screen-code');
+}
+
+// Generic promo codes (not per-title, not single-use -- the same code
+// can be given out to any number of customers; the scarce thing is one
+// lifetime redemption per CUSTOMER, tracked server-side). A successful
+// redemption doesn't apply anything itself -- it just raises
+// free_rental_credits, which doRentStart checks on the NEXT rental.
+async function submitPromoCode() {
+  var code    = document.getElementById('promoCodeInput').value.trim();
+  var alertEl = document.getElementById('promoCodeAlert');
+  alertEl.innerHTML = '';
+
+  if (!code) {
+    alertEl.innerHTML = banner('warn', '&#9888;', 'Enter a promo code first.');
+    return;
+  }
+
+  var btn = document.getElementById('promoCodeSubmitBtn');
+  btn.disabled = true; btn.textContent = 'APPLYING...';
+  try {
+    var res  = await fetchWithTimeout(BACKEND_URL, { method: 'POST', body: JSON.stringify({
+      action: 'redeem_promo', api_key: API_KEY, token: token, code: code,
+    }) });
+    var data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'That code is not valid.');
+    // Pull server truth (promo_redeemed / free_rental_credits) rather
+    // than trusting the response shape, then re-render this screen so
+    // the card disappears and the free-rental banner shows immediately.
+    await refreshAfterRent();
+    goCode();
+  } catch(e) {
+    reportClientError('submitPromoCode', e, '');
+    btn.disabled = false; btn.textContent = 'APPLY CODE';
+    alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'That code is not valid.'));
+  }
 }
 
 // ================================================================
