@@ -249,6 +249,16 @@ only after, in Rentals history. This also fixed a latent bug:
 passed through `replacement_cost` at all, so nothing built on it going
 forward would have picked up a per-title override — now it does.
 
+**Active promo pricing now shows "was $X, now $Y" (added 2026-07-14):**
+`getCatalog` sends `rental_price_was` (the resolved pre-discount price)
+alongside the already-discounted `rental_price` whenever a base-discount
+Rental Promo is live — previously the discount silently overwrote the
+number and the original was lost, so the app couldn't show both.
+`getActiveRentalPromo_` also now returns `standard_daily_cents`
+(= `RENT_DAILY_CENTS`) so the app can tell whether a promo's day rate is
+actually a discount without hardcoding the standard rate itself. Neither
+field appears when no promo is live — existing prices are unaffected.
+
 ## 3. Netlify (onboarding repo)
 
 Commit the four delivered function files into `netlify/functions/`:
@@ -403,7 +413,14 @@ card on a later one.
     charge of $X" before you pay. With an active rental from step 4,
     check My Rentals and the Return screen's list both show "Due back
     [date]" (start date + 7 days) alongside the existing accrual info.
-14. Flip to live keys (and a live-mode webhook) when everything passes.
+14. Promo pricing display (added 2026-07-14): with a Rental Promo live
+    that sets both `daily_rate` and `base_discount` (like the launch
+    special row from earlier), confirm Browse and the item-confirm card
+    both show the original base price struck through next to the
+    discounted one, and the standard $2/day struck through next to the
+    promo rate. Turn the promo off (or let it expire) and confirm both
+    strikethroughs disappear and the plain price shows as before.
+15. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 

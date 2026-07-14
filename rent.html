@@ -11119,11 +11119,30 @@ function money(cents) {
 // Extended-day rate for NEW rentals: the promo rate while one is live
 // (rides the customer payload), else the standard $2. Open rentals
 // accrue by the rate stamped on them server-side regardless of this.
+var STANDARD_DAY_RATE_CENTS = 200; // fallback + comparison baseline, mirrors backend RENT_DAILY_CENTS
 function dayRateCents() {
   return (member && member.active_promo && member.active_promo.daily_cents > 0)
-    ? member.active_promo.daily_cents : 200;
+    ? member.active_promo.daily_cents : STANDARD_DAY_RATE_CENTS;
 }
 function dayRateStr() { return money(dayRateCents()); }
+
+// Standard (non-promo) day rate, sent explicitly by the backend so this
+// never has to guess or duplicate RENT_DAILY_CENTS.
+function standardDayRateCents() {
+  return (member && member.active_promo && member.active_promo.standard_daily_cents > 0)
+    ? member.active_promo.standard_daily_cents : STANDARD_DAY_RATE_CENTS;
+}
+// True only when a live promo rate actually undercuts the standard rate.
+function dayRatePromoActive() {
+  return dayRateCents() < standardDayRateCents();
+}
+
+// "was $X" strikethrough + the current price, or just the current price
+// when nothing is discounted. Shared by the item-confirm card and Browse.
+function promoPriceHtml(nowCents, wasCents) {
+  if (!(wasCents > nowCents)) return '<strong>' + money(nowCents) + '</strong>';
+  return '<s style="opacity:.6;">' + money(wasCents) + '</s> <strong>' + money(nowCents) + '</strong>';
+}
 
 // ================================================================
 // STATE
@@ -12125,9 +12144,13 @@ function lookupItem(code) {
 
   var item      = result.item;
   var baseCents = Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
+  var baseWasCents = (item.rental_price_was > 0) ? Math.round(parseFloat(item.rental_price_was) * 100) : 0;
+  var dayRateHtml = dayRatePromoActive()
+    ? '<s style="opacity:.6;">' + money(standardDayRateCents()) + '</s> ' + dayRateStr()
+    : dayRateStr();
   var priceLine = member.comp
     ? '<strong>Staff account</strong>: no charge. The rental is still logged.'
-    : '<strong>' + money(baseCents) + '</strong> covers your first 7 days, then a ' + dayRateStr() +
+    : promoPriceHtml(baseCents, baseWasCents) + ' covers your first 7 days, then a ' + dayRateHtml +
       '/day extended rental fee applies, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
       (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
@@ -12843,7 +12866,11 @@ function browseDetailHtml(it) {
   if (Object.prototype.hasOwnProperty.call(it, 'rental_price')) {
     var p = parseFloat(it.rental_price);
     var baseCents = Math.round((p > 0 ? p : 3) * 100);
-    facts.push('<strong>' + money(baseCents) + '</strong> &middot; first 7 days, then ' + dayRateStr() + '/day extended rental fee');
+    var baseWasCents = (it.rental_price_was > 0) ? Math.round(parseFloat(it.rental_price_was) * 100) : 0;
+    var dayRateHtml = dayRatePromoActive()
+      ? '<s style="opacity:.6;">' + money(standardDayRateCents()) + '</s> ' + dayRateStr()
+      : dayRateStr();
+    facts.push(promoPriceHtml(baseCents, baseWasCents) + ' &middot; first 7 days, then ' + dayRateHtml + '/day extended rental fee');
   }
   // Same hide-if-absent rule as the price line above -- an older deploy
   // without cap_cents in the catalog payload should never show a guess.
