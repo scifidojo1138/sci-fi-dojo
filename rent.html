@@ -11773,6 +11773,7 @@ function renderUpdateCard(u, isNew) {
       '<span class="feed-chevron">+</span>' +
     '</div>' +
     '<div class="feed-body" id="' + id + '-body">' +
+      (u.image_url ? '<img class="feed-img" src="' + esc(u.image_url) + '" loading="lazy" alt="">' : '') +
       (body ? '<div class="feed-text">' + body + '</div>' : '') +
     '</div>' +
   '</div>';
