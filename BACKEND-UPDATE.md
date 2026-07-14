@@ -259,6 +259,33 @@ number and the original was lost, so the app couldn't show both.
 actually a discount without hardcoding the standard rate itself. Neither
 field appears when no promo is live — existing prices are unaffected.
 
+**Uptime monitoring + client error reporting (added 2026-07-14):** the
+cabinet has a person on-site but no one who can accurately describe a
+technical failure, so this closes that gap two ways:
+
+- **`?action=ping`** — no key required, no sheet reads, instant
+  `{ok:true}`. Point a free monitor (UptimeRobot or similar) at
+  `<APPS_SCRIPT_URL>?action=ping` every 1-5 minutes, and a second check
+  at `https://scifidojo.com/rent` itself (checks Netlify hosting
+  separately from the backend). Set the monitor's alert to your email
+  or phone — this is the one piece you set up outside any repo, since
+  it's a third-party service, not code.
+- **`client_error` action** — rent.html now reports real failures
+  directly: uncaught JS errors, unhandled promise rejections, and the
+  catch blocks of signup, rent, return, card update, and the email-link
+  recovery. Each report emails you (via the same SFD Mailer relay used
+  for account links) with what failed, which customer/screen, and the
+  actual error message — no more guessing from a secondhand phone
+  description. Rate-limited two ways so a broken thing can't flood your
+  inbox: the same error won't re-alert more than once every 15 minutes,
+  and a hard cap of 10 error emails/hour regardless of how many
+  different errors occur. Deliberately does NOT report routine
+  rejections a customer already sees a clear message for (declined
+  card, rental limit reached, etc.) — only things that need an actual
+  fix. Requires the mailer relay to already be set up (see the account
+  link email section above); if it isn't, error reports simply don't
+  send, same as any other email from this backend.
+
 ## 3. Netlify (onboarding repo)
 
 Commit the four delivered function files into `netlify/functions/`:
@@ -420,7 +447,17 @@ card on a later one.
     discounted one, and the standard $2/day struck through next to the
     promo rate. Turn the promo off (or let it expire) and confirm both
     strikethroughs disappear and the plain price shows as before.
-15. Flip to live keys (and a live-mode webhook) when everything passes.
+15. Uptime + error reporting (added 2026-07-14): hit
+    `<APPS_SCRIPT_URL>?action=ping` directly in a browser and confirm an
+    instant `{"ok":true,...}` with no key. Then, in the browser console
+    on `scifidojo.com/rent`, run `reportClientError('test', new
+    Error('manual test'), 'walkthrough')` and confirm an email arrives
+    within a minute or two with that message; run it a second time
+    immediately and confirm no second email (15-min per-error cooldown).
+    Finally set up the actual uptime monitor (UptimeRobot or similar)
+    pointed at both the ping URL and `scifidojo.com/rent`, with alerts
+    going to your email or phone.
+16. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 

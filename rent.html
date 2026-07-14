@@ -666,7 +666,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.13</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.14</div>
     <div class="spacer"></div>
   </div>
 
@@ -11234,6 +11234,7 @@ async function goUpdateCard(el) {
     if (el) el.textContent = 'REDIRECTING...';
     window.location.href = data.url;
   } catch(e) {
+    reportClientError('goUpdateCard', e, '');
     appBusy(false);
     if (el) {
       el.textContent = 'COULD NOT OPEN - TAP TO RETRY';
@@ -11244,14 +11245,50 @@ async function goUpdateCard(el) {
 }
 
 // ================================================================
+// CLIENT ERROR REPORTING -- there is no on-site staff able to relay a
+// good description when something breaks, so real failures are
+// reported straight to the shop's inbox instead of relying on a
+// secondhand phone call. Fire-and-forget: never awaited by callers,
+// and every failure inside this function is swallowed so reporting an
+// error can never itself become a new error for the customer.
+// ================================================================
+function reportClientError(context, err, extra) {
+  try {
+    var message = (err && err.message) ? err.message : String(err || '');
+    var screen  = (document.querySelector('.screen.active') || {}).id || '';
+    fetchWithTimeout(BACKEND_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'client_error',
+        api_key: API_KEY,
+        context: context,
+        message: message,
+        extra: extra || '',
+        customer_id: (member && member.customer_id) || '',
+        screen: screen,
+        user_agent: navigator.userAgent,
+      }),
+    }).catch(function() {});
+  } catch(e) {}
+}
+
+// ================================================================
 // INIT
 // ================================================================
 // Top-level error handler -- surfaces any init failure on screen
 window.onerror = function(msg, src, line, col, err) {
   console.error('Unhandled error:', msg, 'at line', line, err);
+  reportClientError('window.onerror', err || { message: msg }, 'line ' + line);
   var el = document.getElementById('screen-loading');
   if (el) el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#ff3b5c;font-family:monospace;font-size:13px;">JS ERROR: ' + esc(msg) + ' (line ' + esc(line) + ')</div>';
   return true;
+};
+
+// Promise rejections nobody caught would otherwise be completely
+// invisible -- neither the customer nor the shop would ever know.
+window.onunhandledrejection = function(event) {
+  console.error('Unhandled rejection:', event.reason);
+  reportClientError('unhandledrejection', event.reason, '');
 };
 
 var rentedReturn = false;      // true when arriving back from Stripe Checkout (payment)
@@ -11339,6 +11376,7 @@ async function submitSignup() {
         'CHECK OUT A RENTAL', goFirstRental);
     }
   } catch(e) {
+    reportClientError('submitSignup', e, '');
     btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
     alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Signup failed') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Account Signup Help" style="color:inherit;">Email us</a> if you need a hand.');
   }
@@ -11419,6 +11457,7 @@ async function submitSendLink() {
     if (!data.ok) throw new Error(data.error || 'Could not send the link.');
     alertEl.innerHTML = banner('ok', '&#9993;', 'If that email is on an account, your link is on its way. Give it a minute and check spam too.');
   } catch(e) {
+    reportClientError('submitSendLink', e, '');
     alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Could not send the link.') + ' Try again in a moment.');
   }
   btn.disabled = false; btn.textContent = 'EMAIL ME MY LINK';
@@ -11517,11 +11556,13 @@ async function loadMember(tok) {
     } else if (memberFromCache) {
       // Connection failed but we have cached data -- keep the dashboard
       // usable and flag it as stale instead of dead-ending on an error.
+      reportClientError('loadMember-stale', e, 'served from cache');
       memberStale = true;
       renderStatus();
       loadCatalog(tok);
       loadUpdates(tok);
     } else {
+      reportClientError('loadMember', e, '');
       showError('Connection Interrupted',
         'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
         '<br><br>' +
@@ -12226,6 +12267,7 @@ async function submitRent() {
         { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee until returned, up to the maximum charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
+    reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
     btn.disabled = false;
     btn.textContent = member.comp ? 'RENT (NO CHARGE)' : 'PAY ' + money(rentSelection.base_cents) + ' & RENT';
     alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RENT">Email support</a>.');
@@ -12244,7 +12286,10 @@ async function refreshAfterRent() {
       lastMemberFetch = Date.now();
       writeMemberCache(member);
     }
-  } catch(e) { console.warn('Post-rent refresh failed:', e.message); }
+  } catch(e) {
+    console.warn('Post-rent refresh failed:', e.message);
+    reportClientError('refreshAfterRent', e, '');
+  }
   finally { appBusy(false); }
 }
 
@@ -12393,6 +12438,7 @@ async function submitReturn() {
       rows);
 
   } catch(e) {
+    reportClientError('submitReturn', e, returnSelected.join(','));
     btn.disabled = false; btn.textContent = 'LOG RETURN';
     alertEl.innerHTML = banner('err', '&#9888;', 'Return failed: ' + esc(e.message || 'Unknown error') + '. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RETURN">Email support</a>.');
   }
