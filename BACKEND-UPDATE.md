@@ -291,6 +291,19 @@ technical failure, so this closes that gap two ways:
 Commit the four delivered function files into `netlify/functions/`:
 `start-rental.js`, `rental-webhook.js`, `charge-rental.js`, `billing-sweep.js`.
 
+**⚠️ Required before deploying the 2026-07-14 backend:** also commit
+the updated `onboard-member.js` and `stripe-webhook.js` — these two
+legacy membership functions now send `server_key: process.env.SFD_SERVER_KEY`,
+since the Apps Script `onboard`/`update_stripe` gate is no longer
+optional (see the Security Model section). Deploying the new backend
+without also deploying these two updated functions breaks member
+signup and Stripe activation entirely (every call gets rejected as
+unauthorized). `onboard-member.js` also no longer forwards client-sent
+`active_status`/`vault_access` at all — the Apps Script already ignores
+them, so this just stops the Netlify function from pretending to pass
+through fields it doesn't actually control. No new env var needed,
+`SFD_SERVER_KEY` already exists from the rental functions above.
+
 **Added 2026-07-13:** also commit `update-card.js` (opens the Stripe
 Checkout setup-mode session for a card update — same env vars, nothing
 new to configure) and the updated `rental-webhook.js` (a completed
