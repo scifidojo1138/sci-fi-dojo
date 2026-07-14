@@ -734,24 +734,6 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="section-hdr">CABINET CODE<div class="section-hdr-line"></div></div>
     <div id="codeContent"></div>
 
-    <div class="card d2" id="promoCodeCard">
-      <div class="card-body">
-        <div class="note-toggle" id="noteTogglePromo" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsPromo" onclick="toggleNote('Promo')">
-          <span class="note-toggle-lbl">Have a promo code?</span>
-          <span class="note-chevron" id="noteChevronPromo">+</span>
-        </div>
-        <div class="note-fields" id="noteFieldsPromo">
-          <hr class="note-divider">
-          <div class="field">
-            <input type="text" id="promoCodeInput" placeholder="Enter code" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
-          </div>
-          <div id="promoCodeAlert"></div>
-          <button class="btn-primary" id="promoCodeSubmitBtn" onclick="submitPromoCode()" style="width:100%;margin:0;">APPLY CODE</button>
-        </div>
-      </div>
-    </div>
-    <div id="freeCreditBanner"></div>
-
     <div class="section-hdr" style="margin-top:8px;">ITEM CODE<div class="section-hdr-line"></div></div>
     <div class="section-sub" style="margin:-8px 16px 14px;">Scan or enter the code on the disc case.</div>
     <div class="card d2">
@@ -775,6 +757,25 @@ select option{background:var(--panel2);color:var(--text);}
         <div id="itemConfirmArea"></div>
       </div>
     </div>
+
+    <div id="freeCreditBanner"></div>
+    <div class="card d2" id="promoCodeCard">
+      <div class="card-body">
+        <div class="note-toggle" id="noteTogglePromo" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsPromo" onclick="toggleNote('Promo')">
+          <span class="note-toggle-lbl">Have a promo code?</span>
+          <span class="note-chevron" id="noteChevronPromo">+</span>
+        </div>
+        <div class="note-fields" id="noteFieldsPromo">
+          <hr class="note-divider">
+          <div class="field">
+            <input type="text" id="promoCodeInput" placeholder="Enter code" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false" />
+          </div>
+          <div id="promoCodeAlert"></div>
+          <button class="btn-primary" id="promoCodeSubmitBtn" onclick="submitPromoCode()" style="width:100%;margin:0;">APPLY CODE</button>
+        </div>
+      </div>
+    </div>
+
     <div id="checkoutAlert"></div>
     <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitRent()" disabled>PAY &amp; RENT</button>
     <p class="terms-line" id="rentTermsLine" style="margin-bottom:24px;">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then a $2/day extended rental fee applies until the disc is returned or the maximum charge is reached.</p>
@@ -12524,6 +12525,16 @@ function goRentals() {
 // FIX 5: Visibility gate enforced by backendGetMemberStatus only.
 // FIX 10: Language tightened -- member-only, personal, no sharing.
 // ================================================================
+// Shared by goCode() (full screen reset) and submitPromoCode() (in-place
+// refresh after a successful redemption, which must NOT reset the
+// already-scanned item below it).
+function renderPromoSection() {
+  document.getElementById('promoCodeCard').style.display = member.promo_redeemed ? 'none' : '';
+  document.getElementById('freeCreditBanner').innerHTML = (member.free_rental_credits > 0)
+    ? banner('ok', '&#127881;', '<strong>Your next rental is free!</strong> Pick a disc below — the extended rental fee still applies if you keep it past 7 days.')
+    : '';
+}
+
 function goCode() {
   var st = backendGetMemberStatus(member);
   if (!st.showCode) return;
@@ -12554,14 +12565,11 @@ function goCode() {
   // whole card disappears rather than staying around to invite a
   // rejected retry. Reset the input/alert fresh each time this screen
   // opens, same as the item-entry fields below.
-  document.getElementById('promoCodeCard').style.display = member.promo_redeemed ? 'none' : '';
+  renderPromoSection();
   document.getElementById('promoCodeInput').value = '';
   document.getElementById('promoCodeAlert').innerHTML = '';
   document.getElementById('promoCodeSubmitBtn').disabled = false;
   document.getElementById('promoCodeSubmitBtn').textContent = 'APPLY CODE';
-  document.getElementById('freeCreditBanner').innerHTML = (member.free_rental_credits > 0)
-    ? banner('ok', '&#127881;', '<strong>Your next rental is free!</strong> Pick a disc below — the extended rental fee still applies if you keep it past 7 days.')
-    : '';
 
   // Item entry resets fresh every time this screen opens.
   rentSelection = null;
@@ -12603,10 +12611,22 @@ async function submitPromoCode() {
     var data = await res.json();
     if (!data.ok) throw new Error(data.error || 'That code is not valid.');
     // Pull server truth (promo_redeemed / free_rental_credits) rather
-    // than trusting the response shape, then re-render this screen so
-    // the card disappears and the free-rental banner shows immediately.
+    // than trusting the response shape, then refresh just the promo
+    // card/banner in place -- NOT the full goCode() reset, which would
+    // wipe an item already scanned above (the card now sits below the
+    // item-entry card, so that's a real sequence customers will hit).
     await refreshAfterRent();
-    goCode();
+    renderPromoSection();
+    document.getElementById('promoCodeInput').value = '';
+    alertEl.innerHTML = '';
+    btn.disabled = false;
+    btn.textContent = 'APPLY CODE';
+    // If an item is already entered/confirmed, refresh its price line so
+    // the new free credit shows without touching the entered code.
+    var enteredCode = document.getElementById('checkoutCodeInput').value.trim();
+    if (rentSelection || enteredCode.length >= 8) {
+      lookupItem(enteredCode);
+    }
   } catch(e) {
     reportClientError('submitPromoCode', e, '');
     btn.disabled = false; btn.textContent = 'APPLY CODE';
