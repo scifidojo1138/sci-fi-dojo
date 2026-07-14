@@ -297,6 +297,18 @@ technical failure, so this closes that gap two ways:
   underlying bug hitting different items/customers still counts as one
   alert instead of flooding the cap.
 
+**customer_id generation fixed (added 2026-07-14):** signup ids used to
+come from `'CUS-' + sheet.getLastRow()`, which reused an id the moment
+any row above the bottom got deleted — this happened live in testing
+(two CUS-005 accounts, the second inheriting the first's open rental
+and unable to rent). `nextCustomerId_()` now mints from the max
+existing `CUS-###` suffix across **Customers AND Rentals** (+1, wrapped
+in `LockService` so concurrent signups can't race to the same id).
+Works against whatever's already in the sheet — no need to clear test
+data first. Going forward, prefer marking an account `status: closed`
+over deleting its row, since a deleted row's id can still be referenced
+in Rentals/Transactions history either way.
+
 ## 3. Netlify (onboarding repo)
 
 Commit the four delivered function files into `netlify/functions/`:
@@ -489,7 +501,12 @@ card on a later one.
     the header back afterward. Hit it a second time before 15 minutes
     pass and confirm no second email (shared cooldown with
     `client_error`).
-17. Flip to live keys (and a live-mode webhook) when everything passes.
+17. customer_id generation (added 2026-07-14): sign up a test account,
+    note its id, delete that row from Customers, sign up a second test
+    account, and confirm it does NOT reuse the deleted id (it should
+    continue from the highest id still present, including in Rentals
+    history if any exists).
+18. Flip to live keys (and a live-mode webhook) when everything passes.
 
 ## 7. Terms page
 
