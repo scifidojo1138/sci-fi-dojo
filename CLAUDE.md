@@ -275,6 +275,13 @@ Every app file shows a date-based version in its footer: `v2026.06.10`. **Bump i
 
 ## Working Conventions
 
+### Two-session split (this repo vs. the onboarding repo)
+Two Claude Code sessions work on this project in parallel: this one (scoped to the public `sci-fi-dojo` repo) and a sister session scoped to the private onboarding repo (`scifidojo-onboarding`, Netlify functions + `sfd-staff.html` + `sfd-onboarding.html` + `success.html`). Neither session has git access to the other's repo. The Apps Script backend is a third thing again — not a git repo at all, just pasted into the Apps Script editor — and both sessions can touch it conceptually, so a firm split is needed (decision 2026-07-14):
+- **All Apps Script (`.gs`) changes flow through this session**, regardless of which session first spots the need. This session keeps the canonical working copy (in its scratchpad) and is responsible for testing before handing a deploy-ready file back to the user.
+- **All onboarding-repo changes (Netlify functions, `sfd-staff.html`, etc.) get handed off to the sister session** rather than delivered here for the user to commit directly — that session actually has repo access and can commit/test in place.
+- Since neither session can message the other directly, the user is the courier: paste this session's Apps Script deliverables into the onboarding session when it needs backend context, and paste that session's onboarding-repo work back here when this session needs to reconcile against it (e.g. the 2026-07-14 `checkStaffPin_`/`onboard` hardening, discovered this way and merged in).
+- Consequence already hit once: the two sides drifted (Apps Script gated `onboard`/`update_stripe` on `SERVER_KEY`, but the onboarding-repo functions sent no key at all) because each session built its half without seeing the other's state. Prefer over-sharing context across sessions to re-litigating whether a fix already landed.
+
 ### Dyslexia-friendly code changes
 - All code changes use explicit FIND/REPLACE with file name and context
 - Edits must be surgical — no layout, CSS, or structural changes unless explicitly requested
