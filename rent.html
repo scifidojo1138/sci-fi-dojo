@@ -11561,8 +11561,14 @@ async function loadMember(tok) {
 
 } catch(e) {
     var msg = (e.message || '').toLowerCase();
-    var isAuthError = msg.indexOf('token') !== -1 || msg.indexOf('member') !== -1 ||
-                      msg.indexOf('invalid') !== -1 || msg.indexOf('not found') !== -1 ||
+    // Only the exact phrase the backend throws for a genuinely unmatched
+    // token counts as an auth failure. A bare 'not found' is too broad --
+    // it also matches unrelated server faults like "Tab not found: X" or
+    // "Column not found: X", which would otherwise show the reassuring
+    // "Account Link Invalid" screen for what's actually a backend bug,
+    // exactly backwards from the intent (that screen implies the
+    // customer's own link is bad, not that something broke server-side).
+    var isAuthError = msg.indexOf('token') !== -1 || msg.indexOf('customer not found') !== -1 ||
                       msg.indexOf('expired') !== -1 || msg.indexOf('unauthorized') !== -1;
     if (isAuthError) {
       // Token rejected -- cached data for it must not be reused
