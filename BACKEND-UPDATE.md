@@ -337,6 +337,21 @@ in Rentals/Transactions history either way.
 Commit the four delivered function files into `netlify/functions/`:
 `start-rental.js`, `rental-webhook.js`, `charge-rental.js`, `billing-sweep.js`.
 
+**Added 2026-07-15 (NJ sales tax):** also commit the updated
+`start-rental.js` and `charge-rental.js`. NJ treats a disc rental as a
+taxable lease/rental of tangible personal property, so the standard
+rate now applies to both the base price and the extended-day fee.
+Requires the paired Apps Script backend update (adds a `sales_tax_rate`
+Settings key, defaulting to 6.625 if left blank, and `tax_cents` on
+`rent_start`/`rent_charge_lookup`'s responses) — deploy that first or
+alongside. Deliberately Stripe-side only: tax shows as its own line
+item on the first rental's Checkout Session, and is folded into the
+actual charged amount on both off-session charge sites, but never
+touches the sheet's own "paid" figures or the payoff cap — add a
+`sales_tax_rate` row to Settings if you ever need to change the rate
+(no redeploy needed for that). No new env vars, no Stripe dashboard
+change.
+
 **⚠️ Required before deploying the 2026-07-14 backend:** also commit
 the updated `onboard-member.js` and `stripe-webhook.js` — these two
 legacy membership functions now send `server_key: process.env.SFD_SERVER_KEY`,
