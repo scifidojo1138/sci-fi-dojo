@@ -350,6 +350,19 @@ them, so this just stops the Netlify function from pretending to pass
 through fields it doesn't actually control. No new env var needed,
 `SFD_SERVER_KEY` already exists from the rental functions above.
 
+**Added 2026-07-15 (Stripe email receipts on off-session charges):** also
+commit the updated `start-rental.js` and `charge-rental.js`. Neither
+Stripe nor the app ever emails a receipt for an off-session charge
+(a returning customer's one-tap rental, or a CHARGE & CLOSE / billing-sweep
+extended-fee charge) unless `receipt_email` is explicitly set on the
+`paymentIntents.create()` call — Stripe does not infer it from the
+attached Stripe Customer. Both files now pass it (`start.email` for the
+base-charge branch in `start-rental.js`; `rec.email` for the shared
+`chargeOneRental()` used by both `charge-rental.js` and
+`billing-sweep.js`). Requires the paired Apps Script backend update
+(`rent_charge_lookup` now also returns the customer's `email`) — deploy
+that first or alongside. No new env vars, no Stripe dashboard change.
+
 **Added 2026-07-14 (Promo Codes free rental):** also commit the updated
 `start-rental.js` and `rental-webhook.js`. `start-rental.js` now branches
 on `rent_start`'s new `free_credit` flag: if the customer already has a
