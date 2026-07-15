@@ -287,6 +287,7 @@ Every app file shows a date-based version in its footer: `v2026.06.10`. **Bump i
 ### Deferred
 - Vault visual treatment in Browse (no vault titles in collection yet — real library currently has zero `collection=vault` items)
 - Sort by format in Browse; public inventory browser. (Monthly meetup "Post-Credits Scene" is handled via an Events row, not separate tooling.)
+- **Legacy member webhook is broken, not fixed** (found 2026-07-15): the onboarding repo's `stripe-webhook.js` (legacy membership signups, distinct from `rental-webhook.js`) and `rental-webhook.js` were both apparently configured to read the same Netlify env var, `STRIPE_WEBHOOK_SECRET` — but each is a separate Stripe endpoint with its own unique signing secret, so only one of the two can ever verify correctly at a time. Since this session's testing confirmed `STRIPE_WEBHOOK_SECRET` holds the rental endpoint's secret, the legacy member webhook has likely been silently failing signature verification since the rental system went live. **Not fixed, deliberately**: member.html/the deposit-based membership flow is fully dormant (replaced by pay-per-rental) and would need a rebuild from scratch if ever revived, so patching this webhook in isolation isn't worth it. If membership is ever rebuilt: give `stripe-webhook.js` its own distinct env var (e.g. `STRIPE_MEMBER_WEBHOOK_SECRET`) instead of sharing `STRIPE_WEBHOOK_SECRET` with the rental webhook.
 
 ## Working Conventions
 
