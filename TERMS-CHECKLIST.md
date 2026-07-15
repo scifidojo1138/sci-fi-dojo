@@ -11,11 +11,15 @@ must actually say what the app does.
    From day 8, $2 per day is added until the disc is returned, up to the
    maximum charge below.
 
-2. **Maximum charge.** Total charges for a rental never exceed the disc's
-   listed maximum. Reaching the maximum stops the daily fee but does not
-   end the rental or transfer ownership — every disc is still due back,
-   and an account holding a maxed-out disc may be paused until it is
-   returned. Charges already made are not refunded.
+2. **Maximum charge.** Total charges for a rental — base price plus any
+   daily fees combined — never exceed the disc's listed maximum. Say this
+   explicitly (found during 2026-07-15 testing that "up to a maximum
+   charge of $X" reads to a customer like $X is the daily-fee ceiling
+   alone, on top of the base, which isn't how it's computed — the base
+   already counts against the cap). Reaching the maximum stops the daily
+   fee but does not end the rental or transfer ownership — every disc is
+   still due back, and an account holding a maxed-out disc may be paused
+   until it is returned. Charges already made are not refunded.
 
 3. **Card on file authorization.** By renting, the customer authorizes SFD
    to save their payment method and charge it for the base price at rental,
