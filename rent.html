@@ -132,6 +132,8 @@ body::after{
 .stat-value.vault  {color:var(--vault);}
 .stat-value.dim    {color:var(--text-mid);font-size:15px;}
 .stat-sub{font-size:13px;color:var(--text-dim);margin-top:3px;font-family:'Share Tech Mono',monospace;}
+.stat-card.tappable{cursor:pointer;transition:all .2s;}
+.stat-card.tappable:active{transform:scale(.98);}
 
 /* SECTION HEADERS */
 .section-hdr{
@@ -658,6 +660,11 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <!-- FIX 2: single dedicated containers, cleared on every render -->
     <div id="statusNotifSection"></div>
+    <!-- One tappable card per active rental -- reminds a customer what
+         they have out without digging into Account, and opens the same
+         confirmation receipt shown right after paying. Empty (renders
+         nothing) for an account with no active rentals. -->
+    <div id="currentRentals"></div>
     <div id="statusHints"></div>
     <div id="sectionHdrActions" class="section-hdr" style="display:none;">RENTAL ACTIONS<div class="section-hdr-line"></div></div>
     <div class="action-grid" id="actionGrid"></div>
@@ -12020,6 +12027,7 @@ function renderStatus() {
 
   // FIX 2: clear all mutable containers before writing
   document.getElementById('statusNotifSection').innerHTML = '';
+  document.getElementById('currentRentals').innerHTML     = '';
   document.getElementById('statusHints').innerHTML        = '';
   document.getElementById('actionGrid').innerHTML         = '';
   document.getElementById('sectionHdrActions').style.display = 'none';
@@ -12077,6 +12085,8 @@ function renderStatus() {
       '<div class="section-hdr" style="padding-top:8px;">NOTIFICATIONS<div class="section-hdr-line"></div></div>' + banners;
   }
 
+  renderCurrentRentals();
+
   var hints = '';
   if (st.slotsLeft === 0 && member.active && member.payment_status !== 'failed') {
     hints = '<div class="banner banner-info" style="animation:none;"><span class="banner-icon">&#128161;</span><div>Rental limit reached. Return your current disc to rent another.</div></div>';
@@ -12113,27 +12123,57 @@ function banner(type, icon, html) {
   return '<div class="banner banner-' + type + '"><span class="banner-icon">' + icon + '</span><div>' + html + '</div></div>';
 }
 
-// One card per open rental showing the running cost, so the Redbox-style
-// pricing is never a surprise. Data comes from the backend's accrual math.
+// Dashboard reminder (revived 2026-07-15, was retired-in-place 2026-07-10):
+// one tappable card per ACTIVE rental, so a customer never has to dig into
+// Account to remember what they have out. Scoped to member.rentals only --
+// a return_pending disc already has its own visibility on the Return
+// screen's bin section, so it's deliberately left out of this reminder.
+// Tapping a card opens the same confirmation receipt shown right after
+// paying (showRentalReceipt), so "did I actually rent this?" is always a
+// tap away if the store ever asks. Renders nothing for a new customer
+// with zero active rentals -- no clutter on an empty account.
 function renderCurrentRentals() {
   var el = document.getElementById('currentRentals');
   if (!el) return;
-  var open = member.all_open || [];
+  var open = member.rentals || [];
   if (!open.length) { el.innerHTML = ''; return; }
   el.innerHTML = open.map(function(r) {
-    var pendingTag = r.status === 'return_pending'
-      ? ' <span class="ri-tag ri-tag-pending">IN RETURN BIN</span>' : '';
-    var line2 = r.status === 'return_pending'
-      ? 'Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' will be billed at check-in.' : 'Nothing more owed.')
-      : member.comp
-        ? 'Day ' + esc(r.days_out) + ' &bull; no charge (staff account)'
-        : 'Day ' + esc(r.days_out) + ' &bull; ' + money(r.owed_total) + ' so far &bull; yours to keep at ' + money(r.cap);
-    return '<div class="stat-card" style="grid-column:span 2;margin:0 16px 12px;">' +
-      '<div class="stat-label">CURRENT RENTAL</div>' +
-      '<div style="font-weight:600;font-size:16px;color:var(--text);margin:2px 0 4px;">' + esc(r.title) + pendingTag + '</div>' +
-      '<div class="stat-sub">' + line2 + '</div>' +
+    var line2 = member.comp
+      ? 'Day ' + esc(r.days_out) + ' &bull; no charge (staff account)'
+      : 'Due back ' + dueDateStr(r.start_date) + ' &bull; ' + money(r.owed_total) + ' so far';
+    return '<div class="stat-card tappable" style="grid-column:span 2;margin:0 16px 12px;" role="button" tabindex="0" data-rid="' + esc(r.rental_id) + '" onclick="showRentalReceipt(this.dataset.rid)">' +
+      '<div class="stat-label">DISC OUT</div>' +
+      '<div style="font-weight:600;font-size:16px;color:var(--text);margin:2px 0 4px;">' + esc(r.title) + '</div>' +
+      '<div class="stat-sub">' + line2 + ' &bull; tap for details</div>' +
       '</div>';
   }).join('');
+}
+
+// Reusable rental confirmation/receipt -- the same screen shown right
+// after paying (showSuccess), but reachable any time from the dashboard
+// card above, My Rentals, or rental history, so a customer can always
+// prove to the store they rented (and paid for) a given disc.
+function showRentalReceipt(rentalId) {
+  var all = (member.all_open || []).concat(member.rental_history || []);
+  var r = all.find(function(x) { return String(x.rental_id) === String(rentalId); });
+  if (!r) return;
+  var open = r.status === 'active' || r.status === 'return_pending';
+  var rows = [
+    { k: 'ITEM',   v: r.title + ' (' + r.item_id + ')' },
+    { k: 'RENTED', v: fmtDate(r.start_date) },
+  ];
+  if (open) {
+    rows.push({ k: 'STATUS', v: r.status === 'return_pending' ? 'Logged as returned' : 'Active — Day ' + r.days_out });
+    if (r.status === 'active') rows.push({ k: 'DUE BACK', v: dueDateStr(r.start_date) });
+    rows.push({ k: 'PAID SO FAR', v: member.comp ? 'No charge (staff account)' : money(r.owed_total) });
+    if (!member.comp) rows.push({ k: 'MAXIMUM CHARGE', v: money(r.cap) });
+    if (r.status === 'active') rows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' });
+  } else {
+    rows.push({ k: 'RETURNED', v: fmtDate(r.closed_date) });
+    rows.push({ k: 'TOTAL PAID', v: member.comp ? 'No charge (staff account)' : money(r.total_paid) });
+    if (r.status === 'paid_off') rows.push({ k: 'STATUS', v: 'Kept — maximum charge reached' });
+  }
+  showSuccess('co', 'Rental Confirmation', 'Rental ' + r.rental_id, rows, 'BACK TO MY ACCOUNT', goStatus);
 }
 
 function statCard(label, value, cls, sub) {
@@ -12511,7 +12551,7 @@ function goRentals() {
         : member.comp
           ? '<div class="ri-due due-ok">' + duePrefix + 'Day ' + esc(r.days_out) + ' &middot; no charge (staff account)</div>'
           : '<div class="ri-due due-ok">' + duePrefix + 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; yours to keep at ' + money(r.cap) + '</div>';
-      return '<div class="rental-item">' +
+      return '<div class="rental-item" role="button" tabindex="0" data-rid="' + esc(r.rental_id) + '" onclick="showRentalReceipt(this.dataset.rid)" style="cursor:pointer;">' +
         '<div class="ri-disc">' + (pending ? '&#128236;' : '&#128192;') + '</div>' +
         '<div class="ri-info">' +
           '<div class="ri-title">' + esc(r.title) + '</div>' +
@@ -13225,6 +13265,9 @@ function renderHistory() {
       '<div class="hist-title">' + esc(h.title) + '</div>' +
       '<div class="hist-meta">' + esc(h.format) + ' &middot; Out: ' + fmtDate(h.start_date) + ' &middot; Closed: ' + fmtDate(h.closed_date) + ' &middot; Paid ' + money(h.total_paid) + paidOff + '</div>' +
       '<div class="hist-actions">' +
+        '<button class="hist-action" id="' + rid + '-receipt"' +
+          ' data-rentalid="' + esc(h.rental_id) + '"' +
+          ' onclick="showRentalReceipt(this.dataset.rentalid)">VIEW RECEIPT</button>' +
         '<button class="hist-action" id="' + rid + '-rev"' +
           ' data-rid="' + rid + '" data-type="review" data-itemid="' + esc(h.item_id) + '"' +
           ' onclick="histAction(this)">LEAVE REVIEW</button>' +
