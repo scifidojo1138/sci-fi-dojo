@@ -70,7 +70,7 @@ The membership token rides in the member URL (`?token=`) by QR-card design; `mem
 - `?action=updates&key=&token=` — active updates ("The Weekly Rewind"), newest first (Updates tab)
 - `?action=ping` — uptime check (added 2026-07-14): no key, no sheet reads, instant `{ok:true, ts}` response. Meant for an external monitor (e.g. UptimeRobot) hitting it every minute or so — cheap enough to poll constantly, and it doubles as confirmation the deployment itself (not just Sheets access) is alive.
 - `?action=all_members&pin=` — staff: full member list
-- `?action=active_checkouts&pin=` / `?action=return_bin&pin=` / `?action=catalog_staff&pin=` — staff lists
+- `?action=active_checkouts&pin=` / `?action=return_bin&pin=` / `?action=catalog_staff&pin=` — staff lists. `catalog_staff` takes an optional `&all=true` (added 2026-07-15 for the sister repo's label-printer feature): default behavior is unchanged (in-rotation items only), `all=true` returns every catalog row regardless of `in_rotation` so out-of-rotation items can be pre-labeled too. Every returned item now also carries its own `in_rotation` boolean so the printer UI can tell them apart.
 
 ### POST (JSON body)
 - `checkout` — checks out items, updates catalog status, logs transaction (key)
