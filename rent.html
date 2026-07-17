@@ -619,7 +619,7 @@ select option{background:var(--panel2);color:var(--text);}
         </div>
         <div class="field" style="display:flex;gap:10px;align-items:flex-start;">
           <input type="checkbox" id="suTerms" style="width:20px;height:20px;accent-color:var(--accent);flex-shrink:0;margin-top:1px;" />
-          <label for="suTerms" style="font-size:13px;color:var(--text-mid);line-height:1.5;">I agree to the <a href="https://scifidojo.com/terms" target="_blank" rel="noopener" style="color:var(--accent);">SFD Rental Terms</a>, including daily charges until each disc is returned or the maximum charge is reached.</label>
+          <label for="suTerms" style="font-size:13px;color:var(--text-mid);line-height:1.5;">I agree to the <a href="https://scifidojo.com/terms" target="_blank" rel="noopener" style="color:var(--accent);">SFD Rental Terms</a>, including daily charges plus tax until each disc is returned or the maximum total charge is reached.</label>
         </div>
       </div>
     </div>
@@ -673,7 +673,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.15</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.17</div>
     <div class="spacer"></div>
   </div>
 
@@ -785,7 +785,7 @@ select option{background:var(--panel2);color:var(--text);}
 
     <div id="checkoutAlert"></div>
     <button class="btn-primary d4" id="checkoutSubmitBtn" onclick="submitRent()" disabled>PAY &amp; RENT</button>
-    <p class="terms-line" id="rentTermsLine" style="margin-bottom:24px;">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then a $2/day extended rental fee applies until the disc is returned or the maximum charge is reached.</p>
+    <p class="terms-line" id="rentTermsLine" style="margin-bottom:24px;">By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. The base price covers 7 days, then a $2/day extended rental fee applies until the disc is returned or the maximum total charge (base price included) is reached. NJ sales tax is added to every charge.</p>
 
     <div class="card d2" id="hoursLocCard">
       <div class="card-body">
@@ -858,7 +858,7 @@ select option{background:var(--panel2);color:var(--text);}
     <a class="mgmt-btn mgmt-change" id="accountCardLink" href="javascript:void(0)" role="button" onclick="goUpdateCard(this)" style="display:none;">UPDATE CARD</a>
     <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CONTACT INFO</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">REPORT COMPROMISED ACCOUNT / CLOSE ACCOUNT</a>
-    <p class="mgmt-note">The base price covers your first 7 days, then a $2/day extended rental fee is billed to your saved card until the disc is returned or the maximum charge is reached.</p>
+    <p class="mgmt-note">The base price covers your first 7 days, then a $2/day extended rental fee is billed to your saved card until the disc is returned or the maximum total charge (base price included) is reached. NJ sales tax is added to every charge.</p>
     <div class="spacer"></div>
   </div>
 
@@ -12078,7 +12078,7 @@ function renderStatus() {
   // Getting-started prompt -- only for customers with nothing out, and
   // never while a just-paid rental is still finalizing (contradictory).
   if (member.rentals.length === 0 && member.return_pending.length === 0 && finAge < 0) {
-    banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. You pay only when you rent, starting at $3 for 7 days.');
+    banners += banner('info', '&#128161;', 'Tap Rent a Disc below to get started. You pay only when you rent, starting at $3 plus tax for 7 days.');
   }
   if (banners) {
     document.getElementById('statusNotifSection').innerHTML =
@@ -12140,7 +12140,7 @@ function renderCurrentRentals() {
   el.innerHTML = open.map(function(r) {
     var line2 = member.comp
       ? 'Day ' + esc(r.days_out) + ' &bull; no charge (staff account)'
-      : 'Due back ' + dueDateStr(r.start_date) + ' &bull; ' + money(r.owed_total) + ' so far';
+      : 'Due back ' + dueDateStr(r.start_date) + ' &bull; ' + money(r.owed_total) + ' so far plus tax';
     return '<div class="stat-card tappable" style="grid-column:span 2;margin:0 16px 12px;" role="button" tabindex="0" data-rid="' + esc(r.rental_id) + '" onclick="showRentalReceipt(this.dataset.rid)">' +
       '<div class="stat-label">DISC OUT</div>' +
       '<div style="font-weight:600;font-size:16px;color:var(--text);margin:2px 0 4px;">' + esc(r.title) + '</div>' +
@@ -12165,12 +12165,12 @@ function showRentalReceipt(rentalId) {
   if (open) {
     rows.push({ k: 'STATUS', v: r.status === 'return_pending' ? 'Logged as returned' : 'Active — Day ' + r.days_out });
     if (r.status === 'active') rows.push({ k: 'DUE BACK', v: dueDateStr(r.start_date) });
-    rows.push({ k: 'PAID SO FAR', v: member.comp ? 'No charge (staff account)' : money(r.owed_total) });
-    if (!member.comp) rows.push({ k: 'MAXIMUM CHARGE', v: money(r.cap) });
+    rows.push({ k: 'PAID SO FAR', v: member.comp ? 'No charge (staff account)' : money(r.owed_total) + ' plus tax' });
+    if (!member.comp) rows.push({ k: 'MAXIMUM TOTAL CHARGE', v: money(r.cap) + ' plus tax' });
     if (r.status === 'active') rows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' });
   } else {
     rows.push({ k: 'RETURNED', v: fmtDate(r.closed_date) });
-    rows.push({ k: 'TOTAL PAID', v: member.comp ? 'No charge (staff account)' : money(r.total_paid) });
+    rows.push({ k: 'TOTAL PAID', v: member.comp ? 'No charge (staff account)' : money(r.total_paid) + ' plus tax' });
     if (r.status === 'paid_off') rows.push({ k: 'STATUS', v: 'Kept — maximum charge reached' });
   }
   showSuccess('co', 'Rental Confirmation', 'Rental ' + r.rental_id, rows, 'BACK TO MY ACCOUNT', goStatus);
@@ -12259,10 +12259,10 @@ function lookupItem(code) {
     ? '<strong>Staff account</strong>: no charge. The rental is still logged.'
     : freeCredit
       ? '<strong>Free!</strong> Your promo credit covers this rental for 7 days, then a ' + dayRateHtml +
-        '/day extended rental fee applies if you keep it, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
+        '/day extended rental fee plus tax applies if you keep it, up to at most ' + money(item.cap_cents || 1000) + ' plus tax in total.' +
         (member.has_card ? ' Your saved card is on file for any extended fee.' : ' You will enter a card on the next screen — not charged now.')
-      : promoPriceHtml(baseCents, baseWasCents) + ' covers your first 7 days, then a ' + dayRateHtml +
-        '/day extended rental fee applies, up to a maximum charge of ' + money(item.cap_cents || 1000) + '.' +
+      : promoPriceHtml(baseCents, baseWasCents) + ' plus tax covers your first 7 days, then a ' + dayRateHtml +
+        '/day extended rental fee applies. The most you will pay in total, base price and fees combined, is ' + money(item.cap_cents || 1000) + ' plus tax.' +
         (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
 
   area.innerHTML = itemConfirmCard('ok', priceLine, item);
@@ -12340,8 +12340,8 @@ async function submitRent() {
       wasFree     ? 'Your promo credit covered this one. Grab your disc from the cabinet.' :
                     'Paid and ready. Grab your disc from the cabinet.',
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
-        { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' (covers 7 days)' },
-        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee until returned, up to the maximum charge' },
+        { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' plus tax (covers 7 days)' },
+        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee plus tax until returned, up to the maximum total charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
   } catch(e) {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
@@ -12444,8 +12444,8 @@ function renderReturnList() {
     var dueStr = dueDateStr(r.start_date);
     var costLine = (dueStr ? 'Due back ' + dueStr + ' &middot; ' : '') + (member.comp
       ? 'Day ' + esc(r.days_out) + ' &middot; no charge (staff account)'
-      : 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far' +
-        (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' billed at check-in' : ' &middot; fully covered'));
+      : 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far plus tax' +
+        (r.owed_now > 0 ? ' &middot; ' + money(r.owed_now) + ' plus tax billed at check-in' : ' &middot; fully covered'));
     var lockLine = locked
       ? '<div class="ri-due" style="color:var(--warning);">Just rented &middot; returns unlock in ~' + returnUnlockMinutes(r) + ' min</div>'
       : '';
@@ -12506,7 +12506,7 @@ async function submitReturn() {
     var rows = [{ k: 'NAME', v: member.display_name }];
     items.forEach(function(it, i2) {
       rows.push({ k: 'DISC ' + (i2 + 1), v: it.title + ' (' + it.item_id + ')' });
-      rows.push({ k: 'BALANCE', v: member.comp ? 'No charge (staff account)' : (it.owed_now > 0 ? money(it.owed_now) + ' billed at check-in' : 'Fully covered') });
+      rows.push({ k: 'BALANCE', v: member.comp ? 'No charge (staff account)' : (it.owed_now > 0 ? money(it.owed_now) + ' plus tax billed at check-in' : 'Fully covered') });
     });
     rows.push({ k: 'STATUS', v: 'Charges stopped. Place the disc in the Return Bin.' });
 
@@ -12547,10 +12547,10 @@ function goRentals() {
       var dueStr = !pending ? dueDateStr(r.start_date) : ''; // bin items are already back
       var duePrefix = dueStr ? 'Due back ' + dueStr + ' &middot; ' : '';
       var costBlock = pending
-        ? '<div class="ri-due" style="color:var(--text-dim);">Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' billed at check-in.' : 'Nothing more owed.') + '</div>'
+        ? '<div class="ri-due" style="color:var(--text-dim);">Charges stopped. ' + (r.owed_now > 0 ? money(r.owed_now) + ' plus tax billed at check-in.' : 'Nothing more owed.') + '</div>'
         : member.comp
           ? '<div class="ri-due due-ok">' + duePrefix + 'Day ' + esc(r.days_out) + ' &middot; no charge (staff account)</div>'
-          : '<div class="ri-due due-ok">' + duePrefix + 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far &middot; yours to keep at ' + money(r.cap) + '</div>';
+          : '<div class="ri-due due-ok">' + duePrefix + 'Day ' + esc(r.days_out) + ' &middot; ' + money(r.owed_total) + ' so far plus tax &middot; yours to keep at ' + money(r.cap) + '</div>';
       return '<div class="rental-item" role="button" tabindex="0" data-rid="' + esc(r.rental_id) + '" onclick="showRentalReceipt(this.dataset.rid)" style="cursor:pointer;">' +
         '<div class="ri-disc">' + (pending ? '&#128236;' : '&#128192;') + '</div>' +
         '<div class="ri-info">' +
@@ -12577,7 +12577,7 @@ function goRentals() {
 function renderPromoSection() {
   document.getElementById('promoCodeCard').style.display = member.promo_redeemed ? 'none' : '';
   document.getElementById('freeCreditBanner').innerHTML = (member.free_rental_credits > 0)
-    ? banner('ok', '&#127881;', '<strong>Your next rental is free!</strong> Pick a disc below — the extended rental fee still applies if you keep it past 7 days.')
+    ? banner('ok', '&#127881;', '<strong>Your next rental is free!</strong> Pick a disc below. The extended rental fee still applies if you keep it past 7 days.')
     : '';
 }
 
@@ -12626,7 +12626,7 @@ function goCode() {
   // markup; only the hardcoded rate needs refreshing per member)
   document.getElementById('rentTermsLine').innerHTML =
     'By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. ' +
-    'The base price covers 7 days, then a ' + dayRateStr() + '/day extended rental fee applies until the disc is returned or the maximum charge is reached.';
+    'The base price covers 7 days, then a ' + dayRateStr() + '/day extended rental fee applies until the disc is returned or the maximum total charge (base price included) is reached. NJ sales tax is added to every charge.';
   document.getElementById('checkoutSubmitBtn').disabled = true;
   document.getElementById('checkoutSubmitBtn').textContent = 'PAY & RENT';
 
@@ -13060,12 +13060,12 @@ function browseDetailHtml(it) {
     var dayRateHtml = dayRatePromoActive()
       ? '<s style="opacity:.6;">' + money(standardDayRateCents()) + '</s> ' + dayRateStr()
       : dayRateStr();
-    facts.push(promoPriceHtml(baseCents, baseWasCents) + ' &middot; first 7 days, then ' + dayRateHtml + '/day extended rental fee');
+    facts.push(promoPriceHtml(baseCents, baseWasCents) + ' &middot; first 7 days, then ' + dayRateHtml + '/day extended rental fee, plus tax');
   }
   // Same hide-if-absent rule as the price line above -- an older deploy
   // without cap_cents in the catalog payload should never show a guess.
   if (Object.prototype.hasOwnProperty.call(it, 'cap_cents') && it.cap_cents > 0) {
-    facts.push('Maximum charge ' + money(it.cap_cents));
+    facts.push('Maximum total charge ' + money(it.cap_cents) + ' plus tax, base price included');
   }
   if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(it.subcategory));
   if (it.group_name) facts.push(esc(it.group_name));
