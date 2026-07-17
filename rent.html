@@ -865,6 +865,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="suc-title" id="sucTitle"></div>
       <div class="suc-sub"   id="sucSub"></div>
       <div class="receipt"   id="sucReceipt"></div>
+      <div id="sucReportLink" style="margin-bottom:14px;"></div>
       <button class="btn-primary" id="sucBtn" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
     </div>
   </div>
@@ -11996,6 +11997,25 @@ function showRentalReceipt(rentalId) {
     if (r.status === 'paid_off') rows.push({ k: 'STATUS', v: 'Kept — maximum charge reached' });
   }
   showSuccess('co', 'Rental Confirmation', 'Rental ' + r.rental_id, rows, 'BACK TO MY ACCOUNT', goStatus);
+
+  // Report an issue: only while the rental is still open (disc won't
+  // play, missing from the case, etc.) -- a closed rental already has
+  // its own FLAG ISSUE path in history, a backend-logged note rather
+  // than an email, since that one's for after-the-fact feedback rather
+  // than something needing a real reply right now.
+  var reportEl = document.getElementById('sucReportLink');
+  if (open) {
+    var subject = 'SFD Rental Issue - ' + r.item_id;
+    var body = 'Hi,\n\nI am having an issue with a rental.\n\n' +
+      'Item: ' + r.title + ' (' + r.item_id + ')\n' +
+      'Account: ' + member.customer_id + '\n\n' +
+      'Issue: [Tell us what is wrong -- e.g. disc will not play, disc missing from the case, disc cracked or damaged, wrong disc in the case]\n\n' +
+      'Thank you';
+    reportEl.innerHTML = '<a class="feed-btn" style="width:100%;justify-content:center;" href="mailto:scifidojo@aol.com?subject=' +
+      encodeURIComponent(subject) + '&body=' + encodeURIComponent(body) + '">REPORT AN ISSUE</a>';
+  } else {
+    reportEl.innerHTML = '';
+  }
 }
 
 function acctRow(lbl, val, sub, cls) {
@@ -12565,6 +12585,10 @@ function showSuccess(type, title, sub, rows, btnLabel, btnAction) {
     // r.v can contain member names, item titles, and user-typed notes
     return '<div class="r-row"><span class="r-key">' + esc(r.k) + '</span><span class="r-val">' + esc(r.v) + '</span></div>';
   }).join('');
+  // Only showRentalReceipt() populates this (open rentals only) -- clear
+  // it here so the post-payment/return-logged screens never inherit a
+  // stale report-issue link from a previous receipt view.
+  document.getElementById('sucReportLink').innerHTML = '';
   var btn = document.getElementById('sucBtn');
   btn.textContent = btnLabel || 'BACK TO MY ACCOUNT';
   btn.onclick = btnAction || goStatus;
