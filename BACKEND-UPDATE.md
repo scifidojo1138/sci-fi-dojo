@@ -414,8 +414,8 @@ Then in Netlify → Site settings → Environment variables, add:
 
 | Variable | Value |
 |---|---|
-| `SFD_API_KEY` | `27268cf583e78fcdb9e5eb2d5bada419` (same as the page key) |
-| `SFD_SERVER_KEY` | `28dcc9be93758719d3a5dd74b5e2d7ac` (matches SERVER_KEY in the Apps Script) |
+| `SFD_API_KEY` | the `API_KEY` constant from the Apps Script (same as the page key; visible in page source by design) |
+| `SFD_SERVER_KEY` | the `SERVER_KEY` constant from the Apps Script — server-to-server secret, must NEVER be committed to this (public) repo or appear in any page source |
 | `SFD_RENT_URL` | `https://scifidojo.com/rent` |
 | `STRIPE_WEBHOOK_SECRET` | from step 4 below |
 
