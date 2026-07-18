@@ -866,6 +866,9 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="suc-sub"   id="sucSub"></div>
       <div class="receipt"   id="sucReceipt"></div>
       <div id="sucReportLink" style="margin-bottom:14px;"></div>
+      <div class="card d2" id="sucReviewCard" style="display:none;margin-bottom:14px;">
+        <div class="card-body" id="sucReviewSection"></div>
+      </div>
       <button class="btn-primary" id="sucBtn" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
     </div>
   </div>
@@ -12016,6 +12019,56 @@ function showRentalReceipt(rentalId) {
   } else {
     reportEl.innerHTML = '';
   }
+
+  // Leave a Review: same scope as REPORT AN ISSUE (open rentals only,
+  // right on the receipt view). Unlike history's existing LEAVE REVIEW
+  // button (histAction -- a single tap, no text ever collected), this
+  // one actually captures what the customer types and posts it as the
+  // review's title_text -- same member_request/'review' action and
+  // Requests-tab destination, just with real content this time.
+  var reviewCard = document.getElementById('sucReviewCard');
+  if (open) {
+    reviewCard.style.display = '';
+    document.getElementById('sucReviewSection').innerHTML =
+      '<div class="note-toggle" id="noteToggleReview" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsReview" onclick="toggleNote(\'Review\')">' +
+        '<span class="note-toggle-lbl">Leave a Review</span>' +
+        '<span class="note-chevron" id="noteChevronReview">+</span>' +
+      '</div>' +
+      '<div class="note-fields" id="noteFieldsReview">' +
+        '<hr class="note-divider">' +
+        '<div class="field">' +
+          '<textarea id="reviewText" rows="3" placeholder="What did you think of ' + esc(r.title) + '?" style="width:100%;resize:vertical;font-family:inherit;"></textarea>' +
+        '</div>' +
+        '<div id="reviewAlert"></div>' +
+        '<button class="btn-primary" id="reviewSubmitBtn" onclick="submitReceiptReview(\'' + esc(r.item_id) + '\')" style="width:100%;margin:0;">SUBMIT REVIEW</button>' +
+      '</div>';
+  } else {
+    reviewCard.style.display = 'none';
+    document.getElementById('sucReviewSection').innerHTML = '';
+  }
+}
+
+async function submitReceiptReview(itemId) {
+  var textEl  = document.getElementById('reviewText');
+  var alertEl = document.getElementById('reviewAlert');
+  var btn     = document.getElementById('reviewSubmitBtn');
+  var text    = textEl.value.trim();
+  if (!text) {
+    alertEl.innerHTML = banner('warn', '&#9888;', 'Enter a review first.');
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'SENDING...';
+  alertEl.innerHTML = '';
+  try {
+    await postMemberRequest('review', itemId, text);
+    document.getElementById('noteFieldsReview').innerHTML =
+      '<hr class="note-divider">' +
+      '<div style="padding:10px 0;color:var(--success);font-family:\'Share Tech Mono\',monospace;font-size:13px;">Thanks for the review!</div>';
+  } catch(e) {
+    reportClientError('submitReceiptReview', e, itemId);
+    btn.disabled = false; btn.textContent = 'SUBMIT REVIEW';
+    alertEl.innerHTML = banner('err', '&#9888;', 'Could not send that. ' + esc(e.message || 'Please try again.'));
+  }
 }
 
 function acctRow(lbl, val, sub, cls) {
@@ -12585,10 +12638,12 @@ function showSuccess(type, title, sub, rows, btnLabel, btnAction) {
     // r.v can contain member names, item titles, and user-typed notes
     return '<div class="r-row"><span class="r-key">' + esc(r.k) + '</span><span class="r-val">' + esc(r.v) + '</span></div>';
   }).join('');
-  // Only showRentalReceipt() populates this (open rentals only) -- clear
-  // it here so the post-payment/return-logged screens never inherit a
-  // stale report-issue link from a previous receipt view.
+  // Only showRentalReceipt() populates these (open rentals only) -- clear
+  // them here so the post-payment/return-logged screens never inherit a
+  // stale report-issue link or review card from a previous receipt view.
   document.getElementById('sucReportLink').innerHTML = '';
+  document.getElementById('sucReviewCard').style.display = 'none';
+  document.getElementById('sucReviewSection').innerHTML = '';
   var btn = document.getElementById('sucBtn');
   btn.textContent = btnLabel || 'BACK TO MY ACCOUNT';
   btn.onclick = btnAction || goStatus;
