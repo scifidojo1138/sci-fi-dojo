@@ -269,6 +269,7 @@ select option{background:var(--panel2);color:var(--text);}
 .browse-cover{width:76px;height:auto;border-radius:6px;border:1px solid var(--border2);flex-shrink:0;display:block;}
 .browse-facts{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px;padding-top:2px;}
 .browse-fact{font-family:'Share Tech Mono',monospace;font-size:11.5px;color:var(--text-mid);letter-spacing:.03em;line-height:1.5;}
+.browse-synopsis{font-size:13.5px;line-height:1.6;color:var(--text);margin-bottom:2px;}
 .browse-fact strong{color:var(--text);font-size:13px;}
 
 /* RETURN SELECTABLE */
@@ -12940,6 +12941,13 @@ function coverFail(img) {
 // exist until the row is expanded, so browsing never preloads covers) plus
 // rental facts from the catalog payload.
 function browseDetailHtml(it) {
+  // Staff-curated, blank by default -- hide-if-absent, same rule as every
+  // other optional catalog field below. Doubles as the only place a
+  // customer's Leave a Review text can ever surface here: staff copy one
+  // into this same Catalog cell by hand if they want to feature it (the
+  // submission itself still lands privately in Requests either way).
+  var synopsisHtml = it.synopsis ? '<div class="browse-synopsis">' + esc(it.synopsis).replace(/\n/g, '<br>') + '</div>' : '';
+
   var facts = [];
   // Price line only when the backend sends rental_price (older deploys
   // don't) -- hiding it beats guessing at a number that could be wrong.
@@ -12971,6 +12979,7 @@ function browseDetailHtml(it) {
   return '<div class="browse-detail" id="bdetail-' + esc(it.item_id) + '">' +
     cover +
     '<div class="browse-facts">' +
+      synopsisHtml +
       facts.map(function(f) { return '<div class="browse-fact">' + f + '</div>'; }).join('') +
     '</div>' +
   '</div>';
