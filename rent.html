@@ -866,9 +866,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="suc-sub"   id="sucSub"></div>
       <div class="receipt"   id="sucReceipt"></div>
       <div id="sucReportLink" style="margin-bottom:14px;"></div>
-      <div class="card d2" id="sucReviewCard" style="display:none;margin-bottom:14px;">
-        <div class="card-body" id="sucReviewSection"></div>
-      </div>
+      <div id="sucReviewCard" style="display:none;margin-bottom:14px;"></div>
       <button class="btn-primary" id="sucBtn" style="display:block;width:100%;margin:0;" onclick="goStatus()">BACK TO MY ACCOUNT</button>
     </div>
   </div>
@@ -12029,10 +12027,15 @@ function showRentalReceipt(rentalId) {
   var reviewCard = document.getElementById('sucReviewCard');
   if (open) {
     reviewCard.style.display = '';
-    document.getElementById('sucReviewSection').innerHTML =
-      '<div class="note-toggle" id="noteToggleReview" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsReview" onclick="toggleNote(\'Review\')">' +
-        '<span class="note-toggle-lbl">Leave a Review</span>' +
-        '<span class="note-chevron" id="noteChevronReview">+</span>' +
+    // Styled as a feed-btn, same as REPORT AN ISSUE above -- same width,
+    // height, and look while collapsed, so the two read as a matched
+    // pair. The chevron (rotates via toggleNote(), same as every other
+    // collapsible card) is the only thing marking this one as expandable
+    // rather than a direct action.
+    reviewCard.innerHTML =
+      '<div class="feed-btn" id="noteToggleReview" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsReview" onclick="toggleNote(\'Review\')" style="width:100%;justify-content:center;">' +
+        '<span>LEAVE A REVIEW</span>' +
+        '<span class="note-chevron" id="noteChevronReview" style="font-size:14px;">+</span>' +
       '</div>' +
       '<div class="note-fields" id="noteFieldsReview">' +
         '<hr class="note-divider">' +
@@ -12044,7 +12047,7 @@ function showRentalReceipt(rentalId) {
       '</div>';
   } else {
     reviewCard.style.display = 'none';
-    document.getElementById('sucReviewSection').innerHTML = '';
+    reviewCard.innerHTML = '';
   }
 }
 
@@ -12643,7 +12646,7 @@ function showSuccess(type, title, sub, rows, btnLabel, btnAction) {
   // stale report-issue link or review card from a previous receipt view.
   document.getElementById('sucReportLink').innerHTML = '';
   document.getElementById('sucReviewCard').style.display = 'none';
-  document.getElementById('sucReviewSection').innerHTML = '';
+  document.getElementById('sucReviewCard').innerHTML = '';
   var btn = document.getElementById('sucBtn');
   btn.textContent = btnLabel || 'BACK TO MY ACCOUNT';
   btn.onclick = btnAction || goStatus;
