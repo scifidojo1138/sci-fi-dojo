@@ -13165,7 +13165,8 @@ function renderHistory() {
     var paidOff   = h.status === 'paid_off' ? ' &middot; KEPT - MAX CHARGE REACHED' : '';
     return '<div class="hist-item">' +
       '<div class="hist-title">' + esc(h.title) + '</div>' +
-      '<div class="hist-meta">' + esc(h.format) + ' &middot; Out: ' + fmtDate(h.start_date) + ' &middot; Closed: ' + fmtDate(h.closed_date) + ' &middot; Paid ' + money(h.total_paid) + paidOff + '</div>' +
+      '<div class="hist-meta">' + esc(h.format) + ' &middot; Out: ' + fmtDate(h.start_date) + ' &middot; Closed: ' + fmtDate(h.closed_date) + ' &middot; ' +
+        (member.comp ? 'No charge (staff account)' : 'Paid ' + money(h.total_paid) + ' plus tax') + paidOff + '</div>' +
       '<div class="hist-actions">' +
         '<button class="hist-action" id="' + rid + '-receipt"' +
           ' data-rentalid="' + esc(h.rental_id) + '"' +
