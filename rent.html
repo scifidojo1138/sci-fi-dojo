@@ -670,7 +670,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.17</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.19</div>
     <div class="spacer"></div>
   </div>
 
@@ -11362,7 +11362,7 @@ async function submitSignup() {
         'Bookmark this page or add it to your home screen. It is your personal account link for every visit.' + linkNote,
         [ { k: 'NAME', v: name },
           { k: 'ACCOUNT ID', v: data.customer_id },
-          { k: 'CABINET CODE', v: data.cabinet_code || 'See Access Cabinet' },
+          { k: 'CABINET CODE', v: data.cabinet_code || 'See the Rent screen' },
           { k: 'NEXT', v: 'Tap below to rent your first disc' } ],
         'CHECK OUT A RENTAL', goFirstRental);
     }
@@ -11990,9 +11990,12 @@ function showRentalReceipt(rentalId) {
   if (open) {
     rows.push({ k: 'STATUS', v: r.status === 'return_pending' ? 'Logged as returned' : 'Active — Day ' + r.days_out });
     if (r.status === 'active') rows.push({ k: 'DUE BACK', v: dueDateStr(r.start_date) });
-    rows.push({ k: 'PAID SO FAR', v: member.comp ? 'No charge (staff account)' : money(r.owed_total) + ' plus tax' });
+    // r.paid = actually charged so far; r.owed_total (accrued) can run
+    // ahead of it between sweeps -- and this screen's whole job is proof
+    // of payment, so it must show the charged figure, never the accrual.
+    rows.push({ k: 'PAID SO FAR', v: member.comp ? 'No charge (staff account)' : money(r.paid) + ' plus tax' });
     if (!member.comp) rows.push({ k: 'MAXIMUM TOTAL CHARGE', v: money(r.cap) + ' plus tax' });
-    if (r.status === 'active') rows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' });
+    if (r.status === 'active') rows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' });
   } else {
     rows.push({ k: 'RETURNED', v: fmtDate(r.closed_date) });
     rows.push({ k: 'TOTAL PAID', v: member.comp ? 'No charge (staff account)' : money(r.total_paid) + ' plus tax' });
@@ -12019,37 +12022,37 @@ function showRentalReceipt(rentalId) {
     reportEl.innerHTML = '';
   }
 
-  // Leave a Review: same scope as REPORT AN ISSUE (open rentals only,
-  // right on the receipt view). Unlike history's existing LEAVE REVIEW
-  // button (histAction -- a single tap, no text ever collected), this
-  // one actually captures what the customer types and posts it as the
-  // review's title_text -- same member_request/'review' action and
-  // Requests-tab destination, just with real content this time.
+  // Leave a Review, right on the receipt view. This is the ONE review mechanism (the
+  // old one-tap LEAVE REVIEW in history, which posted a review row with
+  // no text at all, was removed 2026-07-19 in its favor): captures what
+  // the customer types and posts it as the review's title_text -- same
+  // member_request/'review' action and Requests-tab destination. Shown
+  // for every rental in the receipt view, open or closed -- a finished
+  // rental is when most people actually want to review.
   var reviewCard = document.getElementById('sucReviewCard');
-  if (open) {
-    reviewCard.style.display = '';
-    // Styled as a feed-btn, same as REPORT AN ISSUE above -- same width,
-    // height, and look while collapsed, so the two read as a matched
-    // pair. The chevron (rotates via toggleNote(), same as every other
-    // collapsible card) is the only thing marking this one as expandable
-    // rather than a direct action.
-    reviewCard.innerHTML =
-      '<div class="feed-btn" id="noteToggleReview" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsReview" onclick="toggleNote(\'Review\')" style="width:100%;justify-content:center;">' +
-        '<span>LEAVE A REVIEW</span>' +
-        '<span class="note-chevron" id="noteChevronReview" style="font-size:14px;">+</span>' +
+  reviewCard.style.display = '';
+  // Styled as a feed-btn, same as REPORT AN ISSUE above -- same width,
+  // height, and look while collapsed, so the two read as a matched
+  // pair. The chevron (rotates via toggleNote(), same as every other
+  // collapsible card) is the only thing marking this one as expandable
+  // rather than a direct action.
+  reviewCard.innerHTML =
+    '<div class="feed-btn" id="noteToggleReview" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsReview" onclick="toggleNote(\'Review\')" style="width:100%;justify-content:center;">' +
+      '<span>LEAVE A REVIEW</span>' +
+      '<span class="note-chevron" id="noteChevronReview" style="font-size:14px;">+</span>' +
+    '</div>' +
+    '<div class="note-fields" id="noteFieldsReview">' +
+      '<hr class="note-divider">' +
+      '<div class="field">' +
+        '<textarea id="reviewText" rows="3" placeholder="What did you think of ' + esc(r.title) + '?" style="width:100%;resize:vertical;font-family:inherit;"></textarea>' +
       '</div>' +
-      '<div class="note-fields" id="noteFieldsReview">' +
-        '<hr class="note-divider">' +
-        '<div class="field">' +
-          '<textarea id="reviewText" rows="3" placeholder="What did you think of ' + esc(r.title) + '?" style="width:100%;resize:vertical;font-family:inherit;"></textarea>' +
-        '</div>' +
-        '<div id="reviewAlert"></div>' +
-        '<button class="btn-primary" id="reviewSubmitBtn" onclick="submitReceiptReview(\'' + esc(r.item_id) + '\')" style="width:100%;margin:0;">SUBMIT REVIEW</button>' +
-      '</div>';
-  } else {
-    reviewCard.style.display = 'none';
-    reviewCard.innerHTML = '';
-  }
+      '<div id="reviewAlert"></div>' +
+      // data-itemid + dataset rather than interpolating the id into the
+      // onclick JS string (per the client-security convention: esc()
+      // covers HTML context, but &#39; decodes back to a quote before
+      // the attribute is parsed as JavaScript).
+      '<button class="btn-primary" id="reviewSubmitBtn" data-itemid="' + esc(r.item_id) + '" onclick="submitReceiptReview(this.dataset.itemid)" style="width:100%;margin:0;">SUBMIT REVIEW</button>' +
+    '</div>';
 }
 
 async function submitReceiptReview(itemId) {
@@ -12234,7 +12237,7 @@ async function submitRent() {
       [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
         { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' plus tax (covers 7 days)' },
         { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee plus tax until returned, up to the maximum total charge' },
-        { k: 'CABINET CODE', v: member.cabinet_code || 'See Access Cabinet' } ]);
+        { k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' } ]);
   } catch(e) {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
     btn.disabled = false;
@@ -13167,9 +13170,6 @@ function renderHistory() {
         '<button class="hist-action" id="' + rid + '-receipt"' +
           ' data-rentalid="' + esc(h.rental_id) + '"' +
           ' onclick="showRentalReceipt(this.dataset.rentalid)">VIEW RECEIPT</button>' +
-        '<button class="hist-action" id="' + rid + '-rev"' +
-          ' data-rid="' + rid + '" data-type="review" data-itemid="' + esc(h.item_id) + '"' +
-          ' onclick="histAction(this)">LEAVE REVIEW</button>' +
         '<button class="hist-action" id="' + rid + '-flag"' +
           ' data-rid="' + rid + '" data-type="flag" data-itemid="' + esc(h.item_id) + '"' +
           ' onclick="histAction(this)">FLAG ISSUE</button>' +
@@ -13178,15 +13178,16 @@ function renderHistory() {
   }).join('');
 }
 
+// Flag-only since 2026-07-19: reviews go through the receipt view's
+// textarea (VIEW RECEIPT -> LEAVE A REVIEW), which actually collects
+// text -- the old one-tap review here posted empty review rows.
 async function histAction(btn) {
   if (!btn || btn.classList.contains('done') || btn.disabled) return;
-  var type   = btn.getAttribute('data-type');
   var itemId = btn.getAttribute('data-itemid');
-  var isReview = type === 'review';
   btn.disabled = true; btn.textContent = 'SENDING...';
   try {
-    await postMemberRequest(isReview ? 'review' : 'flag', itemId);
-    btn.textContent = isReview ? 'THANKS!' : 'FLAGGED';
+    await postMemberRequest('flag', itemId);
+    btn.textContent = 'FLAGGED';
     btn.classList.add('done');
   } catch(e) {
     console.warn('History action failed:', e.message);
