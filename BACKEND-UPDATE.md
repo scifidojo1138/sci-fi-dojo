@@ -193,6 +193,27 @@ and no ability to rent. This is deliberate for a single trusted location —
 see `CLAUDE.md`'s "Blacklist and cabinet code timing" section for the
 tradeoff before turning this on somewhere with different foot traffic.
 
+### Rental reminder emails (added 2026-07-20)
+
+Three one-time steps after pasting the 2026-07-20 backend:
+
+1. **Sheet:** add a `reminders_sent` column to the Rentals tab (any
+   position -- everything reads by header name). Tracks which reminder
+   stages each rental has received (`due_soon,due_today,fee_started`).
+2. **Trigger:** in the Apps Script editor, pick `setupReminderTrigger`
+   in the toolbar dropdown and click Run once. Approve the permission
+   prompt. It creates a daily ~9am run of `sendRentalReminders` (the
+   hour follows the SCRIPT timezone -- File > Project settings should
+   say America/New_York).
+3. **Optional pause switch:** a Settings row `reminder_emails` with
+   value `off` stops all reminder sends without touching the trigger.
+
+Reminders email every active rental at day 5 (due in 2 days), day 7
+(due today), and day 8 (extended fee now applies -- the advertised
+boundary; the quiet grace day means accrual still starts day 9, so a
+day-8 return costs nothing). Comp accounts are skipped. Mail rides the
+existing SFD Mailer relay, so no new mail setup is needed.
+
 ## 2. Apps Script
 
 Paste the delivered backend file over the current code, then deploy a **new
