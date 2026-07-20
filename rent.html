@@ -490,6 +490,17 @@ select option{background:var(--panel2);color:var(--text);}
 .code-display.vault .code-value{color:var(--vault);text-shadow:0 0 24px rgba(192,132,252,.5);}
 .code-expires{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
 
+/* FIRST-VISIT WALKTHROUGH -- one-time onboarding card shown above the
+   cabinet code, added 2026-07-20. Gone for good once dismissed, or the
+   moment the account has ever had a rental (see shouldShowWalkthrough_). */
+.walkthrough-card{background:var(--panel2);border:1px solid rgba(0,255,157,.25);border-radius:var(--r);padding:16px 18px;margin:0 16px 14px;animation:fadeUp .3s ease both;}
+.wt-hdr{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--success);margin-bottom:12px;}
+.wt-step{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start;}
+.wt-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:rgba(0,255,157,.15);color:var(--success);font-family:'Share Tech Mono',monospace;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.wt-txt{font-size:13px;color:var(--text-mid);line-height:1.5;padding-top:2px;}
+.wt-dismiss{display:block;width:100%;padding:10px;background:transparent;border:1px solid var(--border2);border-radius:var(--r-sm);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--text-dim);cursor:pointer;}
+.wt-dismiss:active{color:var(--text);border-color:var(--accent);}
+
 /* CAMERA */
 .cam-overlay{position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
 .cam-overlay.hidden{display:none;}
@@ -750,6 +761,8 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="section-title">Rent a Disc</div>
       <div class="section-sub">Your cabinet code and disc entry, together.</div>
     </div>
+
+    <div id="walkthroughCard"></div>
 
     <div class="section-hdr">CABINET CODE<div class="section-hdr-line"></div></div>
     <div id="codeContent"></div>
@@ -12217,7 +12230,16 @@ function lookupItem(code) {
   rentSelection = { item_id: item.item_id, title: item.title, base_cents: baseCents };
   var btn = document.getElementById('checkoutSubmitBtn');
   btn.disabled = false;
-  btn.textContent = member.comp ? 'RENT (NO CHARGE)' : freeCredit ? 'CONFIRM FREE RENTAL' : 'PAY ' + money(baseCents) + ' & RENT';
+  btn.textContent = rentButtonLabel(baseCents, freeCredit);
+}
+
+// No card on file yet means this tap redirects to Stripe Checkout --
+// naming Stripe on the button itself (added 2026-07-20) so that hop
+// isn't a surprise, the way it can be for a first-time customer.
+function rentButtonLabel(baseCents, isFree) {
+  if (member.comp) return 'RENT (NO CHARGE)';
+  if (isFree) return member.has_card ? 'CONFIRM FREE RENTAL' : 'CONFIRM FREE RENTAL VIA STRIPE';
+  return member.has_card ? 'PAY ' + money(baseCents) + ' & RENT' : 'PAY ' + money(baseCents) + ' VIA STRIPE';
 }
 
 function itemConfirmCard(status, msg, item) {
@@ -12258,7 +12280,7 @@ async function submitRent() {
   var wasFree = !member.comp && rentSelection.base_cents === 0;
   var btn = document.getElementById('checkoutSubmitBtn');
   btn.disabled = true;
-  btn.textContent = member.comp ? 'LOGGING RENTAL...' : wasFree ? (member.has_card ? 'CONFIRMING...' : 'OPENING CHECKOUT...') : (member.has_card ? 'CHARGING CARD...' : 'OPENING CHECKOUT...');
+  btn.textContent = member.comp ? 'LOGGING RENTAL...' : wasFree ? (member.has_card ? 'CONFIRMING...' : 'OPENING STRIPE CHECKOUT...') : (member.has_card ? 'CHARGING CARD...' : 'OPENING STRIPE CHECKOUT...');
 
   try {
     // The Netlify function validates via the backend, then either returns a
@@ -12301,7 +12323,7 @@ async function submitRent() {
   } catch(e) {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
     btn.disabled = false;
-    btn.textContent = member.comp ? 'RENT (NO CHARGE)' : wasFree ? 'CONFIRM FREE RENTAL' : 'PAY ' + money(rentSelection.base_cents) + ' & RENT';
+    btn.textContent = rentButtonLabel(rentSelection.base_cents, wasFree);
     alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RENT">Email support</a>.');
   }
 }
@@ -12536,9 +12558,45 @@ function renderPromoSection() {
     : '';
 }
 
+// First-visit walkthrough key/gate: shown only for an account that has
+// never had a rental at all (open, pending-return, or in history) --
+// once a customer actually rents something the gate closes itself, no
+// localStorage bookkeeping needed for that path. The flag only matters
+// for someone who dismisses without ever renting.
+function walkthroughKey_() {
+  return 'sfd_walkthrough_seen_' + member.member_id;
+}
+function shouldShowWalkthrough_() {
+  return !member.comp &&
+    member.rentals.length === 0 &&
+    member.return_pending.length === 0 &&
+    (member.rental_history || []).length === 0 &&
+    !localStorage.getItem(walkthroughKey_());
+}
+function renderWalkthrough() {
+  var el = document.getElementById('walkthroughCard');
+  if (!el) return;
+  if (!shouldShowWalkthrough_()) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<div class="walkthrough-card">' +
+      '<div class="wt-hdr">FIRST TIME HERE? HERE IS HOW IT WORKS</div>' +
+      '<div class="wt-step"><div class="wt-num">1</div><div class="wt-txt">Use the cabinet code below to open the cabinet.</div></div>' +
+      '<div class="wt-step"><div class="wt-num">2</div><div class="wt-txt">Pick a disc, then find the code printed on its case.</div></div>' +
+      '<div class="wt-step"><div class="wt-num">3</div><div class="wt-txt">Scan or type that code below, then tap PAY &amp; RENT.</div></div>' +
+      '<button class="wt-dismiss" onclick="dismissWalkthrough()">GOT IT</button>' +
+    '</div>';
+}
+function dismissWalkthrough() {
+  localStorage.setItem(walkthroughKey_(), '1');
+  var el = document.getElementById('walkthroughCard');
+  if (el) el.innerHTML = '';
+}
+
 function goCode() {
   var st = backendGetMemberStatus(member);
   if (!st.showCode) return;
+
+  renderWalkthrough();
 
   var html =
     '<div class="code-display">' +
