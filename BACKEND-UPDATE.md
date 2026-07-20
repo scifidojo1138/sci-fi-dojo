@@ -202,11 +202,15 @@ One-time step after pasting the 2026-07-20 backend:
    Approve the permission prompt if asked. This creates a daily ~9am
    trigger (`refreshRentalStats`) AND runs it immediately, so you get
    numbers right away instead of waiting until tomorrow.
-2. Writes into the EXISTING `Dashboard` tab: a new RENTALS section
-   is appended below your current MEMBERS/CATALOG/REQUESTS content.
-   Re-running it finds that section (via a marker cell) and rewrites
-   just that part in place -- your existing sections and their live
-   formulas are never touched.
+2. Fully rebuilds the `Dashboard` tab: CATALOG, REQUESTS, and RENTALS
+   sections, computed by the script (by column name, from whichever
+   tab is literally named "Catalog") rather than the old hand-built
+   formulas -- the MEMBERS section is dropped (member/deposit model is
+   dormant) and the stale 'Catalog Demo' formula reference goes with
+   it. Catalog/Requests numbers now refresh daily alongside Rentals
+   (or on a manual re-run) instead of updating instantly like the old
+   live formulas did -- a deliberate trade for numbers that can't
+   silently drift again after a future tab rename.
 3. **Optional:** add a Settings row `repeat_late_threshold` (e.g. `2`)
    to control how many late returns a title needs before it shows up
    in the "repeatedly stays out too long" list. Blank defaults to 2.
