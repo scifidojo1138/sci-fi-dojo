@@ -476,17 +476,17 @@ select option{background:var(--panel2);color:var(--text);}
 .r-val{font-size:14px;color:var(--text);text-align:right;line-height:1.5;word-break:break-word;}
 
 /* ACCESS CABINET -- FIX 4: built-in screen, FIX 10: tighter language.
-   General reads in the app's normal accent; only an actual Vault code
-   (the .vault modifier) gets the purple treatment -- previously both
-   used the same hardcoded purple, so they were indistinguishable. */
+   General reads green (access-granted signal); only an actual Vault
+   code (the .vault modifier) gets the purple treatment -- previously
+   both used the same hardcoded purple, so they were indistinguishable. */
 .code-display{
-  background:var(--panel2);border:1.5px solid rgba(0,212,255,.3);
+  background:var(--panel2);border:1.5px solid rgba(0,255,157,.3);
   border-radius:var(--r);padding:28px 20px;text-align:center;margin:0 16px 14px;
 }
 .code-display.vault{border-color:rgba(192,132,252,.4);}
-.code-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;opacity:.8;}
+.code-label{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--success);margin-bottom:16px;opacity:.8;}
 .code-display.vault .code-label{color:var(--vault);}
-.code-value{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--accent);letter-spacing:12px;text-shadow:0 0 24px rgba(0,212,255,.35);margin-bottom:12px;}
+.code-value{font-family:'Orbitron',monospace;font-size:42px;font-weight:900;color:var(--success);letter-spacing:12px;text-shadow:0 0 24px rgba(0,255,157,.35);margin-bottom:12px;}
 .code-display.vault .code-value{color:var(--vault);text-shadow:0 0 24px rgba(192,132,252,.5);}
 .code-expires{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-dim);}
 
