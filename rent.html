@@ -454,6 +454,22 @@ select option{background:var(--panel2);color:var(--text);}
 .suc-title.rt{color:var(--accent2);}
 .suc-sub{font-size:15px;color:var(--text-mid);text-align:center;line-height:1.6;margin-bottom:28px;}
 .receipt{background:var(--panel);border:1px solid var(--border2);border-radius:var(--r);padding:4px 0;margin-bottom:24px;}
+
+/* RENTAL TICKET (success/receipt screens): admit-one stub, built to feel
+   like an object worth showing rather than a transaction summary */
+.ticket{position:relative;margin:0 0 20px;background:linear-gradient(160deg,var(--panel2),var(--panel));border:1px solid var(--border2);border-radius:var(--r);overflow:hidden;text-align:center;padding:18px 18px 14px;animation:fadeUp .35s ease both;}
+.ticket-shine{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(0,212,255,.10) 45%,rgba(255,255,255,.08) 50%,transparent 65%);transform:translateX(-120%);animation:ticketShine 1.1s ease .3s 1 forwards;pointer-events:none;}
+@keyframes ticketShine{to{transform:translateX(120%);}}
+.ticket-brand{font-family:'Orbitron',monospace;font-weight:900;font-size:12px;letter-spacing:.2em;color:var(--accent);text-shadow:var(--glow);}
+.ticket-admit{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.35em;color:var(--text-dim);margin-top:3px;}
+.ticket-cover{width:112px;border-radius:8px;border:1px solid var(--border2);margin:14px auto 2px;display:block;box-shadow:0 6px 24px rgba(0,0,0,.5);}
+.ticket-label{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--text-lbl);margin-top:14px;}
+.ticket-title{font-family:'Orbitron',monospace;font-weight:700;font-size:19px;color:var(--text);margin:6px 0 2px;line-height:1.3;text-shadow:0 0 18px rgba(0,212,255,.35);}
+.ticket-tear{position:relative;border-top:2px dashed var(--border2);margin:16px -18px 12px;}
+.ticket-notch-l,.ticket-notch-r{position:absolute;top:-10px;width:18px;height:18px;border-radius:50%;background:var(--bg);border:1px solid var(--border2);}
+.ticket-notch-l{left:-10px;}
+.ticket-notch-r{right:-10px;}
+.ticket-meta{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-mid);letter-spacing:.12em;}
 .r-row{display:flex;justify-content:space-between;align-items:flex-start;padding:13px 18px;gap:12px;border-bottom:1px solid var(--border);}
 .r-row:last-child{border-bottom:none;}
 .r-key{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text-lbl);letter-spacing:.1em;flex-shrink:0;padding-top:1px;}
@@ -670,7 +686,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.19</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.20</div>
     <div class="spacer"></div>
   </div>
 
@@ -865,6 +881,7 @@ select option{background:var(--panel2);color:var(--text);}
       <div class="suc-glyph" id="sucGlyph">&#10003;</div>
       <div class="suc-title" id="sucTitle"></div>
       <div class="suc-sub"   id="sucSub"></div>
+      <div id="sucTicket"></div>
       <div class="receipt"   id="sucReceipt"></div>
       <div id="sucReportLink" style="margin-bottom:14px;"></div>
       <div id="sucReviewCard" style="display:none;margin-bottom:14px;"></div>
@@ -11978,6 +11995,41 @@ function renderCurrentRentals() {
 // after paying (showSuccess), but reachable any time from the dashboard
 // card above, My Rentals, or rental history, so a customer can always
 // prove to the store they rented (and paid for) a given disc.
+// Achievement-style ticket stub for the success/receipt screens: cover
+// art, NOW SHOWING title, and an honest per-rental ordinal (position by
+// start_date across everything on the account). Built to look like an
+// object worth showing off -- deliberately NO share button or "show
+// this to..." copy; the receipt rows below stay the functional record.
+function rentalOrdinal_(rentalId) {
+  var all = (member.all_open || []).concat(member.rental_history || []);
+  var sorted = all.slice().sort(function(a, b) { return new Date(a.start_date) - new Date(b.start_date); });
+  var idx = sorted.findIndex(function(x) { return String(x.rental_id) === String(rentalId); });
+  return idx === -1 ? sorted.length : idx + 1;
+}
+
+function renderRentalTicket(r) {
+  var el = document.getElementById('sucTicket');
+  if (!el || !r) return;
+  var n = rentalOrdinal_(r.rental_id);
+  // Same repo-committed cover convention (and coverFail/coverMissing
+  // 404 handling) as Browse -- no cover, no img, ticket still works.
+  var cover = coverMissing[r.item_id] ? '' :
+    '<img class="ticket-cover" data-id="' + esc(r.item_id) + '" src="/covers/' + esc(encodeURIComponent(r.item_id)) + '.jpg" alt="" onerror="coverFail(this)">';
+  var d = new Date(r.start_date);
+  var dateStr = isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+  el.innerHTML =
+    '<div class="ticket">' +
+      '<div class="ticket-shine"></div>' +
+      '<div class="ticket-brand">SCI-FI DOJO</div>' +
+      '<div class="ticket-admit">ADMIT ONE</div>' +
+      cover +
+      '<div class="ticket-label">NOW SHOWING</div>' +
+      '<div class="ticket-title">' + esc(r.title) + '</div>' +
+      '<div class="ticket-tear"><span class="ticket-notch-l"></span><span class="ticket-notch-r"></span></div>' +
+      '<div class="ticket-meta">RENTAL NO. ' + n + (dateStr ? ' &middot; ' + dateStr : '') + '</div>' +
+    '</div>';
+}
+
 function showRentalReceipt(rentalId) {
   var all = (member.all_open || []).concat(member.rental_history || []);
   var r = all.find(function(x) { return String(x.rental_id) === String(rentalId); });
@@ -12002,6 +12054,7 @@ function showRentalReceipt(rentalId) {
     if (r.status === 'paid_off') rows.push({ k: 'STATUS', v: 'Kept — maximum charge reached' });
   }
   showSuccess('co', 'Rental Confirmation', 'Rental ' + r.rental_id, rows, 'BACK TO MY ACCOUNT', goStatus);
+  if (open) renderRentalTicket(r);
 
   // Report an issue: only while the rental is still open (disc won't
   // play, missing from the case, etc.) -- a closed rental already has
@@ -12238,6 +12291,13 @@ async function submitRent() {
         { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' plus tax (covers 7 days)' },
         { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee plus tax until returned, up to the maximum total charge' },
         { k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' } ]);
+    // Ticket stub: refreshAfterRent() above already pulled the fresh
+    // account, so the just-confirmed rental is in all_open -- find it by
+    // the returned rental_id (fallback: a synthetic row, so the ticket
+    // still renders if the refresh raced the sheet write).
+    var freshR = (member.all_open || []).find(function(x) { return String(x.rental_id) === String(data.rental_id); }) ||
+      { rental_id: data.rental_id, item_id: rentSelection.item_id, title: rentSelection.title, start_date: new Date().toISOString() };
+    renderRentalTicket(freshR);
   } catch(e) {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
     btn.disabled = false;
@@ -12651,6 +12711,7 @@ function showSuccess(type, title, sub, rows, btnLabel, btnAction) {
   document.getElementById('sucReportLink').innerHTML = '';
   document.getElementById('sucReviewCard').style.display = 'none';
   document.getElementById('sucReviewCard').innerHTML = '';
+  document.getElementById('sucTicket').innerHTML = '';
   var btn = document.getElementById('sucBtn');
   btn.textContent = btnLabel || 'BACK TO MY ACCOUNT';
   btn.onclick = btnAction || goStatus;
