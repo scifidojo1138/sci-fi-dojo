@@ -12017,7 +12017,10 @@ function rentalOrdinal_(rentalId) {
   var all = (member.all_open || []).concat(member.rental_history || []);
   var sorted = all.slice().sort(function(a, b) { return new Date(a.start_date) - new Date(b.start_date); });
   var idx = sorted.findIndex(function(x) { return String(x.rental_id) === String(rentalId); });
-  return idx === -1 ? sorted.length : idx + 1;
+  // Not found = the just-confirmed rental hasn't landed in the account
+  // payload yet (refresh raced the sheet write) -- it's the newest, one
+  // past everything known, never 0.
+  return idx === -1 ? sorted.length + 1 : idx + 1;
 }
 
 function renderRentalTicket(r) {
@@ -12582,7 +12585,7 @@ function renderWalkthrough() {
       '<div class="wt-hdr">FIRST TIME HERE? HERE IS HOW IT WORKS</div>' +
       '<div class="wt-step"><div class="wt-num">1</div><div class="wt-txt">Use the cabinet code below to open the cabinet.</div></div>' +
       '<div class="wt-step"><div class="wt-num">2</div><div class="wt-txt">Pick a disc, then find the code printed on its case.</div></div>' +
-      '<div class="wt-step"><div class="wt-num">3</div><div class="wt-txt">Scan or type that code below, then tap PAY &amp; RENT.</div></div>' +
+      '<div class="wt-step"><div class="wt-num">3</div><div class="wt-txt">Scan or type that code below, then tap the PAY button to check out.</div></div>' +
       '<button class="wt-dismiss" onclick="dismissWalkthrough()">GOT IT</button>' +
     '</div>';
 }
