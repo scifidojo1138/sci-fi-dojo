@@ -193,6 +193,27 @@ and no ability to rent. This is deliberate for a single trusted location —
 see `CLAUDE.md`'s "Blacklist and cabinet code timing" section for the
 tradeoff before turning this on somewhere with different foot traffic.
 
+### Rental Stats (added 2026-07-20)
+
+One-time step after pasting the 2026-07-20 backend:
+
+1. **Trigger + first run:** in the Apps Script editor, pick
+   `setupStatsTrigger` in the toolbar dropdown and click Run once.
+   Approve the permission prompt if asked. This creates a daily ~9am
+   trigger (`refreshRentalStats`) AND runs it immediately, so you get
+   numbers right away instead of waiting until tomorrow.
+2. A new `Rental Stats` tab is created automatically the first time it
+   runs -- your existing `Dashboard` tab is never written to.
+3. **Optional:** add a Settings row `repeat_late_threshold` (e.g. `2`)
+   to control how many late returns a title needs before it shows up
+   in the "repeatedly stays out too long" list. Blank defaults to 2.
+
+Reports: number of rentals, average rental length, % returned on time,
+average days overdue, reminder emails sent, reminders followed by a
+return within 24h, average extended fee collected, and repeat-offender
+titles. Re-run `refreshRentalStats` any time from the editor toolbar
+for an on-demand update between daily runs.
+
 ### Rental reminder emails (added 2026-07-20)
 
 Three one-time steps after pasting the 2026-07-20 backend:
