@@ -202,8 +202,11 @@ One-time step after pasting the 2026-07-20 backend:
    Approve the permission prompt if asked. This creates a daily ~9am
    trigger (`refreshRentalStats`) AND runs it immediately, so you get
    numbers right away instead of waiting until tomorrow.
-2. A new `Rental Stats` tab is created automatically the first time it
-   runs -- your existing `Dashboard` tab is never written to.
+2. Writes into the EXISTING `Dashboard` tab: a new RENTALS section
+   is appended below your current MEMBERS/CATALOG/REQUESTS content.
+   Re-running it finds that section (via a marker cell) and rewrites
+   just that part in place -- your existing sections and their live
+   formulas are never touched.
 3. **Optional:** add a Settings row `repeat_late_threshold` (e.g. `2`)
    to control how many late returns a title needs before it shows up
    in the "repeatedly stays out too long" list. Blank defaults to 2.
