@@ -400,6 +400,7 @@ select option{background:var(--panel2);color:var(--text);}
 
 /* BROWSE FILTER */
 .browse-filters{display:flex;gap:8px;margin:0 16px 14px;}
+.genre-filters{flex-wrap:wrap;margin-top:-6px;}
 .filter-btn{
   padding:8px 16px;border-radius:20px;cursor:pointer;
   font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
@@ -855,6 +856,7 @@ select option{background:var(--panel2);color:var(--text);}
       <button class="filter-btn"        id="filter-available" aria-pressed="false" onclick="setBrowseFilter('available')">Available Only</button>
       <button class="filter-btn"        id="filter-starred"   aria-pressed="false" onclick="setBrowseFilter('starred')">&#9733; Starred</button>
     </div>
+    <div class="browse-filters genre-filters" id="browseGenreFilters"></div>
     <div class="card">
       <div class="card-body" id="browseList"></div>
     </div>
@@ -12946,9 +12948,11 @@ function submitCamManual() {
 // ================================================================
 
 var browseFilter = 'all';
+var browseGenreFilter = ''; // '' = All Genres
 
 async function goBrowse() {
   browseFilter = 'all';
+  browseGenreFilter = '';
   document.getElementById('browseSearch').value = '';
   setToggleBtn('filter-all',       true);
   setToggleBtn('filter-available', false);
@@ -12993,11 +12997,41 @@ function setBrowseFilter(f) {
   renderBrowseList();
 }
 
+// Genre chips: a second, wrapping row of filter-btn pills built from
+// whatever distinct genres are actually present in the loaded catalog --
+// no hardcoded genre list to keep in sync with the sheet. Box-set/blank-
+// genre items (genre: []) simply never match a specific chip; they only
+// ever show back up under ALL GENRES. Recomputed on every render, which
+// is cheap at catalog size (~700 items, one pass).
+function renderGenreFilters() {
+  var el = document.getElementById('browseGenreFilters');
+  if (!el || catalogCache === null) return;
+  var genreSet = new Set();
+  catalogCache.forEach(function(it) {
+    (Array.isArray(it.genre) ? it.genre : []).forEach(function(g) { if (g) genreSet.add(g); });
+  });
+  var genres = Array.from(genreSet).sort();
+  if (!genres.length) { el.innerHTML = ''; return; }
+  el.innerHTML =
+    '<button class="filter-btn' + (browseGenreFilter === '' ? ' active' : '') + '" aria-pressed="' + (browseGenreFilter === '' ? 'true' : 'false') + '" onclick="setBrowseGenreFilter(\'\')">All Genres</button>' +
+    genres.map(function(g) {
+      var on = browseGenreFilter === g;
+      return '<button class="filter-btn' + (on ? ' active' : '') + '" aria-pressed="' + (on ? 'true' : 'false') + '" data-genre="' + esc(g) + '" onclick="setBrowseGenreFilter(this.dataset.genre)">' + esc(g) + '</button>';
+    }).join('');
+}
+
+function setBrowseGenreFilter(g) {
+  browseGenreFilter = g;
+  renderBrowseList();
+}
+
 function renderBrowseList() {
   var list  = document.getElementById('browseList');
   var query = (document.getElementById('browseSearch').value || '').toLowerCase().trim();
 
   if (catalogCache === null) return;
+
+  renderGenreFilters();
 
   var items = catalogCache.slice();
 
@@ -13008,6 +13042,9 @@ function renderBrowseList() {
     items = items.filter(function(it) { return it.status === 'available'; });
   } else if (browseFilter === 'starred') {
     items = items.filter(function(it) { return starredSet.has(it.item_id); });
+  }
+  if (browseGenreFilter) {
+    items = items.filter(function(it) { return Array.isArray(it.genre) && it.genre.indexOf(browseGenreFilter) !== -1; });
   }
 
   if (query) {
@@ -13121,7 +13158,7 @@ function browseDetailHtml(it) {
     facts.push('Maximum total charge ' + money(it.cap_cents) + ' plus tax, base price included');
   }
   if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(it.subcategory));
-  if (it.group_name) facts.push(esc(it.group_name));
+  if (it.group_name) facts.push('Part of: ' + esc(it.group_name));
   var dc = parseInt(it.disc_count, 10);
   if (dc > 1) facts.push(dc + ' discs');
   if (it.condition && it.condition !== 'good') facts.push('Condition: ' + esc(it.condition));

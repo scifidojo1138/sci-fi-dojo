@@ -242,6 +242,30 @@ boundary; the quiet grace day means accrual still starts day 9, so a
 day-8 return costs nothing). Comp accounts are skipped. Mail rides the
 existing SFD Mailer relay, so no new mail setup is needed.
 
+### Catalog genre browsing + barcode/imdb_id (added 2026-07-21)
+
+**Sheet:** three new Catalog columns (any position -- everything reads
+by header name): `barcode` (12-digit UPC), `imdb_id` (IMDB tt-code),
+`genre` (comma-separated free text, e.g. "Action, Horror,
+Science-Fiction"). No trigger or one-time run needed -- `getCatalog`
+picks these up on the next request. `barcode`/`imdb_id` are internal
+reference fields only and never reach rent.html; `genre` is parsed into
+an array and does. A blank `genre` cell (fine to leave blank -- mostly
+multi-movie box sets) shows up under Browse's "All Genres" chip only,
+never under a specific genre, and never breaks anything.
+
+### Dashboard section banners + charts (added 2026-07-21)
+
+No new setup step -- paste the backend, publish a new version, and the
+next `refreshRentalStats` run (daily, or triggered manually from the
+editor toolbar) rebuilds the Dashboard tab with colored section banners
+(CATALOG blue, REQUESTS orange, RENTALS green) and two charts: a
+Catalog Breakdown pie (Available/Checked out/Return bin) and, when at
+least one title qualifies, a Titles Returned Late Repeatedly bar chart.
+Both charts and all formatting are removed and rebuilt from scratch on
+every refresh, same as the text -- nothing to reapply by hand after a
+manual edit gets overwritten by the next run.
+
 ## 2. Apps Script
 
 Paste the delivered backend file over the current code, then deploy a **new
