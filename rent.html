@@ -400,7 +400,7 @@ select option{background:var(--panel2);color:var(--text);}
 
 /* BROWSE FILTER */
 .browse-filters{display:flex;gap:8px;margin:0 16px 14px;}
-.genre-filters{flex-wrap:wrap;margin-top:-6px;}
+.genre-filters{flex-wrap:wrap;}
 .filter-btn{
   padding:8px 16px;border-radius:20px;cursor:pointer;
   font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.08em;
@@ -856,7 +856,13 @@ select option{background:var(--panel2);color:var(--text);}
       <button class="filter-btn"        id="filter-available" aria-pressed="false" onclick="setBrowseFilter('available')">Available Only</button>
       <button class="filter-btn"        id="filter-starred"   aria-pressed="false" onclick="setBrowseFilter('starred')">&#9733; Starred</button>
     </div>
-    <div class="browse-filters genre-filters" id="browseGenreFilters"></div>
+    <div class="note-toggle" id="noteToggleGenre" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsGenre" onclick="toggleNote('Genre')" style="margin:0 16px 4px;">
+      <span class="note-toggle-lbl">Filter by Genre</span>
+      <span class="note-chevron" id="noteChevronGenre">+</span>
+    </div>
+    <div class="note-fields" id="noteFieldsGenre" style="margin-top:8px;">
+      <div class="browse-filters genre-filters" id="browseGenreFilters"></div>
+    </div>
     <div class="card">
       <div class="card-body" id="browseList"></div>
     </div>
