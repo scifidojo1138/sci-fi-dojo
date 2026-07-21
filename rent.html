@@ -13132,6 +13132,16 @@ function coverFail(img) {
   coverMissing[img.dataset.id] = true;
 }
 
+// Display-only shorthand for the sheet's raw subcategory values (added
+// 2026-07-21b) -- "box_set"/"tv_series" read as snake_case straight from
+// the Catalog tab, so this formats what the fact SAYS without touching
+// the underlying value anywhere else.
+var SUBCATEGORY_DISPLAY_NAMES = {
+  box_set:   'Box Set',
+  tv_series: 'TV Series',
+  criterion: 'Criterion Collection',
+};
+
 // Detail panel: cover art (requested only now -- the img element does not
 // exist until the row is expanded, so browsing never preloads covers) plus
 // rental facts from the catalog payload.
@@ -13173,8 +13183,7 @@ function browseDetailHtml(it) {
     // standalone fact rather than silently dropping it.
     facts.push('Maximum total charge ' + money(it.cap_cents) + ' plus tax, base price included');
   }
-  if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(it.subcategory));
-  if (it.group_name) facts.push('Part of: ' + esc(it.group_name));
+  if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(SUBCATEGORY_DISPLAY_NAMES[it.subcategory] || it.subcategory));
   var dc = parseInt(it.disc_count, 10);
   if (dc > 1) facts.push(dc + ' discs');
   if (it.condition && it.condition !== 'good') facts.push('Condition: ' + esc(it.condition));
