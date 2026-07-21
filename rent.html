@@ -12997,6 +12997,15 @@ function setBrowseFilter(f) {
   renderBrowseList();
 }
 
+// Display-only shorthand for the couple of genre names too long to read
+// comfortably as a filter chip (added 2026-07-21). The full string is
+// still what's used for matching (data-genre, browseGenreFilter) and
+// what the backend sent -- this map only swaps what the chip SAYS.
+var GENRE_DISPLAY_NAMES = {
+  'Science-Fiction':   'Sci-Fi',
+  'Suspense/Thriller': 'Thriller',
+};
+
 // Genre chips: a second, wrapping row of filter-btn pills built from
 // whatever distinct genres are actually present in the loaded catalog --
 // no hardcoded genre list to keep in sync with the sheet. Box-set/blank-
@@ -13016,7 +13025,8 @@ function renderGenreFilters() {
     '<button class="filter-btn' + (browseGenreFilter === '' ? ' active' : '') + '" aria-pressed="' + (browseGenreFilter === '' ? 'true' : 'false') + '" onclick="setBrowseGenreFilter(\'\')">All Genres</button>' +
     genres.map(function(g) {
       var on = browseGenreFilter === g;
-      return '<button class="filter-btn' + (on ? ' active' : '') + '" aria-pressed="' + (on ? 'true' : 'false') + '" data-genre="' + esc(g) + '" onclick="setBrowseGenreFilter(this.dataset.genre)">' + esc(g) + '</button>';
+      var label = GENRE_DISPLAY_NAMES[g] || g;
+      return '<button class="filter-btn' + (on ? ' active' : '') + '" aria-pressed="' + (on ? 'true' : 'false') + '" data-genre="' + esc(g) + '" onclick="setBrowseGenreFilter(this.dataset.genre)">' + esc(label) + '</button>';
     }).join('');
 }
 
