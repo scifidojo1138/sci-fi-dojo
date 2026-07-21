@@ -167,7 +167,6 @@ body::after{
 /* ACTION GRID */
 .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .12s both;position:relative;}
 .action-grid-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,12,18,.88);border-radius:var(--r);z-index:2;}
-.action-grid-overlay.clickable{cursor:pointer;}
 .action-grid-overlay-text{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.08em;color:var(--text-mid);text-align:center;padding:0 20px;line-height:1.6;}
 .action-btn{
   background:var(--panel);border:1px solid var(--border2);
@@ -11966,24 +11965,38 @@ function renderStatus() {
   // Action grid -- four tiles: RENT (leads to cabinet code + hours first,
   // item entry happens after), RETURN (logs a return only -- no history
   // here), BROWSE, ACCOUNT (absorbs the free-account blurb, status
-  // detail, and My Rentals). All four wait on the catalog (added
-  // 2026-07-21): a half-ready dashboard where only RENT was grayed out
-  // read as confusing, so every tile now grays out together and a single
-  // overlay over the whole grid explains why, instead of the loading
-  // state being spread across four separate sub-labels.
+  // detail, and My Rentals).
+  //
+  // Catalog gating (2026-07-21, refined 2026-07-21b): RENT and BROWSE
+  // genuinely need the catalog (RENT validates the scanned item against
+  // catalogByIdCache; BROWSE *is* the catalog), so they gate on
+  // catalogReady. RETURN and ACCOUNT don't touch the catalog at all, so
+  // they gray out ONLY during the brief LOADING flash (for a clean,
+  // not-half-ready dashboard) -- a *persistent* catalog failure must
+  // never lock them out. That matters most for RETURN: logging a return
+  // freezes the extended-rental-fee accrual, so a catalog outage can't be
+  // allowed to trap a customer who's holding (or has dropped off) a disc.
   var canReturn  = member.rentals.length > 0;
 
-  var catalogReady = (catalogStatus !== 'failed' && catalogCache !== null);
-  var rentEnabled   = st.canCheckout && catalogReady;
-  var returnEnabled = canReturn && catalogReady;
-  var rentSub = member.payment_status === 'failed' ? 'Card needs attention' :
+  var catalogReady   = (catalogStatus !== 'failed' && catalogCache !== null);
+  var catalogLoading = (catalogStatus !== 'failed' && catalogCache === null);
+
+  var rentEnabled    = st.canCheckout && catalogReady;
+  var returnEnabled  = canReturn && !catalogLoading;
+  var accountEnabled = !catalogLoading;
+
+  // RENT/BROWSE sub-labels: during loading the whole grid is hidden behind
+  // the spinner overlay, so the only visible not-ready state is failure.
+  var rentSub = !catalogReady ? 'Catalog unavailable' :
+                member.payment_status === 'failed' ? 'Card needs attention' :
                 (st.slotsLeft === 0 ? 'Limit reached' : st.slotsLeft + ' available');
+  var browseSub = catalogReady ? 'See what is on the shelf' : 'Catalog unavailable';
   document.getElementById('actionGrid').innerHTML =
     actionBtn('ab-checkout', '&#128192;', 'RENT', rentSub, rentEnabled, 'goRentFlow()') +
     actionBtn('ab-return',   '&#8629;', 'RETURN',  canReturn ? 'Stop the daily charge' : 'Nothing out right now.', returnEnabled, 'goReturn()') +
-    actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'See what is on the shelf', catalogReady, 'goBrowse()') +
-    actionBtn('ab-account', '&#9881;',   'ACCOUNT',  'Rentals, card &amp; contact info', catalogReady, 'goAccount()') +
-    catalogGridOverlayHtml(catalogReady);
+    actionBtn('ab-browse',  '&#128269;', 'BROWSE',      browseSub, catalogReady, 'goBrowse()') +
+    actionBtn('ab-account', '&#9881;',   'ACCOUNT',  'Rentals, card &amp; contact info', accountEnabled, 'goAccount()') +
+    catalogGridOverlayHtml(catalogLoading);
   document.getElementById('sectionHdrActions').style.display = '';
 
   // Events / perks feeds (paint from cache if already loaded)
@@ -12181,15 +12194,16 @@ function actionBtn(cls, icon, label, sub, enabled, onclick) {
     '</div>';
 }
 
-// Sits over the whole action grid while the catalog isn't ready yet, so
-// the loading/failed state reads as one message instead of being spread
-// across four separate tile sub-labels (added 2026-07-21).
-function catalogGridOverlayHtml(catalogReady) {
-  if (catalogReady) return '';
-  if (catalogStatus === 'failed') {
-    return '<div class="action-grid-overlay clickable" role="button" tabindex="0" onclick="retryCatalog()">' +
-      '<div class="action-grid-overlay-text">Catalog unavailable.<br>Tap to retry.</div></div>';
-  }
+// Spinner overlay over the whole action grid during the brief LOADING
+// flash (added 2026-07-21). Deliberately NOT shown on catalog FAILURE
+// (2026-07-21b): a covering overlay would block RETURN/ACCOUNT, which
+// stay reachable during an outage since they don't need the catalog. On
+// failure the two catalog-dependent tiles (RENT/BROWSE) simply render
+// disabled with a "Catalog unavailable" sub-label, and the retry lives
+// in the top status chip (setCatalogStatus's "CATALOG: FAILED — TAP TO
+// RETRY", onclick retryCatalog).
+function catalogGridOverlayHtml(catalogLoading) {
+  if (!catalogLoading) return '';
   return '<div class="action-grid-overlay">' +
     '<div class="action-grid-overlay-text"><div class="spin-lg" style="margin:0 auto 10px;"></div>Loading catalog&hellip;</div></div>';
 }
