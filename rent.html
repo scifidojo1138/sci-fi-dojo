@@ -165,7 +165,10 @@ body::after{
 }
 
 /* ACTION GRID */
-.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .12s both;}
+.action-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 16px 14px;animation:fadeUp .35s ease .12s both;position:relative;}
+.action-grid-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(8,12,18,.88);border-radius:var(--r);z-index:2;}
+.action-grid-overlay.clickable{cursor:pointer;}
+.action-grid-overlay-text{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.08em;color:var(--text-mid);text-align:center;padding:0 20px;line-height:1.6;}
 .action-btn{
   background:var(--panel);border:1px solid var(--border2);
   border-radius:var(--r);padding:20px 16px;
@@ -11963,20 +11966,24 @@ function renderStatus() {
   // Action grid -- four tiles: RENT (leads to cabinet code + hours first,
   // item entry happens after), RETURN (logs a return only -- no history
   // here), BROWSE, ACCOUNT (absorbs the free-account blurb, status
-  // detail, and My Rentals).
+  // detail, and My Rentals). All four wait on the catalog (added
+  // 2026-07-21): a half-ready dashboard where only RENT was grayed out
+  // read as confusing, so every tile now grays out together and a single
+  // overlay over the whole grid explains why, instead of the loading
+  // state being spread across four separate sub-labels.
   var canReturn  = member.rentals.length > 0;
 
   var catalogReady = (catalogStatus !== 'failed' && catalogCache !== null);
-  var rentEnabled  = st.canCheckout && catalogReady;
-  var rentSub = catalogStatus === 'failed' ? 'Catalog unavailable. Tap Browse to retry.' :
-                !catalogReady ? 'Catalog loading — please wait' :
-                (member.payment_status === 'failed' ? 'Card needs attention' :
-                (st.slotsLeft === 0 ? 'Limit reached' : st.slotsLeft + ' available'));
+  var rentEnabled   = st.canCheckout && catalogReady;
+  var returnEnabled = canReturn && catalogReady;
+  var rentSub = member.payment_status === 'failed' ? 'Card needs attention' :
+                (st.slotsLeft === 0 ? 'Limit reached' : st.slotsLeft + ' available');
   document.getElementById('actionGrid').innerHTML =
     actionBtn('ab-checkout', '&#128192;', 'RENT', rentSub, rentEnabled, 'goRentFlow()') +
-    actionBtn('ab-return',   '&#8629;', 'RETURN',  canReturn ? 'Stop the daily charge' : 'Nothing out right now.', canReturn, 'goReturn()') +
-    actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'See what is on the shelf', true, 'goBrowse()') +
-    actionBtn('ab-account', '&#9881;',   'ACCOUNT',  'Rentals, card &amp; contact info', true, 'goAccount()');
+    actionBtn('ab-return',   '&#8629;', 'RETURN',  canReturn ? 'Stop the daily charge' : 'Nothing out right now.', returnEnabled, 'goReturn()') +
+    actionBtn('ab-browse',  '&#128269;', 'BROWSE',      'See what is on the shelf', catalogReady, 'goBrowse()') +
+    actionBtn('ab-account', '&#9881;',   'ACCOUNT',  'Rentals, card &amp; contact info', catalogReady, 'goAccount()') +
+    catalogGridOverlayHtml(catalogReady);
   document.getElementById('sectionHdrActions').style.display = '';
 
   // Events / perks feeds (paint from cache if already loaded)
@@ -12172,6 +12179,19 @@ function actionBtn(cls, icon, label, sub, enabled, onclick) {
     '<div class="ab-label">' + label + '</div>' +
     '<div class="ab-sub">' + sub + '</div>' +
     '</div>';
+}
+
+// Sits over the whole action grid while the catalog isn't ready yet, so
+// the loading/failed state reads as one message instead of being spread
+// across four separate tile sub-labels (added 2026-07-21).
+function catalogGridOverlayHtml(catalogReady) {
+  if (catalogReady) return '';
+  if (catalogStatus === 'failed') {
+    return '<div class="action-grid-overlay clickable" role="button" tabindex="0" onclick="retryCatalog()">' +
+      '<div class="action-grid-overlay-text">Catalog unavailable.<br>Tap to retry.</div></div>';
+  }
+  return '<div class="action-grid-overlay">' +
+    '<div class="action-grid-overlay-text"><div class="spin-lg" style="margin:0 auto 10px;"></div>Loading catalog&hellip;</div></div>';
 }
 
 // ================================================================
