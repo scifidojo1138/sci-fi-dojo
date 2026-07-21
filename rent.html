@@ -273,6 +273,8 @@ select option{background:var(--panel2);color:var(--text);}
 .browse-fact{font-family:'Share Tech Mono',monospace;font-size:11.5px;color:var(--text-mid);letter-spacing:.03em;line-height:1.5;}
 .browse-synopsis{font-size:13.5px;line-height:1.6;color:var(--text);margin-bottom:2px;}
 .browse-fact strong{color:var(--text);font-size:13px;}
+.browse-price{font-family:'Orbitron',monospace;font-size:20px;font-weight:800;color:var(--text);}
+.browse-price-sub{font-family:'Share Tech Mono',monospace;font-size:10.5px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-left:8px;}
 
 /* RETURN SELECTABLE */
 .return-item{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;transition:all .2s;}
@@ -13088,6 +13090,11 @@ function browseDetailHtml(it) {
   // submission itself still lands privately in Requests either way).
   var synopsisHtml = it.synopsis ? '<div class="browse-synopsis">' + esc(it.synopsis).replace(/\n/g, '<br>') + '</div>' : '';
 
+  // Two-tier price treatment (2026-07-21), matching the item-confirm
+  // card: a bold headline price up front, with the extended-fee rate and
+  // maximum charge folded into one quieter fine-print fact below it --
+  // same information, just not a dense paragraph at full visual weight.
+  var priceHtml = '';
   var facts = [];
   // Price line only when the backend sends rental_price (older deploys
   // don't) -- hiding it beats guessing at a number that could be wrong.
@@ -13095,14 +13102,22 @@ function browseDetailHtml(it) {
     var p = parseFloat(it.rental_price);
     var baseCents = Math.round((p > 0 ? p : 3) * 100);
     var baseWasCents = (it.rental_price_was > 0) ? Math.round(parseFloat(it.rental_price_was) * 100) : 0;
+    priceHtml = '<div class="browse-price">' + promoPriceHtml(baseCents, baseWasCents) +
+      '<span class="browse-price-sub">plus tax &middot; 7 days</span></div>';
+
     var dayRateHtml = dayRatePromoActive()
       ? '<s style="opacity:.6;">' + money(standardDayRateCents()) + '</s> ' + dayRateStr()
       : dayRateStr();
-    facts.push(promoPriceHtml(baseCents, baseWasCents) + ' &middot; first 7 days, then ' + dayRateHtml + '/day extended rental fee, plus tax');
-  }
-  // Same hide-if-absent rule as the price line above -- an older deploy
-  // without cap_cents in the catalog payload should never show a guess.
-  if (Object.prototype.hasOwnProperty.call(it, 'cap_cents') && it.cap_cents > 0) {
+    var extLine = 'Then ' + dayRateHtml + '/day extended rental fee if kept';
+    // Same hide-if-absent rule as the price line above -- an older deploy
+    // without cap_cents in the catalog payload should never show a guess.
+    if (Object.prototype.hasOwnProperty.call(it, 'cap_cents') && it.cap_cents > 0) {
+      extLine += ', up to ' + money(it.cap_cents) + ' plus tax maximum total charge';
+    }
+    facts.push(extLine + '.');
+  } else if (Object.prototype.hasOwnProperty.call(it, 'cap_cents') && it.cap_cents > 0) {
+    // Deploy edge case: cap_cents present without rental_price -- keep a
+    // standalone fact rather than silently dropping it.
     facts.push('Maximum total charge ' + money(it.cap_cents) + ' plus tax, base price included');
   }
   if (it.subcategory && it.subcategory !== 'standard') facts.push(esc(it.subcategory));
@@ -13120,6 +13135,7 @@ function browseDetailHtml(it) {
     cover +
     '<div class="browse-facts">' +
       synopsisHtml +
+      priceHtml +
       facts.map(function(f) { return '<div class="browse-fact">' + f + '</div>'; }).join('') +
     '</div>' +
   '</div>';
