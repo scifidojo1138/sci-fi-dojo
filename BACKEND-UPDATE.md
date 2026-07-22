@@ -266,6 +266,28 @@ Both charts and all formatting are removed and rebuilt from scratch on
 every refresh, same as the text -- nothing to reapply by hand after a
 manual edit gets overwritten by the next run.
 
+### Bin-outcome staff actions (added 2026-07-21)
+
+No new setup step -- paste the backend and publish a new version. Three
+new staff-PIN POST actions handle a disc sitting in the return bin
+(`return_pending`) that needs a non-standard outcome:
+
+- `rental_undo_return` -- a return was logged by mistake; puts the disc
+  back to `checked_out` and the rental back to `active` (fully
+  reversible).
+- `rental_mark_mia` -- the logged-returned disc never physically showed
+  up; closes the rental, sets the catalog item to `missing` + out of
+  rotation, and auto-pauses the customer for follow-up.
+- `rental_mark_damaged` -- the disc came back unusable; same as MIA but
+  the catalog item is set to `damaged`, and the customer is NOT
+  auto-paused (staff decide case by case).
+
+None touch Stripe. Two new Catalog `status` values can now appear:
+`missing` and `damaged` (both out of rotation). The staff-terminal
+buttons that call these live in the onboarding repo's `sfd-staff.html`
+(handled separately) -- deploying this backend just makes the actions
+available.
+
 ## 2. Apps Script
 
 Paste the delivered backend file over the current code, then deploy a **new
