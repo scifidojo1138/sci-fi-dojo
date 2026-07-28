@@ -11199,6 +11199,7 @@ var returnSelected = [];  // item_ids selected for return
 var cameraStream  = null;
 var cameraPurpose = 'checkout'; // 'checkout' (item lookup) or 'login' (scan card to log in)
 var memberFromCache = false; // true while showing cached data, before fresh fetch lands
+var hadCachedDashboard = false; // sticky: a usable dashboard was painted from cache at load
 var memberStale     = false; // true when fetch failed and cached data is all we have
 var lastMemberFetch = 0;     // throttle for visibility-change refreshes
 var signupWarm      = null;  // promise: account fetch kicked off right after signup
@@ -11531,6 +11532,11 @@ async function loadMember(tok) {
   // Render the last known account data immediately while the real
   // fetch (often a multi-second Apps Script cold start) completes.
   var cached = readMemberCache();
+  // Sticky for the whole session, unlike memberFromCache (which flips
+  // false as soon as the fresh account lands -- BEFORE loadCatalog even
+  // starts, so it can't be used to tell a revisit from a cold start at
+  // catalog-load time). Drives the action-grid lockout: see renderStatus.
+  hadCachedDashboard = !!cached;
   if (cached) {
     member = cached;
     memberFromCache = true;
@@ -11994,22 +12000,37 @@ function renderStatus() {
   var catalogReady   = (catalogStatus !== 'failed' && catalogCache !== null);
   var catalogLoading = (catalogStatus !== 'failed' && catalogCache === null);
 
-  var rentEnabled    = st.canCheckout && catalogReady;
-  var returnEnabled  = canReturn && !catalogLoading;
-  var accountEnabled = !catalogLoading;
+  // The uniform "everything grays out" lockout applies only to a COLD
+  // start -- no cached dashboard to fall back on (refined 2026-07-22).
+  // loadMember() only kicks off loadCatalog AFTER the account fetch
+  // resolves, so on a slow connection "loading" is not the brief flash
+  // it looks like: member fetch (up to the 20s timeout) THEN catalog
+  // fetch (another 20s) can leave the grid locked ~40s. Blocking RETURN
+  // that long is the one thing this must never do -- logging a return
+  // freezes fee accrual. A returning customer always has the cached
+  // dashboard (that is how they rented in the first place), so they keep
+  // RETURN/ACCOUNT live throughout; a true cold start has nothing out to
+  // return anyway, so the uniform spinner there costs nothing.
+  var coldLoading = catalogLoading && !hadCachedDashboard;
 
-  // RENT/BROWSE sub-labels: during loading the whole grid is hidden behind
-  // the spinner overlay, so the only visible not-ready state is failure.
-  var rentSub = !catalogReady ? 'Catalog unavailable' :
+  var rentEnabled    = st.canCheckout && catalogReady;
+  var returnEnabled  = canReturn && !coldLoading;
+  var accountEnabled = !coldLoading;
+
+  // Distinguish "still loading" from "gave up" -- with the overlay now
+  // limited to cold starts, a revisiting customer SEES these sub-labels
+  // while the catalog loads, so "Catalog unavailable" would be a lie.
+  var catalogSub = catalogLoading ? 'Loading catalog...' : 'Catalog unavailable';
+  var rentSub = !catalogReady ? catalogSub :
                 member.payment_status === 'failed' ? 'Card needs attention' :
                 (st.slotsLeft === 0 ? 'Limit reached' : st.slotsLeft + ' available');
-  var browseSub = catalogReady ? 'See what is on the shelf' : 'Catalog unavailable';
+  var browseSub = catalogReady ? 'See what is on the shelf' : catalogSub;
   document.getElementById('actionGrid').innerHTML =
     actionBtn('ab-checkout', '&#128192;', 'RENT', rentSub, rentEnabled, 'goRentFlow()') +
     actionBtn('ab-return',   '&#8629;', 'RETURN',  canReturn ? 'Stop the daily charge' : 'Nothing out right now.', returnEnabled, 'goReturn()') +
     actionBtn('ab-browse',  '&#128269;', 'BROWSE',      browseSub, catalogReady, 'goBrowse()') +
     actionBtn('ab-account', '&#9881;',   'ACCOUNT',  'Rentals, card &amp; contact info', accountEnabled, 'goAccount()') +
-    catalogGridOverlayHtml(catalogLoading);
+    catalogGridOverlayHtml(coldLoading);
   document.getElementById('sectionHdrActions').style.display = '';
 
   // Events / perks feeds (paint from cache if already loaded)
@@ -12387,9 +12408,9 @@ async function submitRent() {
     ];
     if (SHOW_CABINET_CODES) rentSuccessRows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' });
     showSuccess('co', 'Enjoy the Movie!',
-      member.comp ? 'Logged and ready. Grab your disc from the cabinet.' :
-      wasFree     ? 'Your promo credit covered this one. Grab your disc from the cabinet.' :
-                    'Paid and ready. Grab your disc from the cabinet.',
+      member.comp ? 'Logged and ready. Grab your disc from the shelf.' :
+      wasFree     ? 'Your promo credit covered this one. Grab your disc from the shelf.' :
+                    'Paid and ready. Grab your disc from the shelf.',
       rentSuccessRows);
     // Ticket stub: refreshAfterRent() above already pulled the fresh
     // account, so the just-confirmed rental is in all_open -- find it by
@@ -12675,13 +12696,25 @@ function dismissWalkthrough() {
 }
 
 function goCode() {
+  // Gate the SCREEN on the account being active -- NOT on a cabinet code
+  // existing (fixed 2026-07-22). Since the 2026-07-12 merge this screen
+  // IS the whole rent flow (walkthrough, item entry, promo code, PAY
+  // button) and showScreen is the last line below, so the old
+  // `if (!st.showCode) return` -- where showCode required
+  // !!m.cabinet_code -- silently dead-ended RENT for a perfectly healthy
+  // account the moment cabinet_code came back blank (e.g. staff clearing
+  // Settings' current_general_code now that the cabinet is unlocked).
+  // The tile stays enabled in that state (rentEnabled never consults
+  // cabinet_code), so the button just did nothing. The code BOX keeps
+  // its own gate below.
+  if (!member || !member.active) return;
   var st = backendGetMemberStatus(member);
-  if (!st.showCode) return;
 
   renderWalkthrough();
 
-  document.getElementById('cabinetCodeSection').style.display = SHOW_CABINET_CODES ? '' : 'none';
-  if (SHOW_CABINET_CODES) {
+  var showCodeBox = SHOW_CABINET_CODES && st.showCode;
+  document.getElementById('cabinetCodeSection').style.display = showCodeBox ? '' : 'none';
+  if (showCodeBox) {
     var html =
       '<div class="code-display">' +
         '<div class="code-label">General Collection</div>' +
@@ -12801,7 +12834,12 @@ function buildLocationHtml() {
     if (rows.length) html += '<hr class="note-divider">';
     html += '<div class="field-lbl" style="margin-bottom:6px;">Address</div>' +
       '<div style="font-size:15px;color:var(--text);line-height:1.5;">' + esc(loc.address).replace(/\n/g, '<br>') + '</div>';
-    if (loc.maps_url) {
+    // Trim BEFORE the truthiness test: a whitespace-only Settings cell is
+    // truthy but trims to '', which would render href="" -- and an empty
+    // href resolves to the current document, so GET DIRECTIONS would open
+    // a second copy of the rent app (token and all) in a new tab.
+    var mapsUrl = String(loc.maps_url || '').trim();
+    if (mapsUrl) {
       // Settings' location_maps_url is staff-pasted free text -- if it's
       // missing the protocol (e.g. "www.google.com/maps?...", copied
       // straight from the address bar without "https://"), the browser
@@ -12809,8 +12847,7 @@ function buildLocationHtml() {
       // (scifidojo.com/google.com/maps?... instead of an absolute URL).
       // Normalize once here so the link works regardless of how it was
       // pasted into the sheet.
-      var mapsUrl = String(loc.maps_url).trim();
-      if (mapsUrl && !/^https?:\/\//i.test(mapsUrl)) mapsUrl = 'https://' + mapsUrl;
+      if (!/^https?:\/\//i.test(mapsUrl)) mapsUrl = 'https://' + mapsUrl;
       html += '<a class="feed-btn" style="margin-top:14px;" href="' + esc(mapsUrl) + '" target="_blank" rel="noopener">&#129517; GET DIRECTIONS</a>';
     }
   }
