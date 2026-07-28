@@ -766,13 +766,15 @@ select option{background:var(--panel2);color:var(--text);}
     </div>
     <div class="section-heading">
       <div class="section-title">Rent a Disc</div>
-      <div class="section-sub">Your cabinet code and disc entry, together.</div>
+      <div class="section-sub">Pick a disc, then enter or scan its code below.</div>
     </div>
 
     <div id="walkthroughCard"></div>
 
-    <div class="section-hdr">CABINET CODE<div class="section-hdr-line"></div></div>
-    <div id="codeContent"></div>
+    <div id="cabinetCodeSection">
+      <div class="section-hdr">CABINET CODE<div class="section-hdr-line"></div></div>
+      <div id="codeContent"></div>
+    </div>
 
     <div class="section-hdr" style="margin-top:8px;">ITEM CODE<div class="section-hdr-line"></div></div>
     <div class="section-sub" style="margin:-8px 16px 14px;">Scan or enter the code on the disc case.</div>
@@ -11183,6 +11185,14 @@ function promoPriceHtml(nowCents, wasCents) {
 // ================================================================
 // STATE
 // ================================================================
+// Cabinet codes are hidden for now (2026-07-22): the locked-cabinet
+// model was built for a different location and the old membership
+// system, and both have changed -- the general collection is unlocked
+// for now. The backend still assigns/rotates cabinet_code (Settings,
+// getCustomer, the staff cabinet_codes action) untouched, so flipping
+// this back to true is the only step needed if a location or vault
+// ever needs codes again.
+var SHOW_CABINET_CODES = false;
 var member        = null;
 var token         = null;
 var returnSelected = [];  // item_ids selected for return
@@ -11402,12 +11412,15 @@ async function submitSignup() {
           { k: 'STATUS', v: 'Pending review before rentals are enabled' },
           { k: 'NEXT', v: 'A team member will follow up with you' } ]);
     } else {
+      var welcomeRows = [
+        { k: 'NAME', v: name },
+        { k: 'ACCOUNT ID', v: data.customer_id },
+      ];
+      if (SHOW_CABINET_CODES) welcomeRows.push({ k: 'CABINET CODE', v: data.cabinet_code || 'See the Rent screen' });
+      welcomeRows.push({ k: 'NEXT', v: 'Tap below to rent your first disc' });
       showSuccess('co', 'Welcome to the Dojo!',
         'Bookmark this page or add it to your home screen. It is your personal account link for every visit.' + linkNote,
-        [ { k: 'NAME', v: name },
-          { k: 'ACCOUNT ID', v: data.customer_id },
-          { k: 'CABINET CODE', v: data.cabinet_code || 'See the Rent screen' },
-          { k: 'NEXT', v: 'Tap below to rent your first disc' } ],
+        welcomeRows,
         'CHECK OUT A RENTAL', goFirstRental);
     }
   } catch(e) {
@@ -12095,7 +12108,7 @@ function showRentalReceipt(rentalId) {
     // of payment, so it must show the charged figure, never the accrual.
     rows.push({ k: 'PAID SO FAR', v: member.comp ? 'No charge (staff account)' : money(r.paid) + ' plus tax' });
     if (!member.comp) rows.push({ k: 'MAXIMUM TOTAL CHARGE', v: money(r.cap) + ' plus tax' });
-    if (r.status === 'active') rows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' });
+    if (SHOW_CABINET_CODES && r.status === 'active') rows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' });
   } else {
     rows.push({ k: 'RETURNED', v: fmtDate(r.closed_date) });
     rows.push({ k: 'TOTAL PAID', v: member.comp ? 'No charge (staff account)' : money(r.total_paid) + ' plus tax' });
@@ -12367,14 +12380,17 @@ async function submitRent() {
     // Saved card charged instantly, or a free/comp rental confirmed
     // directly -- refresh the account and celebrate.
     await refreshAfterRent();
+    var rentSuccessRows = [
+      { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
+      { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' plus tax (covers 7 days)' },
+      { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee plus tax until returned, up to the maximum total charge' },
+    ];
+    if (SHOW_CABINET_CODES) rentSuccessRows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' });
     showSuccess('co', 'Enjoy the Movie!',
       member.comp ? 'Logged and ready. Grab your disc from the cabinet.' :
       wasFree     ? 'Your promo credit covered this one. Grab your disc from the cabinet.' :
                     'Paid and ready. Grab your disc from the cabinet.',
-      [ { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
-        { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' plus tax (covers 7 days)' },
-        { k: 'AFTER DAY 7', v: member.comp ? 'Still no charge' : dayRateStr() + '/day extended rental fee plus tax until returned, up to the maximum total charge' },
-        { k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' } ]);
+      rentSuccessRows);
     // Ticket stub: refreshAfterRent() above already pulled the fresh
     // account, so the just-confirmed rental is in all_open -- find it by
     // the returned rental_id (fallback: a synthetic row, so the ticket
@@ -12639,12 +12655,16 @@ function renderWalkthrough() {
   var el = document.getElementById('walkthroughCard');
   if (!el) return;
   if (!shouldShowWalkthrough_()) { el.innerHTML = ''; return; }
+  var steps = SHOW_CABINET_CODES
+    ? '<div class="wt-step"><div class="wt-num">1</div><div class="wt-txt">Use the cabinet code below to open the cabinet.</div></div>' +
+      '<div class="wt-step"><div class="wt-num">2</div><div class="wt-txt">Pick a disc, then find the code printed on its case.</div></div>' +
+      '<div class="wt-step"><div class="wt-num">3</div><div class="wt-txt">Scan or type that code below, then tap the PAY button to check out.</div></div>'
+    : '<div class="wt-step"><div class="wt-num">1</div><div class="wt-txt">Pick a disc from the shelf, then find the code printed on its case.</div></div>' +
+      '<div class="wt-step"><div class="wt-num">2</div><div class="wt-txt">Scan or type that code below, then tap the PAY button to check out.</div></div>';
   el.innerHTML =
     '<div class="walkthrough-card">' +
       '<div class="wt-hdr">FIRST TIME HERE? HERE IS HOW IT WORKS</div>' +
-      '<div class="wt-step"><div class="wt-num">1</div><div class="wt-txt">Use the cabinet code below to open the cabinet.</div></div>' +
-      '<div class="wt-step"><div class="wt-num">2</div><div class="wt-txt">Pick a disc, then find the code printed on its case.</div></div>' +
-      '<div class="wt-step"><div class="wt-num">3</div><div class="wt-txt">Scan or type that code below, then tap the PAY button to check out.</div></div>' +
+      steps +
       '<button class="wt-dismiss" onclick="dismissWalkthrough()">GOT IT</button>' +
     '</div>';
 }
@@ -12660,23 +12680,26 @@ function goCode() {
 
   renderWalkthrough();
 
-  var html =
-    '<div class="code-display">' +
-      '<div class="code-label">General Collection</div>' +
-      '<div class="code-value">' + esc(member.cabinet_code || '----') + '</div>' +
-      '<div class="code-expires">Rotates weekly. Personal to your account. Do not share.</div>' +
-    '</div>';
-
-  if (member.vault_access && member.vault_code) {
-    html +=
-      '<div class="code-display vault">' +
-        '<div class="code-label">Vault Collection</div>' +
-        '<div class="code-value">' + esc(member.vault_code) + '</div>' +
+  document.getElementById('cabinetCodeSection').style.display = SHOW_CABINET_CODES ? '' : 'none';
+  if (SHOW_CABINET_CODES) {
+    var html =
+      '<div class="code-display">' +
+        '<div class="code-label">General Collection</div>' +
+        '<div class="code-value">' + esc(member.cabinet_code || '----') + '</div>' +
         '<div class="code-expires">Rotates weekly. Personal to your account. Do not share.</div>' +
       '</div>';
-  }
 
-  document.getElementById('codeContent').innerHTML = html;
+    if (member.vault_access && member.vault_code) {
+      html +=
+        '<div class="code-display vault">' +
+          '<div class="code-label">Vault Collection</div>' +
+          '<div class="code-value">' + esc(member.vault_code) + '</div>' +
+          '<div class="code-expires">Rotates weekly. Personal to your account. Do not share.</div>' +
+        '</div>';
+    }
+
+    document.getElementById('codeContent').innerHTML = html;
+  }
 
   var locHtml = buildLocationHtml();
   document.getElementById('locationContent').innerHTML = locHtml;
