@@ -12802,7 +12802,16 @@ function buildLocationHtml() {
     html += '<div class="field-lbl" style="margin-bottom:6px;">Address</div>' +
       '<div style="font-size:15px;color:var(--text);line-height:1.5;">' + esc(loc.address).replace(/\n/g, '<br>') + '</div>';
     if (loc.maps_url) {
-      html += '<a class="feed-btn" style="margin-top:14px;" href="' + esc(loc.maps_url) + '" target="_blank" rel="noopener">&#129517; GET DIRECTIONS</a>';
+      // Settings' location_maps_url is staff-pasted free text -- if it's
+      // missing the protocol (e.g. "www.google.com/maps?...", copied
+      // straight from the address bar without "https://"), the browser
+      // treats it as a path relative to THIS site and the link breaks
+      // (scifidojo.com/google.com/maps?... instead of an absolute URL).
+      // Normalize once here so the link works regardless of how it was
+      // pasted into the sheet.
+      var mapsUrl = String(loc.maps_url).trim();
+      if (mapsUrl && !/^https?:\/\//i.test(mapsUrl)) mapsUrl = 'https://' + mapsUrl;
+      html += '<a class="feed-btn" style="margin-top:14px;" href="' + esc(mapsUrl) + '" target="_blank" rel="noopener">&#129517; GET DIRECTIONS</a>';
     }
   }
 
