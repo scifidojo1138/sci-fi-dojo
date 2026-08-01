@@ -288,13 +288,17 @@ buttons that call these live in the onboarding repo's `sfd-staff.html`
 (handled separately) -- deploying this backend just makes the actions
 available.
 
-### Staff catalog: barcode field + quick-receive (added 2026-08-01)
+### Staff catalog: barcode field, quick-receive, label printer (added 2026-08-01)
 
-No new setup step -- paste the backend and publish a new version.
+**Sheet:** one new Catalog column (any position -- reads by header
+name): `label_printed_at`. Leave every existing row blank; the backend
+stamps it, you never type into it by hand.
+
+Otherwise no new setup step -- paste the backend and publish a new version.
 
 - `catalog_staff` (GET, staff_pin) now includes each item's `barcode`
-  alongside the existing `status`/`in_rotation` fields, for the staff
-  app's Item Lookup / label printer.
+  and `label_printed_at` alongside the existing `status`/`in_rotation`
+  fields, for the staff app's Item Lookup / label printer.
 - `add_catalog_item` (new staff-PIN POST action): `{ staff_pin, title,
   format, barcode }` -- quick-receives a freshly-unboxed disc so it's
   rentable same-day. Mints the next `SFD-####` id (lock-protected max-
@@ -307,6 +311,14 @@ No new setup step -- paste the backend and publish a new version.
   purpose -- expected to arrive later via the MyMovies import matched
   by barcode. The staff-terminal UI for this is the onboarding repo's
   job (handled separately); this just makes the action available.
+- `mark_labels_printed` (new staff-PIN POST action): `{ staff_pin,
+  item_ids: [...] }` -- the label printer's batch confirm. Stamps
+  `label_printed_at` with the current timestamp on each item in the
+  batch; an unknown/stale item_id is silently skipped rather than
+  failing the whole print run. Returns `{ ok: true }`, or `{ ok: false,
+  error }` on a bad PIN (same top-level error handling every other
+  action already gets). The staff-terminal label-printer UI that calls
+  this lives in the onboarding repo (handled separately).
 
 ## 2. Apps Script
 
