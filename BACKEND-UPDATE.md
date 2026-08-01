@@ -288,6 +288,26 @@ buttons that call these live in the onboarding repo's `sfd-staff.html`
 (handled separately) -- deploying this backend just makes the actions
 available.
 
+### Staff catalog: barcode field + quick-receive (added 2026-08-01)
+
+No new setup step -- paste the backend and publish a new version.
+
+- `catalog_staff` (GET, staff_pin) now includes each item's `barcode`
+  alongside the existing `status`/`in_rotation` fields, for the staff
+  app's Item Lookup / label printer.
+- `add_catalog_item` (new staff-PIN POST action): `{ staff_pin, title,
+  format, barcode }` -- quick-receives a freshly-unboxed disc so it's
+  rentable same-day. Mints the next `SFD-####` id (lock-protected max-
+  suffix scan, same pattern as customer ids -- safe if two staff
+  receive discs at the same time), writes a minimal row (`status:
+  available`, `in_rotation: TRUE`, `disc_count: 1`, plus the given
+  title/format/barcode), and logs a `catalog_item_added` Transactions
+  row. Everything else a full catalog row eventually carries (genre,
+  synopsis, year, cost, condition, `sort_title`, etc.) is left blank on
+  purpose -- expected to arrive later via the MyMovies import matched
+  by barcode. The staff-terminal UI for this is the onboarding repo's
+  job (handled separately); this just makes the action available.
+
 ## 2. Apps Script
 
 Paste the delivered backend file over the current code, then deploy a **new
