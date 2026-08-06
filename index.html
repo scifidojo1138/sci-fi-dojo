@@ -12,15 +12,17 @@
 <meta name="description" content="Video rental in Belmar, NJ. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD. Inside Vintage on Ninth, 903 Main Street. Thursday-Sunday 12-5pm.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-/* --blue/--orange are read off the printed card photo (indoor lighting,
-   so treat as close-but-approximate) -- swap for exact brand hex if the
-   logo file ever ships with a spec. */
+/* --cyan/--orange are sampled directly from logo.png (the real brand
+   asset) -- #ff6b35 also matches the app's existing --accent2. Both are
+   too light/low-contrast for body text on white, so they're used only
+   in the logo image and as decorative accents (divider), never as
+   small text or a button fill. */
 :root {
   --white:    #ffffff;
-  --blue:     #0e7490;
-  --orange:   #b8420c;
+  --cyan:     #00d4ff;
+  --orange:   #ff6b35;
   --ink:      #14181f;
   --ink-mid:  #4b5563;
 }
@@ -38,26 +40,11 @@ body {
 }
 .wrap { max-width: 520px; width:100%; text-align:center; }
 
-/* Interim text wordmark -- swap for the real logo image when it's ready:
-   <img src="/logo.svg" alt="Sci-Fi Dojo" style="max-width:280px;">
-   in place of the .logo div below. Two-tone treatment matches the
-   printed card: "Sci-Fi" teal-blue, "Dojo" rust-orange, tight kerning. */
-.logo {
-  font-family: 'Orbitron', sans-serif;
-  font-weight: 900;
-  font-size: clamp(38px, 10vw, 62px);
-  line-height: 1;
-  letter-spacing: -.01em;
-  margin-bottom: 12px;
-}
-.logo .sci { color: var(--blue); }
-.logo .dojo { color: var(--orange); }
-
-.tagline-main {
-  font-size: clamp(15px, 3vw, 18px);
-  color: var(--ink);
-  letter-spacing: .01em;
-  margin-bottom: 44px;
+.logo-img {
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin-bottom: 40px;
 }
 
 .section-label {
@@ -95,7 +82,7 @@ body {
   text-transform: uppercase;
   text-decoration: none;
   color: var(--white);
-  background: var(--blue);
+  background: var(--ink);
   padding: 13px 28px;
   border-radius: 999px;
   transition: transform .15s ease, opacity .15s ease;
@@ -111,8 +98,7 @@ footer {
 </head>
 <body>
 <div class="wrap">
-  <div class="logo"><span class="sci">Sci-Fi</span><span class="dojo">Dojo</span></div>
-  <div class="tagline-main">The Return of Movie Night</div>
+  <img class="logo-img" src="logo.png" alt="Sci-Fi Dojo — The Return of Movie Night">
 
   <div class="section-label">Video Rental</div>
   <p class="desc">Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD.</p>
