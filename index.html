@@ -75,11 +75,11 @@ body {
    gallery/2.jpg, ... and only builds this markup for the ones that
    actually load, so an empty /gallery folder renders nothing at all
    rather than a broken/empty box. See gallery/README.md. */
-.gallery { margin: 0 auto 40px; max-width: 440px; }
+.gallery { margin: 0 auto 40px; max-width: 320px; }
 .gallery-viewport {
   position: relative;
   width: 100%;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 3 / 4;
   overflow: hidden;
   border-radius: 10px;
   background: #f2f3f5;
@@ -142,6 +142,13 @@ body {
 }
 .btn:hover { transform: translateY(-1px); opacity: .92; }
 
+.von-note {
+  margin-top: 24px;
+  font-size: 12px;
+  color: var(--ink-mid);
+}
+.von-note a { color: var(--ink-mid); }
+
 footer {
   margin-top: 44px;
   font-size: 11px;
@@ -167,6 +174,8 @@ footer {
   </p>
 
   <a class="btn" href="https://www.instagram.com/scifi_dojo" target="_blank" rel="noopener">Follow on Instagram</a>
+
+  <p class="von-note">For additional hours &amp; events, check out <a href="https://www.instagram.com/vintageonninth/" target="_blank" rel="noopener">Vintage On Ninth on Instagram</a>.</p>
 
   <!-- v2026.08.06 -->
   <footer>v2026.08.06</footer>
