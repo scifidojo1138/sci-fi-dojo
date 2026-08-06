@@ -71,6 +71,59 @@ body {
   border-radius: 2px;
 }
 
+/* Photo carousel -- self-hiding: gallery.js probes gallery/1.jpg,
+   gallery/2.jpg, ... and only builds this markup for the ones that
+   actually load, so an empty /gallery folder renders nothing at all
+   rather than a broken/empty box. See gallery/README.md. */
+.gallery { margin: 0 auto 40px; max-width: 440px; }
+.gallery-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #f2f3f5;
+}
+.gallery-track {
+  display: flex;
+  height: 100%;
+  transition: transform .4s ease;
+}
+.gallery-track img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  flex: 0 0 100%;
+}
+.gallery-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,.88);
+  color: var(--ink);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.gallery-arrow.prev { left: 10px; }
+.gallery-arrow.next { right: 10px; }
+.gallery-dots { display: flex; gap: 6px; justify-content: center; margin-top: 14px; }
+.gallery-dot {
+  width: 6px;
+  height: 6px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: #d8dce3;
+  cursor: pointer;
+  transition: width .2s ease, background .2s ease;
+}
+.gallery-dot.active { width: 18px; background: var(--orange); }
+
 .details { margin-bottom: 40px; font-size: 14px; line-height: 1.9; color: var(--ink); }
 .details strong { font-weight: 700; }
 
@@ -103,6 +156,8 @@ footer {
   <div class="section-label">Video Rental</div>
   <p class="desc">Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD.</p>
 
+  <div id="gallery-mount"></div>
+
   <div class="divider"></div>
 
   <p class="details">
@@ -116,5 +171,96 @@ footer {
   <!-- v2026.08.06 -->
   <footer>v2026.08.06</footer>
 </div>
+
+<script>
+// Photo carousel: probes gallery/1.jpg, gallery/2.jpg, ... up to
+// GALLERY_MAX and only renders slides for the ones that actually load
+// (see gallery/README.md). No matches -- e.g. the folder is still
+// empty -- means this whole section quietly renders nothing.
+(function () {
+  var GALLERY_MAX = 10;
+  var mount = document.getElementById('gallery-mount');
+  if (!mount) return;
+
+  function loadImage(src) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(src); };
+      img.onerror = function () { resolve(null); };
+      img.src = src;
+    });
+  }
+
+  var probes = [];
+  for (var n = 1; n <= GALLERY_MAX; n++) probes.push(loadImage('gallery/' + n + '.jpg'));
+
+  Promise.all(probes).then(function (results) {
+    var srcs = results.filter(Boolean);
+    if (!srcs.length) return;
+    renderGallery(srcs);
+  });
+
+  function renderGallery(srcs) {
+    var multi = srcs.length > 1;
+    mount.innerHTML =
+      '<div class="gallery">' +
+        '<div class="gallery-viewport">' +
+          '<div class="gallery-track">' +
+            srcs.map(function (s) { return '<img src="' + s + '" alt="Sci-Fi Dojo" loading="lazy">'; }).join('') +
+          '</div>' +
+          (multi ?
+            '<button class="gallery-arrow prev" aria-label="Previous photo">&#8249;</button>' +
+            '<button class="gallery-arrow next" aria-label="Next photo">&#8250;</button>'
+            : '') +
+        '</div>' +
+        (multi ? '<div class="gallery-dots"></div>' : '') +
+      '</div>';
+
+    var i = 0;
+    var viewport = mount.querySelector('.gallery-viewport');
+    var track = mount.querySelector('.gallery-track');
+    var dotsWrap = mount.querySelector('.gallery-dots');
+    var dots = [];
+
+    if (dotsWrap) {
+      srcs.forEach(function (_, idx) {
+        var d = document.createElement('button');
+        d.className = 'gallery-dot' + (idx === 0 ? ' active' : '');
+        d.setAttribute('aria-label', 'Go to photo ' + (idx + 1));
+        d.addEventListener('click', function () { stop(); go(idx); });
+        dotsWrap.appendChild(d);
+        dots.push(d);
+      });
+    }
+
+    function go(idx) {
+      i = (idx + srcs.length) % srcs.length;
+      track.style.transform = 'translateX(-' + (i * 100) + '%)';
+      dots.forEach(function (d, di) { d.classList.toggle('active', di === i); });
+    }
+
+    var prevBtn = mount.querySelector('.gallery-arrow.prev');
+    var nextBtn = mount.querySelector('.gallery-arrow.next');
+    if (prevBtn) prevBtn.addEventListener('click', function () { stop(); go(i - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { stop(); go(i + 1); });
+
+    var startX = null;
+    viewport.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+    viewport.addEventListener('touchend', function (e) {
+      if (startX === null) return;
+      var dx = e.changedTouches[0].clientX - startX;
+      if (Math.abs(dx) > 40) { stop(); go(dx < 0 ? i + 1 : i - 1); }
+      startX = null;
+    });
+
+    var timer = null;
+    function start() { if (multi) timer = setInterval(function () { go(i + 1); }, 4500); }
+    function stop() { if (timer) { clearInterval(timer); timer = null; } }
+    viewport.addEventListener('mouseenter', stop);
+    viewport.addEventListener('mouseleave', start);
+    start();
+  }
+})();
+</script>
 </body>
 </html>
