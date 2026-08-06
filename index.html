@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/x-icon" href="favicon-lp-favicon.ico">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon-lp-favicon-96x96.png">
+<link rel="icon" type="image/svg+xml" href="favicon-lp-favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon-lp-apple-touch-icon.png">
+<link rel="manifest" href="favicon-lp-site.webmanifest">
+<title>Sci-Fi Dojo — The Return of Movie Night</title>
+<meta name="description" content="Video rental in Belmar, NJ. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD. Inside Vintage on Ninth, 903 Main Street. Thursday-Sunday 12-5pm.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Exo+2:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --white:    #ffffff;
+  --blue:     #1a4dff;
+  --orange:   #ff6b35;
+  --ink:      #14181f;
+  --ink-mid:  #5a6472;
+  --line:     #e6e9f0;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html, body { height:100%; }
+body {
+  background: var(--white);
+  color: var(--ink);
+  font-family: 'Exo 2', sans-serif;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.wrap { max-width: 560px; width:100%; text-align:center; }
+
+/* Interim text wordmark -- swap for the real logo when it's ready:
+   <img src="/logo.svg" alt="Sci-Fi Dojo" style="max-width:160px;margin-bottom:32px;">
+   in place of the .mark div below. */
+.mark {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: .35em;
+  color: var(--blue);
+  margin-bottom: 32px;
+}
+
+h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 900;
+  font-size: clamp(32px, 7vw, 52px);
+  line-height: 1.12;
+  color: var(--blue);
+  margin-bottom: 18px;
+}
+
+.tagline {
+  font-size: 17px;
+  color: var(--ink-mid);
+  line-height: 1.6;
+  margin: 0 auto 36px;
+  max-width: 440px;
+}
+.tagline strong { color: var(--ink); font-weight: 600; }
+
+.divider {
+  width: 48px;
+  height: 3px;
+  background: var(--orange);
+  margin: 0 auto 32px;
+  border-radius: 2px;
+}
+
+.details { margin-bottom: 36px; }
+.details p { font-size: 16px; line-height: 1.7; color: var(--ink); }
+.details .label {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: .15em;
+  color: var(--orange);
+  text-transform: uppercase;
+  display: block;
+  margin: 18px 0 4px;
+}
+.details .label:first-child { margin-top: 0; }
+
+.btn {
+  display: inline-block;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--white);
+  background: var(--blue);
+  padding: 13px 28px;
+  border-radius: 999px;
+  transition: transform .15s ease, opacity .15s ease;
+}
+.btn:hover { transform: translateY(-1px); opacity: .92; }
+
+footer {
+  margin-top: 44px;
+  font-size: 11px;
+  color: #b7bec9;
+  font-family: 'Share Tech Mono', monospace;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mark">SCI-FI DOJO</div>
+
+  <h1>The Return of Movie Night</h1>
+
+  <p class="tagline">Video rental &mdash; <strong>sci-fi, cult, and hidden gems</strong> on DVD, Blu-ray, and 4K UHD.</p>
+
+  <div class="divider"></div>
+
+  <div class="details">
+    <span class="label">Find Us</span>
+    <p>Inside Vintage on Ninth<br>903 Main Street, Belmar, NJ</p>
+    <span class="label">Hours</span>
+    <p>Thursday &ndash; Sunday, 12&ndash;5pm</p>
+  </div>
+
+  <a class="btn" href="https://www.instagram.com/scifi_dojo" target="_blank" rel="noopener">Follow on Instagram</a>
+
+  <!-- v2026.08.06 -->
+  <footer>v2026.08.06</footer>
+</div>
+</body>
+</html>

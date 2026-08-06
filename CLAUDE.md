@@ -20,13 +20,14 @@ Sci-Fi Dojo (SFD) is a membership-based physical media rental club operating in 
 **This repo (`sci-fi-dojo`, public):**
 | File | URL | Description |
 |---|---|---|
+| `index.html` | `scifidojo.com` | Public landing page (added 2026-08-06) |
 | `member.html` | `scifidojo.com/member?token=tok_xxx` | Member app (legacy model, kept until cutover) |
 | `rent.html` | `scifidojo.com/rent?token=cus_xxx` | Pay-per-rental customer app (Redbox model; no token = signup). Presented publicly as a free SFD Account — see "Pay-Per-Rental" below. |
 | `terms.html` | `scifidojo.com/terms` | Rental terms |
 | `BACKEND-UPDATE.md` | — | Apps Script change log / paste instructions |
 | `TERMS-CHECKLIST.md` | — | Clause checklist for revising `/terms` around pay-per-rental billing |
 
-There is no `index.html`; `netlify.toml` redirects `/` to the Instagram profile (`@scifi_dojo`) until a proper landing page exists.
+**Landing page (`index.html`, added 2026-08-06):** deliberately minimal and distinct from the app pages' dark blue-cyan palette — white background, blue (`#1a4dff`) + orange (`#ff6b35`) accents, single centered column, no build step, no JS. Content is fixed copy (not sheet-driven): headline "The Return of Movie Night", tagline, address (903 Main Street, Belmar, NJ, inside Vintage on Ninth), hours (Thu–Sun 12–5pm), and a Follow on Instagram button (`instagram.com/scifi_dojo`). A text wordmark (`.mark`, Orbitron, letter-spaced) stands in for the logo until a real image is ready — swap it for an `<img>` per the comment above it in the markup. **No Vintage on Ninth link yet** — their URL wasn't available when this was built; add a second button next to Follow on Instagram once you have it. Reuses the pre-existing `favicon-lp-*` asset set (already in the repo from an earlier landing-page attempt). `netlify.toml`'s old `/` → Instagram redirect was removed so this file actually serves at the root — don't re-add a force redirect on `/` without removing this page first, it would silently hide it again.
 
 **Onboarding repo (private Netlify site: `scifidojo-onboarding.netlify.app`):**
 | File | Description |
