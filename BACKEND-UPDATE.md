@@ -320,6 +320,27 @@ Otherwise no new setup step -- paste the backend and publish a new version.
   action already gets). The staff-terminal label-printer UI that calls
   this lives in the onboarding repo (handled separately).
 
+### Owner alerts on signup/rental (added 2026-08-06)
+
+**Sheet:** no new columns. Optional new Settings key `owner_alerts` --
+leave blank (or anything other than `off`) to keep alerts on; set to
+`off` to pause them without a redeploy.
+
+No other setup step -- paste the backend and publish a new version.
+Uses the same SFD Mailer relay already configured for account-link and
+reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
+
+- Fires on every successful `customer_signup`, including a blacklist-
+  flagged one (the alert calls out that it needs review).
+- Fires on `rent_confirm`, but only the real pending/void -> active
+  transition -- never on a redelivered Stripe webhook or a confirm
+  arriving after the rental already closed. Skips `comp` (staff)
+  accounts, since those aren't real rental activity.
+- A failed alert never blocks the signup or the rental it's reporting
+  on -- same fire-and-forget pattern as every other outbound email here.
+- Meant as a temporary while-we're-small signal. Flip `owner_alerts` to
+  `off` in Settings once volume makes it noise instead of signal.
+
 ## 2. Apps Script
 
 Paste the delivered backend file over the current code, then deploy a **new
