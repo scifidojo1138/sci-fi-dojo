@@ -244,6 +244,10 @@ select option{background:var(--panel2);color:var(--text);}
 .ic-msg{font-size:13px;color:var(--text-mid);margin-top:8px;line-height:1.5;}
 .ic-price{font-family:'Orbitron',monospace;font-size:24px;font-weight:800;color:var(--text);margin-top:10px;letter-spacing:.01em;}
 .ic-price-sub{font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:400;letter-spacing:.06em;text-transform:uppercase;color:var(--text-dim);margin-left:8px;}
+/* Extended-rental pitch: sits between the price and the quieter fine
+   print, framed as a feature ("keep it longer") rather than a fee
+   warning -- see the 2026-08-07 copy pass. */
+.ic-feature{font-size:14px;font-weight:600;color:var(--accent);margin-top:10px;line-height:1.5;}
 
 /* RENTAL LIST */
 .rental-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
@@ -704,7 +708,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.07.22</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.07</div>
     <div class="spacer"></div>
   </div>
 
@@ -12310,14 +12314,15 @@ function lookupItem(code) {
     fineMsg = '<strong>Staff account</strong>: no charge. The rental is still logged.';
   } else if (freeCredit) {
     headline = 'Free!';
-    fineMsg = 'Your promo credit covers this rental for 7 days. After that, a ' + dayRateHtml +
-      '/day extended rental fee plus tax applies if you keep it, up to at most ' + money(item.cap_cents || 1000) + ' plus tax in total. ' +
+    fineMsg = '<div class="ic-feature">Your promo credit covers the first 7 days. Keep it longer for just ' + dayRateHtml +
+      '/day plus tax &mdash; up to ' + money(item.cap_cents || 1000) + ' plus tax, max total.</div>' +
       'We will email you a reminder before it is due.' +
-      (member.has_card ? ' Your saved card is on file for any extended fee.' : ' You will enter a card on the next screen — not charged now.');
+      (member.has_card ? ' Your saved card is on file for any extended days.' : ' You will enter a card on the next screen — not charged now.');
   } else {
     headline = promoPriceHtml(baseCents, baseWasCents) + '<span class="ic-price-sub">plus tax &middot; 7 days</span>';
-    fineMsg = 'After that, a ' + dayRateHtml + '/day extended rental fee applies if kept. The most you will pay in total, base price and fees combined, is ' +
-      money(item.cap_cents || 1000) + ' plus tax. We will email you a reminder before it is due.' +
+    fineMsg = '<div class="ic-feature">Keep it longer for just ' + dayRateHtml + '/day plus tax &mdash; up to ' +
+      money(item.cap_cents || 1000) + ' plus tax, max total.</div>' +
+      'We will email you a reminder before it is due.' +
       (member.has_card ? ' Charged to your saved card.' : ' You will enter your card on the next screen.');
   }
 
@@ -13274,11 +13279,11 @@ function browseDetailHtml(it) {
     var dayRateHtml = dayRatePromoActive()
       ? '<s style="opacity:.6;">' + money(standardDayRateCents()) + '</s> ' + dayRateStr()
       : dayRateStr();
-    var extLine = 'Then ' + dayRateHtml + '/day extended rental fee if kept';
+    var extLine = 'Keep it longer for just ' + dayRateHtml + '/day plus tax';
     // Same hide-if-absent rule as the price line above -- an older deploy
     // without cap_cents in the catalog payload should never show a guess.
     if (Object.prototype.hasOwnProperty.call(it, 'cap_cents') && it.cap_cents > 0) {
-      extLine += ', up to ' + money(it.cap_cents) + ' plus tax maximum total charge';
+      extLine += ', up to ' + money(it.cap_cents) + ' plus tax max total';
     }
     facts.push(extLine + '.');
   } else if (Object.prototype.hasOwnProperty.call(it, 'cap_cents') && it.cap_cents > 0) {
