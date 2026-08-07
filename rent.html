@@ -9,7 +9,7 @@
 <link rel="icon" type="image/svg+xml" href="favicon-member-favicon.svg">
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-member-apple-touch-icon.png">
 <link rel="manifest" href="favicon-member-site.webmanifest">
-<title>SFD Account</title>
+<title>Sci-Fi Dojo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap">
@@ -13462,11 +13462,11 @@ function goAccount() {
   var base = 'mailto:scifidojo@aol.com';
 
   changeLink.href = base +
-    '?subject=' + encodeURIComponent('SFD Account - Update My Contact Info') +
+    '?subject=' + encodeURIComponent('Sci-Fi Dojo - Update My Contact Info') +
     '&body=' + encodeURIComponent('Hi,\n\nI would like to update my contact info (name, email, or phone).\n\nAccount: ' + member.customer_id + '\nName: ' + member.display_name + '\n\nThank you');
 
   cancelLink.href = base +
-    '?subject=' + encodeURIComponent('SFD Account - Compromised / Close Account') +
+    '?subject=' + encodeURIComponent('Sci-Fi Dojo - Compromised / Close Account') +
     '&body=' + encodeURIComponent('Hi,\n\nAccount: ' + member.customer_id + ' (' + member.display_name + ')\n\n');
 
   showScreen('screen-account');
