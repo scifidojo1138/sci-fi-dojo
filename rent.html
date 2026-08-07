@@ -12090,7 +12090,7 @@ function renderCurrentRentals() {
       : 'Due back ' + dueDateStr(r.start_date) + ' &bull; ' + money(r.owed_total) + ' so far plus tax &bull; ' +
         money(r.daily > 0 ? r.daily : dayRateCents()) + '/day if kept longer';
     return '<div class="stat-card tappable" style="grid-column:span 2;margin:0 16px 12px;" role="button" tabindex="0" data-rid="' + esc(r.rental_id) + '" onclick="showRentalReceipt(this.dataset.rid)">' +
-      '<div class="stat-label">DISC OUT</div>' +
+      '<div class="stat-label">ACTIVE RENTALS</div>' +
       '<div style="font-weight:600;font-size:16px;color:var(--text);margin:2px 0 4px;">' + esc(r.title) + '</div>' +
       '<div class="stat-sub">' + line2 + ' &bull; tap for details</div>' +
       '</div>';
