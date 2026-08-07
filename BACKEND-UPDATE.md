@@ -341,6 +341,24 @@ reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
 - Meant as a temporary while-we're-small signal. Flip `owner_alerts` to
   `off` in Settings once volume makes it noise instead of signal.
 
+### Per-rental daily rate exposed to the customer app (added 2026-08-07)
+
+**Sheet:** no changes. No new setup step -- paste the backend and
+publish a new version.
+
+Each OPEN rental in `getCustomer`'s payload (`customer.rentals`) now
+carries a `daily` field -- that specific rental's own locked-in
+extended-day rate in cents (`computeAccrued_`'s existing internal
+`dailyCents` value, just not previously returned to any caller). This
+lets rent.html show an already-active rental's real rate even if
+today's live Rental Promo has changed or ended since that rental
+started -- it always accrues at the rate it began with, so showing
+"today's rate" instead could quote the wrong number. Purely additive;
+nothing else in the payload shape changed. If you deploy the frontend
+change before this backend version, rent.html falls back to today's
+live rate for these two spots (same as before this change) until you
+publish this version -- no error, no broken screen either way.
+
 ## 2. Apps Script
 
 Paste the delivered backend file over the current code, then deploy a **new
