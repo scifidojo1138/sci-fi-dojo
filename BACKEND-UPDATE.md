@@ -341,6 +341,27 @@ reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
 - Meant as a temporary while-we're-small signal. Flip `owner_alerts` to
   `off` in Settings once volume makes it noise instead of signal.
 
+### Deployed-version marker on ping (added 2026-08-08)
+
+**Sheet:** no changes. `?action=ping` now returns a `version` field:
+
+```
+{"ok":true,"ts":"2026-08-08T10:59:41.402Z","version":"2026.08.08"}
+```
+
+It reports the `BACKEND_VERSION` constant at the top of the script, so
+you can confirm what is actually deployed by opening the /exec URL with
+`?action=ping` in any browser. Previously there was no way to tell --
+saving in the editor does not deploy, and the Apps Script has no version
+footer the way rent.html and terms.html do.
+
+**When handing over a new backend file, bump `BACKEND_VERSION` to match
+the filename.** A stale value is worse than none: it would confirm a
+deployment that never happened.
+
+The UptimeRobot relay is unaffected -- `"ok":true` still serializes first
+in the body, so its keyword check still matches.
+
 ### Review fixes -- quick-receive pricing, id race, alert safety (2026-08-07)
 
 **Status: DEPLOYED 2026-08-08** (`sfd-backend-2026-08-07d.gs.txt`). This
