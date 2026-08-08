@@ -341,6 +341,36 @@ reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
 - Meant as a temporary while-we're-small signal. Flip `owner_alerts` to
   `off` in Settings once volume makes it noise instead of signal.
 
+### Review fixes -- quick-receive pricing, id race, alert safety (2026-08-07)
+
+Three fixes found in review. All three were **already live**, so this
+version is worth deploying promptly.
+
+1. **`add_catalog_item` now REQUIRES `replacement_cost`.** It previously
+   left that cell blank, which makes `payoffCapCents_` fall back to
+   Settings `default_payoff_cost` ($10) -- and that number is the
+   ceiling on everything SFD can ever collect for the disc. A
+   quick-received $35 4K would be automatically sold for $10 the first
+   time a customer kept it long enough to hit the cap. There is
+   deliberately no default: staff have the disc in hand, and any silent
+   fallback here is a wrong price. **This changes the request shape** --
+   the staff app's quick-receive form needs a "replacement cost" field,
+   and a request without it now returns `{ok:false}` with a clear error.
+   (That UI lives in the onboarding repo -- hand this note over.)
+2. **`add_catalog_item` could mint duplicate item ids.** The script lock
+   only covered the id scan, not the scan-and-append pair, so two staff
+   receiving discs at the same moment could both get `SFD-0760`. The
+   lock now spans both, ending with an explicit flush.
+3. **Owner alerts can no longer fail a signup or a rental confirm.**
+   `ownerAlertsEnabled_()` reads the Settings tab and that read can
+   throw; unwrapped, it turned a *successful* signup into a visible
+   error (and the customer's retry then hit "an account already exists").
+   Now fully wrapped at both call sites. Bonus: with `owner_alerts=off`,
+   rental confirms no longer do a wasted full-Catalog read.
+
+No sheet changes for any of these. `replacement_cost` is an existing
+Catalog column.
+
 ### Per-rental daily rate exposed to the customer app (added 2026-08-07)
 
 **Sheet:** no changes. No new setup step -- paste the backend and
