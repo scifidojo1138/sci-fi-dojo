@@ -708,7 +708,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.07</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.08</div>
     <div class="spacer"></div>
   </div>
 
@@ -904,7 +904,9 @@ select option{background:var(--panel2);color:var(--text);}
     <a class="mgmt-btn mgmt-change" id="accountCardLink" href="javascript:void(0)" role="button" onclick="goUpdateCard(this)" style="display:none;">UPDATE CARD</a>
     <a class="mgmt-btn mgmt-change" id="accountChangeLink" href="mailto:scifidojo@aol.com">UPDATE CONTACT INFO</a>
     <a class="mgmt-btn mgmt-cancel" id="accountCancelLink" href="mailto:scifidojo@aol.com">REPORT COMPROMISED ACCOUNT / CLOSE ACCOUNT</a>
-    <p class="mgmt-note">The base price covers your first 7 days, then a $2/day extended rental fee is billed to your saved card until the disc is returned or the maximum total charge (base price included) is reached. NJ sales tax is added to every charge.</p>
+    <!-- Text is filled in by goAccount() so the day rate tracks any live
+         promo -- do not hardcode a rate back into this markup. -->
+    <p class="mgmt-note" id="accountBillingNote"></p>
     <div class="spacer"></div>
   </div>
 
@@ -13468,6 +13470,20 @@ function goAccount() {
   cancelLink.href = base +
     '?subject=' + encodeURIComponent('SFD Account - Compromised / Close Account') +
     '&body=' + encodeURIComponent('Hi,\n\nAccount: ' + member.customer_id + ' (' + member.display_name + ')\n\n');
+
+  // The day rate is read from dayRateStr() rather than baked into the
+  // markup (fixed 2026-08-07). This note was static HTML reading
+  // "$2/day", and unlike #rentTermsLine -- which goCode() already
+  // rebuilds for exactly this reason -- nothing ever refreshed it. With
+  // a live Rental Promo the Account screen therefore contradicted every
+  // other price surface in the app AND quoted a HIGHER rate than the one
+  // actually charged. Wording deliberately stays in the neutral
+  // "extended rental fee" register rather than the Rent screen's "keep
+  // it longer" pitch: this is account admin, not the purchase moment.
+  document.getElementById('accountBillingNote').textContent = member.comp
+    ? 'Staff account: rentals are logged, but nothing is ever charged and no card is needed.'
+    : 'The base price covers your first 7 days, then a ' + dayRateStr() +
+      '/day extended rental fee is billed to your saved card until the disc is returned or the maximum total charge (base price included) is reached. NJ sales tax is added to every charge.';
 
   showScreen('screen-account');
 }
