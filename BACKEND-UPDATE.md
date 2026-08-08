@@ -378,6 +378,17 @@ Catalog column.
    silently missed, and a missing `label_printed_at` column now throws
    instead of reporting success while stamping nothing.
 
+5. **Signup is now atomic too.** `nextCustomerId_` had the same
+   lock-scope flaw as `add_catalog_item` — the lock covered the id scan
+   but was released before the row was appended, so two simultaneous
+   signups could both mint the same `CUS-####`. The lock now lives in
+   `doCustomerSignup` and spans the duplicate check, the scan, the
+   append, and a flush. That also fixes a second race in the same
+   window: a customer double-tapping CREATE ACCOUNT on a slow connection
+   could get two requests that both passed the duplicate check. The
+   second now loses cleanly with the normal "account already exists"
+   message instead of creating a second row.
+
 **Cross-session status (confirmed 2026-08-07):** the staff app already
 ships the required Replacement Cost field, chunks its label batches, and
 has terminal UI for all the staff catalog/bin actions. `onboard-member.js`
