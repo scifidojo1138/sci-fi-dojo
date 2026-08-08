@@ -71,10 +71,11 @@ body {
   border-radius: 2px;
 }
 
-/* Photo carousel -- self-hiding: gallery.js probes gallery/1.jpg,
-   gallery/2.jpg, ... and only builds this markup for the ones that
-   actually load, so an empty /gallery folder renders nothing at all
-   rather than a broken/empty box. See gallery/README.md. */
+/* Photo carousel -- self-hiding: the inline script at the bottom of this
+   file probes gallery/1.jpg, gallery/2.jpg, ... and only builds this
+   markup for the ones that actually load, so an empty /gallery folder
+   renders nothing at all rather than a broken/empty box. Gaps in the
+   numbering are fine. See gallery/README.md. */
 .gallery { margin: 0 auto 40px; max-width: 320px; }
 .gallery-viewport {
   position: relative;
@@ -177,8 +178,8 @@ footer {
 
   <p class="von-note">For additional hours &amp; events, check out <a href="https://www.instagram.com/vintageonninth/" target="_blank" rel="noopener">Vintage On Ninth on Instagram</a>.</p>
 
-  <!-- v2026.08.06 -->
-  <footer>v2026.08.06</footer>
+  <!-- v2026.08.08 -->
+  <footer>v2026.08.08</footer>
 </div>
 
 <script>
@@ -236,7 +237,7 @@ footer {
         var d = document.createElement('button');
         d.className = 'gallery-dot' + (idx === 0 ? ' active' : '');
         d.setAttribute('aria-label', 'Go to photo ' + (idx + 1));
-        d.addEventListener('click', function () { stop(); go(idx); });
+        d.addEventListener('click', function () { go(idx); restart(); });
         dotsWrap.appendChild(d);
         dots.push(d);
       });
@@ -250,23 +251,51 @@ footer {
 
     var prevBtn = mount.querySelector('.gallery-arrow.prev');
     var nextBtn = mount.querySelector('.gallery-arrow.next');
-    if (prevBtn) prevBtn.addEventListener('click', function () { stop(); go(i - 1); });
-    if (nextBtn) nextBtn.addEventListener('click', function () { stop(); go(i + 1); });
+    if (prevBtn) prevBtn.addEventListener('click', function () { go(i - 1); restart(); });
+    if (nextBtn) nextBtn.addEventListener('click', function () { go(i + 1); restart(); });
 
-    var startX = null;
-    viewport.addEventListener('touchstart', function (e) { startX = e.touches[0].clientX; }, { passive: true });
+    // Swipe must be clearly HORIZONTAL to count. Measuring only dx meant
+    // an ordinary vertical page scroll that happened to start on the
+    // photo -- easy on a phone, where this 3:4 box fills much of the
+    // screen -- would drift 40px sideways, advance the slide, and (with
+    // the old stop-and-never-restart behavior) kill autoplay for the
+    // rest of the visit.
+    var startX = null, startY = null;
+    viewport.addEventListener('touchstart', function (e) {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+    }, { passive: true });
     viewport.addEventListener('touchend', function (e) {
       if (startX === null) return;
       var dx = e.changedTouches[0].clientX - startX;
-      if (Math.abs(dx) > 40) { stop(); go(dx < 0 ? i + 1 : i - 1); }
-      startX = null;
+      var dy = e.changedTouches[0].clientY - startY;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { go(dx < 0 ? i + 1 : i - 1); restart(); }
+      startX = startY = null;
     });
 
     var timer = null;
-    function start() { if (multi) timer = setInterval(function () { go(i + 1); }, 4500); }
-    function stop() { if (timer) { clearInterval(timer); timer = null; } }
-    viewport.addEventListener('mouseenter', stop);
-    viewport.addEventListener('mouseleave', start);
+    // start() is guarded so it can never stack two intervals; restart()
+    // gives a fresh full interval after a manual move, so the carousel
+    // doesn't jump again a moment after the visitor picked a slide.
+    function start()   { if (multi && !timer) timer = setInterval(function () { go(i + 1); }, 4500); }
+    function stop()    { if (timer) { clearInterval(timer); timer = null; } }
+    function restart() { stop(); if (!hovering) start(); }
+
+    // Hover-to-pause only on devices that actually hover. Wiring it
+    // unconditionally left touch users permanently paused: a tap fires a
+    // synthetic mouseenter whose matching mouseleave doesn't arrive
+    // until they tap somewhere else.
+    //
+    // Bound to the whole .gallery, not just the photo -- the dots sit
+    // outside .gallery-viewport, so pausing on the viewport alone meant
+    // reaching for a dot un-paused the carousel and it could advance out
+    // from under the click.
+    var hovering = false;
+    var root = mount.querySelector('.gallery');
+    if (root && window.matchMedia && window.matchMedia('(hover: hover)').matches) {
+      root.addEventListener('mouseenter', function () { hovering = true;  stop();  });
+      root.addEventListener('mouseleave', function () { hovering = false; start(); });
+    }
     start();
   }
 })();
