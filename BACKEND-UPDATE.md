@@ -371,6 +371,19 @@ version is worth deploying promptly.
 No sheet changes for any of these. `replacement_cost` is an existing
 Catalog column.
 
+4. **`mark_labels_printed` is now one read + one write** instead of one
+   full Catalog read *per label*. A 300-label batch costs the same as a
+   1-label batch. It also now returns `{ ok: true, requested, stamped }`
+   so the printer UI can tell a real success from a batch where every id
+   silently missed, and a missing `label_printed_at` column now throws
+   instead of reporting success while stamping nothing.
+
+**Cross-session status (confirmed 2026-08-07):** the staff app already
+ships the required Replacement Cost field, chunks its label batches, and
+has terminal UI for all the staff catalog/bin actions. `onboard-member.js`
+and `stripe-webhook.js` were verified to already send `server_key` — the
+long-standing "blocking follow-up" on that is cleared, nothing was broken.
+
 ### Per-rental daily rate exposed to the customer app (added 2026-08-07)
 
 **Sheet:** no changes. No new setup step -- paste the backend and
