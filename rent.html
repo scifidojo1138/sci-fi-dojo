@@ -10,6 +10,29 @@
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-member-apple-touch-icon.png">
 <link rel="manifest" href="favicon-member-site.webmanifest">
 <title>Sci-Fi Dojo</title>
+<!-- Link-preview cards (added 2026-08-08). Without these, scrapers fall
+     back to scraping page prose and were picking up the rent screen's
+     terms line, so sharing the signup link previewed as a paragraph
+     about daily fees. Scrapers don't run JS either, so it showed the
+     static $2/day even while a promo was live. og:url is deliberately
+     the bare /rent -- a customer sharing their personal ?token= link
+     must never have that token echoed into a preview card.
+     These do not conflict with the noindex above: that governs search
+     indexing, this governs how a pasted link renders. -->
+<meta name="description" content="Free account. No deposit, no monthly fee, pay only when you rent. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD, inside Vintage on Ninth in Belmar, NJ.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sci-Fi Dojo">
+<meta property="og:title" content="Sci-Fi Dojo">
+<meta property="og:description" content="Free account. No deposit, no monthly fee, pay only when you rent. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD, inside Vintage on Ninth in Belmar, NJ.">
+<meta property="og:url" content="https://scifidojo.com/rent">
+<meta property="og:image" content="https://scifidojo.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Sci-Fi Dojo — The Return of Movie Night">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sci-Fi Dojo">
+<meta name="twitter:description" content="Free account. No deposit, no monthly fee, pay only when you rent. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD, inside Vintage on Ninth in Belmar, NJ.">
+<meta name="twitter:image" content="https://scifidojo.com/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;500;600&display=swap">
