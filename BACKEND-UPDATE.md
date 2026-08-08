@@ -343,8 +343,12 @@ reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
 
 ### Review fixes -- quick-receive pricing, id race, alert safety (2026-08-07)
 
-Three fixes found in review. All three were **already live**, so this
-version is worth deploying promptly.
+**Status: DEPLOYED 2026-08-08** (`sfd-backend-2026-08-07d.gs.txt`). This
+section, the per-rental daily rate below, and the owner alerts above are
+all live.
+
+Fixes found in review. All of these bugs were **already live** when
+found, which is why this version shipped promptly.
 
 1. **`add_catalog_item` now REQUIRES `replacement_cost`.** It previously
    left that cell blank, which makes `payoffCapCents_` fall back to
