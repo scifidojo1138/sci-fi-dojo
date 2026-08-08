@@ -343,6 +343,8 @@ reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
 
 ### Deployed-version marker on ping (added 2026-08-08)
 
+**Status: DEPLOYED 2026-08-08** (`sfd-backend-2026-08-08.gs.txt`).
+
 **Sheet:** no changes. `?action=ping` now returns a `version` field:
 
 ```
