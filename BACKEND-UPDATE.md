@@ -341,6 +341,37 @@ reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
 - Meant as a temporary while-we're-small signal. Flip `owner_alerts` to
   `off` in Settings once volume makes it noise instead of signal.
 
+### Friends & family: promo codes can raise a rental limit (added 2026-08-09)
+
+**Sheet:** add one column to the **Promo Codes** tab: `rental_limit`.
+Leave it blank on existing codes -- blank means "no limit change", so
+they keep behaving exactly as they do now.
+
+| code | active | rental_limit | notes |
+|---|---|---|---|
+| `usetheforce` | TRUE | | public, free rental |
+| `movienight` | TRUE | 3 | friends & family |
+
+Redeeming a code that has a number there raises that account's
+`rental_limit` to it, on top of the free rental every code already
+grants. Both rewards come from the single redemption on purpose -- there
+is one lifetime redemption per customer, so a friend would otherwise
+have to pick one and could easily pick the wrong one.
+
+Why this instead of a `?invite=` signup link: a link only ever works at
+signup, and most friends and family already have an account by the time
+you think to send them one. The promo card on the Rent screen works for
+new and existing accounts alike, and it's a screen every customer passes
+through on the way to renting.
+
+Two guardrails: it only ever **raises** a limit (so one you set by hand
+in the staff terminal is never knocked back down), and it caps at 5
+server-side, so a typo in the sheet can't hand out 50 slots.
+
+To revoke: set that code's `active` to FALSE. Accounts already upgraded
+keep their limit -- lower them individually in the staff terminal if
+you ever need to.
+
 ### Deployed-version marker on ping (added 2026-08-08)
 
 **Status: DEPLOYED 2026-08-08** (`sfd-backend-2026-08-08.gs.txt`).

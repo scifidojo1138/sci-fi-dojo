@@ -731,7 +731,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.08</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.09</div>
     <div class="spacer"></div>
   </div>
 
@@ -12851,7 +12851,15 @@ async function submitPromoCode() {
     await refreshAfterRent();
     renderPromoSection();
     document.getElementById('promoCodeInput').value = '';
-    alertEl.innerHTML = '';
+    // A code carrying a rental_limit (the friends & family case) also
+    // raises how many discs the account can hold at once. The tiles pick
+    // that up automatically from the refresh above, but say it out loud
+    // too -- renderPromoSection()'s banner only mentions the free
+    // rental, so the upgrade would otherwise be invisible to the person
+    // who just redeemed it.
+    alertEl.innerHTML = data.rental_limit
+      ? banner('ok', '&#10003;', '<strong>You can now rent ' + esc(String(data.rental_limit)) + ' at a time.</strong>')
+      : '';
     btn.disabled = false;
     btn.textContent = 'APPLY CODE';
     // If an item is already entered/confirmed, refresh its price line so
