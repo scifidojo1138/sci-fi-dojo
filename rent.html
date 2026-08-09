@@ -11372,9 +11372,29 @@ function reportClientError(context, err, extra) {
 // Top-level error handler -- surfaces any init failure on screen
 window.onerror = function(msg, src, line, col, err) {
   console.error('Unhandled error:', msg, 'at line', line, err);
+
+  // Cross-origin sentinel (added 2026-08-09). When a script served from
+  // another origin throws, browsers withhold the message, file and line
+  // for security and hand this handler the literal string "Script
+  // error." with no source and line 0. In practice that is nearly always
+  // a browser extension rather than anything in this app -- there is
+  // genuinely nothing to act on. It was previously doing two harmful
+  // things: emailing the shop a report containing no information (about
+  // half of all error mail), and painting a red JS ERROR over the
+  // loading screen, so an unrelated extension could make the app look
+  // broken to a customer standing at the cabinet.
+  if (/^script error\.?$/i.test(String(msg || '').trim())) return true;
+
   reportClientError('window.onerror', err || { message: msg }, 'line ' + line);
+
+  // Only paint the failure state when the loading screen is ACTUALLY
+  // what the customer is looking at. This used to write unconditionally,
+  // which also destroyed the loading screen's markup for any later code
+  // path that shows it again.
   var el = document.getElementById('screen-loading');
-  if (el) el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#ff3b5c;font-family:monospace;font-size:13px;">JS ERROR: ' + esc(msg) + ' (line ' + esc(line) + ')</div>';
+  if (el && el.classList.contains('active')) {
+    el.innerHTML = '<div style="padding:40px 20px;text-align:center;color:#ff3b5c;font-family:monospace;font-size:13px;">JS ERROR: ' + esc(msg) + ' (line ' + esc(line) + ')</div>';
+  }
   return true;
 };
 
