@@ -48,7 +48,15 @@ body {
   font-family: 'Share Tech Mono', monospace;
   min-height: 100dvh;
   display: flex;
+  /* Centring vertically is fine while the content fits, but once it is
+     taller than the viewport (which it became when the photo carousel
+     landed) plain `center` overflows in BOTH directions and the top of
+     the page -- the logo -- gets clipped off above the fold with no way
+     to scroll to it. `safe center` falls back to flex-start in exactly
+     that case. Both declarations are kept: browsers that don't know
+     `safe` ignore the second line and keep the old behaviour. */
   align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: 40px 24px;
 }
