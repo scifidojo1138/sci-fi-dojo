@@ -115,11 +115,21 @@ function makeSandbox(tabs) {
     flush: () => { log.flushes++; },
     getActiveSpreadsheet: () => ({ getSheetByName: () => null, insertSheet: () => null }),
   };
+  // Models CacheService faithfully enough to catch real failures: the
+  // 100KB-per-value cap is enforced, because a payload that silently
+  // exceeded it would make the cache a no-op in production.
   ctx.CacheService = (() => {
     const c = {};
+    const CAP = 100 * 1024;
+    const put = (k, v) => {
+      if (String(v).length > CAP) throw new Error('Argument too large: value');
+      c[k] = String(v);
+    };
     return { getScriptCache: () => ({
       get: (k) => (k in c ? c[k] : null),
-      put: (k, v) => { c[k] = v; },
+      getAll: (keys) => { const o = {}; keys.forEach((k) => { if (k in c) o[k] = c[k]; }); return o; },
+      put,
+      putAll: (obj) => { Object.keys(obj).forEach((k) => put(k, obj[k])); },
       remove: (k) => { delete c[k]; },
     }) };
   })();

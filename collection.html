@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/x-icon" href="favicon-lp-favicon.ico">
+<link rel="icon" type="image/png" sizes="96x96" href="favicon-lp-favicon-96x96.png">
+<link rel="icon" type="image/svg+xml" href="favicon-lp-favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="favicon-lp-apple-touch-icon.png">
+<link rel="manifest" href="favicon-lp-site.webmanifest">
+<title>The Collection — Sci-Fi Dojo</title>
+<meta name="description" content="Browse the Sci-Fi Dojo rental collection. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD in Belmar, NJ. Rentals from $3.">
+<!-- Deliberately indexable, unlike /rent. Someone searching for a title
+     plus the town is exactly the visitor this page is for. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Sci-Fi Dojo">
+<meta property="og:title" content="The Collection — Sci-Fi Dojo">
+<meta property="og:description" content="Browse the Sci-Fi Dojo rental collection. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD in Belmar, NJ.">
+<meta property="og:url" content="https://scifidojo.com/collection">
+<meta property="og:image" content="https://scifidojo.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="The Collection — Sci-Fi Dojo">
+<meta name="twitter:description" content="Browse the Sci-Fi Dojo rental collection. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD in Belmar, NJ.">
+<meta name="twitter:image" content="https://scifidojo.com/og-image.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+/* Matches index.html's white/clean public look, NOT the dark app
+   palette -- this is a storefront page, not the rental app. */
+:root {
+  --white:   #ffffff;
+  --cyan:    #00d4ff;
+  --orange:  #ff6b35;
+  --ink:     #14181f;
+  --ink-mid: #4b5563;
+  --line:    #e6e9f0;
+  --wash:    #f6f7f9;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--white);
+  color: var(--ink);
+  font-family: 'Share Tech Mono', monospace;
+  line-height: 1.5;
+  padding: 32px 20px 64px;
+}
+.wrap { max-width: 1000px; margin: 0 auto; }
+
+header { text-align: center; margin-bottom: 28px; }
+.logo-img { width: 100%; max-width: 260px; height: auto; margin-bottom: 18px; }
+h1 { font-size: 15px; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; }
+.sub { font-size: 13px; color: var(--ink-mid); margin-top: 8px; }
+.sub a { color: var(--ink); }
+
+/* Controls */
+.controls { margin: 0 auto 20px; max-width: 640px; }
+#q {
+  width: 100%; padding: 12px 14px; font-family: inherit; font-size: 15px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--wash); color: var(--ink);
+}
+#q:focus { outline: 2px solid var(--cyan); outline-offset: 1px; background: var(--white); }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 12px; }
+.chip {
+  font-family: inherit; font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line);
+  background: var(--white); color: var(--ink-mid); cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.count { text-align: center; font-size: 12px; color: var(--ink-mid); margin-bottom: 20px; min-height: 18px; }
+
+/* Grid */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 16px; }
+.card { text-align: left; }
+.thumb {
+  position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: 6px; overflow: hidden;
+  background: var(--wash); border: 1px solid var(--line); margin-bottom: 8px;
+}
+/* The cover must be absolutely positioned too, not static: .noart below
+   is absolute, and an absolutely-positioned sibling paints ABOVE a
+   static one regardless of DOM order -- which showed the placeholder
+   title through every piece of artwork. Being absolute AND later in the
+   document puts the image on top, and it simply isn't there (onerror
+   removes it) when a cover is missing. */
+.thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Sits underneath; only ever seen when there's no cover file. */
+.thumb .noart {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  padding: 10px; font-size: 11px; line-height: 1.35; color: var(--ink-mid); text-align: center;
+}
+.out {
+  position: absolute; left: 6px; top: 6px; background: rgba(20,24,31,.88); color: #fff;
+  font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
+}
+.t { font-size: 13px; line-height: 1.3; }
+.m { font-size: 11px; color: var(--ink-mid); margin-top: 3px; }
+
+.msg { text-align: center; color: var(--ink-mid); font-size: 13px; padding: 40px 0; }
+.msg button {
+  font-family: inherit; font-size: 12px; margin-top: 12px; padding: 8px 16px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--white); cursor: pointer;
+}
+footer { text-align: center; margin-top: 48px; font-size: 11px; color: #b9c0ca; }
+footer a { color: var(--ink-mid); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a href="/"><img class="logo-img" src="logo.png" alt="Sci-Fi Dojo"></a>
+    <h1>The Collection</h1>
+    <p class="sub">Rentals from $3 plus tax, 7 days. <a href="/rent">Create a free account</a> to rent.</p>
+  </header>
+
+  <div class="controls">
+    <input id="q" type="search" placeholder="Search by title..." autocomplete="off" aria-label="Search the collection">
+    <div class="filters" id="formatFilters"></div>
+    <div class="filters" id="genreFilters"></div>
+  </div>
+
+  <p class="count" id="count" role="status" aria-live="polite"></p>
+  <div class="grid" id="grid"></div>
+  <div class="msg" id="msg">Loading the collection...</div>
+
+  <!-- v2026.08.10 -->
+  <footer>
+    <a href="/">Home</a> &middot; <a href="/rent">My Account</a> &middot; <a href="/terms">Terms</a><br>
+    v2026.08.10
+  </footer>
+</div>
+
+<script>
+(function () {
+  var ENDPOINT = 'https://script.google.com/macros/s/AKfycby7PvoGckOSEuE_qBR0Rl12sudFnjnf5rT4rNu0kUSJ_lmFVvAbjBBo5DdlVfNZpnwjDQ/exec?action=public_catalog';
+  var ALL = [], fmt = '', genre = '', q = '';
+  var grid = document.getElementById('grid');
+  var msg = document.getElementById('msg');
+  var countEl = document.getElementById('count');
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function chips(el, values, current, onPick, allLabel) {
+    el.innerHTML = '';
+    [''].concat(values).forEach(function (v) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.textContent = v || allLabel;
+      b.setAttribute('aria-pressed', v === current ? 'true' : 'false');
+      b.addEventListener('click', function () { onPick(v); });
+      el.appendChild(b);
+    });
+  }
+
+  function visible() {
+    var needle = q.trim().toLowerCase();
+    return ALL.filter(function (it) {
+      if (fmt && it.format !== fmt) return false;
+      if (genre && !(it.genre || []).some(function (g) { return g === genre; })) return false;
+      if (needle && it.title.toLowerCase().indexOf(needle) === -1) return false;
+      return true;
+    });
+  }
+
+  function render() {
+    var items = visible();
+    countEl.textContent = items.length
+      ? items.length + (items.length === 1 ? ' title' : ' titles')
+      : '';
+    if (!items.length) {
+      grid.innerHTML = '';
+      msg.textContent = 'No titles match that. Try a different search or clear the filters.';
+      return;
+    }
+    msg.textContent = '';
+    // loading="lazy" matters: only the covers actually scrolled into
+    // view are ever downloaded, so a 700-title grid stays cheap.
+    grid.innerHTML = items.map(function (it) {
+      var id = esc(it.id);
+      var meta = [it.year, it.format].filter(Boolean).map(esc).join(' &middot; ');
+      return '<div class="card">' +
+        '<div class="thumb">' +
+          '<span class="noart">' + esc(it.title) + '</span>' +
+          '<img src="covers/' + encodeURIComponent(it.id) + '.jpg" alt="" loading="lazy" ' +
+               'onerror="this.remove()">' +
+          (it.avail ? '' : '<span class="out">Out</span>') +
+        '</div>' +
+        '<div class="t">' + esc(it.title) + '</div>' +
+        (meta ? '<div class="m">' + meta + '</div>' : '') +
+      '</div>';
+    }).join('');
+  }
+
+  function buildFilters() {
+    var formats = {}, genres = {};
+    ALL.forEach(function (it) {
+      if (it.format) formats[it.format] = 1;
+      (it.genre || []).forEach(function (g) { if (g) genres[g] = 1; });
+    });
+    chips(document.getElementById('formatFilters'), Object.keys(formats).sort(),
+      fmt, function (v) { fmt = v; buildFilters(); render(); }, 'All formats');
+    // Genres are long-tailed; showing only the common ones keeps this to
+    // a usable row instead of a wall of 28 chips.
+    var common = Object.keys(genres).filter(function (g) {
+      return ALL.filter(function (it) { return (it.genre || []).indexOf(g) !== -1; }).length >= 8;
+    }).sort();
+    chips(document.getElementById('genreFilters'), common,
+      genre, function (v) { genre = v; buildFilters(); render(); }, 'All genres');
+  }
+
+  var timer = null;
+  document.getElementById('q').addEventListener('input', function (e) {
+    q = e.target.value;
+    clearTimeout(timer);
+    timer = setTimeout(render, 180);
+  });
+
+  function load() {
+    msg.textContent = 'Loading the collection...';
+    fetch(ENDPOINT)
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok || !d.catalog) throw new Error('bad payload');
+        ALL = d.catalog.slice().sort(function (a, b) {
+          // `sort` is only sent when it differs from the title.
+          var as = (a.sort || a.title).toLowerCase();
+          var bs = (b.sort || b.title).toLowerCase();
+          return as < bs ? -1 : as > bs ? 1 : 0;
+        });
+        buildFilters();
+        render();
+      })
+      .catch(function () {
+        grid.innerHTML = '';
+        countEl.textContent = '';
+        msg.innerHTML = 'Could not load the collection just now.<br><button type="button" id="retry">Try again</button>';
+        document.getElementById('retry').addEventListener('click', load);
+      });
+  }
+  load();
+})();
+</script>
+</body>
+</html>
