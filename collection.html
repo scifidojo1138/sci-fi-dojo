@@ -9,20 +9,20 @@
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-lp-apple-touch-icon.png">
 <link rel="manifest" href="favicon-lp-site.webmanifest">
 <title>The Collection — Sci-Fi Dojo</title>
-<meta name="description" content="Browse the Sci-Fi Dojo rental collection. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD in Belmar, NJ. Rentals from $3.">
+<meta name="description" content="Browse the Sci-Fi Dojo rental collection, then visit the shop in Belmar, NJ to rent. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD. Inside Vintage On Ninth, 903 Main Street.">
 <!-- Deliberately indexable, unlike /rent. Someone searching for a title
      plus the town is exactly the visitor this page is for. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sci-Fi Dojo">
 <meta property="og:title" content="The Collection — Sci-Fi Dojo">
-<meta property="og:description" content="Browse the Sci-Fi Dojo rental collection. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD in Belmar, NJ.">
+<meta property="og:description" content="Browse the collection, then visit the shop in Belmar, NJ to rent. Inside Vintage On Ninth, 903 Main Street.">
 <meta property="og:url" content="https://scifidojo.com/collection">
 <meta property="og:image" content="https://scifidojo.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="The Collection — Sci-Fi Dojo">
-<meta name="twitter:description" content="Browse the Sci-Fi Dojo rental collection. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD in Belmar, NJ.">
+<meta name="twitter:description" content="Browse the collection, then visit the shop in Belmar, NJ to rent. Inside Vintage On Ninth, 903 Main Street.">
 <meta name="twitter:image" content="https://scifidojo.com/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,6 +54,11 @@ header { text-align: center; margin-bottom: 28px; }
 h1 { font-size: 15px; letter-spacing: .18em; text-transform: uppercase; font-weight: 700; }
 .sub { font-size: 13px; color: var(--ink-mid); margin-top: 8px; }
 .sub a { color: var(--ink); }
+/* Address and hours live on the page itself, not just the footer: this
+   is the indexable side of the site, so someone arriving from a search
+   for a title should be able to act on it without another click. */
+.where { font-size: 13px; color: var(--ink); margin-top: 10px; line-height: 1.7; }
+.where strong { font-weight: 700; }
 
 /* Controls */
 .controls { margin: 0 auto 20px; max-width: 640px; }
@@ -111,7 +116,9 @@ footer a { color: var(--ink-mid); }
   <header>
     <a href="/"><img class="logo-img" src="logo.png" alt="Sci-Fi Dojo"></a>
     <h1>The Collection</h1>
-    <p class="sub">Rentals from $3 plus tax, 7 days. <a href="/rent">Create a free account</a> to rent.</p>
+    <p class="sub">Visit the shop to rent any title below. Rentals from $3 plus tax, 7 days.</p>
+    <p class="where">Inside <strong>Vintage On Ninth</strong>, 903 Main Street, Belmar, NJ<br>
+      Thursday &ndash; Sunday, 12&ndash;5pm</p>
   </header>
 
   <div class="controls">
