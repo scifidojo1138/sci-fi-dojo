@@ -343,6 +343,8 @@ reminder emails, sent to `REPLY_TO_EMAIL` (`scifidojo@aol.com`).
 
 ### Friends & family: promo codes can raise a rental limit (added 2026-08-09)
 
+**Status: DEPLOYED 2026-08-09** (`sfd-backend-2026-08-09.gs.txt`, confirmed via `?action=ping`).
+
 **Sheet:** add one column to the **Promo Codes** tab: `rental_limit`.
 Leave it blank on existing codes -- blank means "no limit change", so
 they keep behaving exactly as they do now.
