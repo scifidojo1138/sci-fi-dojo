@@ -82,15 +82,7 @@ body {
   color: var(--ink-mid);
   line-height: 1.7;
   max-width: 400px;
-  margin: 0 auto 40px;
-}
-
-.desc-link {
-  display: inline-block;
-  margin-top: 10px;
-  color: var(--ink);
-  font-size: 13px;
-  letter-spacing: .04em;
+  margin: 0 auto 20px;
 }
 
 .divider {
@@ -172,6 +164,10 @@ body {
   transition: transform .15s ease, opacity .15s ease;
 }
 .btn:hover { transform: translateY(-1px); opacity: .92; }
+/* Same pill as the Instagram CTA, just carrying its own bottom margin so
+   the gap above the photo carousel stays what it was before this became
+   a button. */
+.btn-collection { margin-bottom: 40px; }
 
 .von-note {
   margin-top: 24px;
@@ -192,8 +188,9 @@ footer {
   <img class="logo-img" src="logo.png" alt="Sci-Fi Dojo — The Return of Movie Night">
 
   <div class="section-label">Video Rental</div>
-  <p class="desc">Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD.<br>
-    <a class="desc-link" href="/collection">Browse the collection &rsaquo;</a></p>
+  <p class="desc">Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD.</p>
+
+  <a class="btn btn-collection" href="/collection">Browse the Collection</a>
 
   <div id="gallery-mount"></div>
 
@@ -209,8 +206,8 @@ footer {
 
   <p class="von-note">For additional hours &amp; events, check out <a href="https://www.instagram.com/vintageonninth/" target="_blank" rel="noopener">Vintage On Ninth on Instagram</a>.</p>
 
-  <!-- v2026.08.10 -->
-  <footer>v2026.08.10</footer>
+  <!-- v2026.08.11 -->
+  <footer>v2026.08.11</footer>
 </div>
 
 <script>
