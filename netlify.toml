@@ -1,0 +1,22 @@
+# Netlify configuration for scifidojo.com.
+#
+# NOTE: do NOT add a redirect on "/" -- index.html is the real landing
+# page and a force redirect there would silently hide it (that mistake
+# was made once already with an Instagram redirect).
+
+# Short vanity link for the News12 story, so it can be said out loud,
+# printed on a card, or posted without pasting a 90-character URL.
+#
+# 302, not 301: browsers cache a 301 aggressively and effectively
+# forever, so anyone who followed this link once could never be sent
+# anywhere else. A 302 keeps /news12 repointable later -- at a newer
+# story, or at a press page listing several -- without stranding people
+# on a stale cached destination.
+#
+# No `force = true` on purpose: without it Netlify serves a real file at
+# this path if one ever exists, and only falls through to the redirect
+# otherwise. That is the safe failure direction.
+[[redirects]]
+  from = "/news12"
+  to = "https://newjersey.news12.com/be-kind-rewind-movie-rental-pop-up-opens-at-the-jersey-shore"
+  status = 302
