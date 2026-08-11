@@ -320,6 +320,27 @@ Otherwise no new setup step -- paste the backend and publish a new version.
   action already gets). The staff-terminal label-printer UI that calls
   this lives in the onboarding repo (handled separately).
 
+### disc_count on the staff catalog, for the label printer (added 2026-08-11)
+
+**Status: ready to paste** (`sfd-backend-2026-08-11.gs.txt`).
+
+**Sheet:** no changes. `disc_count` is an existing Catalog column.
+
+One field added to `catalog_staff`'s response:
+`disc_count: parseInt(r.disc_count || 1, 10)`. A box set or TV series
+needs one label per disc, and the printer had no way to know how many
+that was -- everything else in that payload is per-title.
+
+It is a real number, not a string, and a blank cell reads as `1` rather
+than `0` or `undefined`, so an unfilled row still prints one label. Same
+coercion `mapSheetItem` has always used for this column, deliberately
+identical so the two never drift.
+
+One caveat inherited from that shared pattern: a non-numeric cell (a
+typo like `two`) yields `NaN`, which serializes to `null`. `2 discs`
+parses fine as `2`; only genuinely non-numeric text is affected. Worth
+knowing if a label run ever comes up short.
+
 ### Owner alerts on signup/rental (added 2026-08-06)
 
 **Sheet:** no new columns. Optional new Settings key `owner_alerts` --

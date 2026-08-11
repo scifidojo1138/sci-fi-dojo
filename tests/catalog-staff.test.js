@@ -10,7 +10,7 @@ module.exports = () => suite('catalog: quick-receive, label printer, staff paylo
   // --- getCatalogStaff --------------------------------------------------
   {
     const ctx = withPin(makeSandbox({ Catalog: [
-      { item_id: 'SFD-0001', title: 'Alien', format: 'Blu-ray', status: 'Available',
+      { item_id: 'SFD-0001', title: 'Alien', format: 'Blu-ray', status: 'Available', disc_count: 3,
         in_rotation: 'TRUE', barcode: '012345678905', label_printed_at: '2026-07-30T10:00:00.000Z' },
       { item_id: 'SFD-0002', title: 'Dune', format: '4K UHD', status: 'Checked_Out', in_rotation: 'FALSE' },
     ] }));
@@ -23,6 +23,14 @@ module.exports = () => suite('catalog: quick-receive, label printer, staff paylo
       [res.catalog[1].barcode, res.catalog[1].label_printed_at], ['', '']);
     t.eq('default hides out-of-rotation items', ctx.getCatalogStaff().catalog.length, 1);
     t.eq('all=true includes them (for pre-printing labels)', res.catalog.length, 2);
+
+    // disc_count drives the label printer: a 3-disc box set needs 3
+    // labels, not 1. Mirrors mapSheetItem's existing coercion exactly.
+    t.eq('disc_count is a real number, not a string', res.catalog[0].disc_count, 3);
+    t.eq('a blank cell defaults to 1 (never 0, never undefined)', res.catalog[1].disc_count, 1);
+    t.eq('a numeric string coerces',
+      withPin(makeSandbox({ Catalog: [{ item_id: 'X', disc_count: '4', in_rotation: 'TRUE' }] }))
+        .getCatalogStaff().catalog[0].disc_count, 4);
   }
 
   // --- add_catalog_item: replacement_cost is required -------------------
