@@ -374,6 +374,40 @@ To revoke: set that code's `active` to FALSE. Accounts already upgraded
 keep their limit -- lower them individually in the staff terminal if
 you ever need to.
 
+### Public catalog feed for /collection (added 2026-08-10)
+
+**Status: DEPLOYED 2026-08-10** (`sfd-backend-2026-08-10.gs.txt`,
+confirmed via `?action=ping`).
+
+**Sheet:** no changes. Adds one GET action, `?action=public_catalog`,
+which feeds the public browse page at `scifidojo.com/collection`.
+
+**No key and no token, on purpose.** It is public data by definition --
+the whole point is that anyone can browse it without an account -- and
+`API_KEY` is already visible in page source, so requiring it would add
+another file to the rotation list for no real protection. Same reasoning
+as `ping`.
+
+**Abuse protection is the cache instead.** `/collection` is on the
+indexable side of the site (unlike `/rent`, which is `noindex`), so
+crawlers will hit it. The response is cached for 5 minutes, which bounds
+the ~700-row Catalog read no matter how much traffic arrives. Because
+`CacheService` caps a single value at 100KB and the payload is ~120KB,
+the cache is split across numbered keys -- a plain `put()` would have
+failed on every write and cached nothing at all.
+
+**What it returns per title:** `id, title, format, year, genre[], avail`
+(plus `sort` only when the sort title genuinely differs). Deliberately
+NOT returned: pricing, `barcode`, `imdb_id`, `cost`, `replacement_cost`,
+`notes`, `condition`, holder, or the raw `status` -- availability is
+collapsed to a boolean so operational states like `missing`/`damaged`/
+`sold` never surface publicly. Vault and out-of-rotation items are
+filtered out entirely.
+
+**Cover art** comes from the repo-committed `/covers/<item_id>.jpg`
+files, the same ones rent.html's Browse and the receipt ticket use -- so
+a missing or mismatched cover shows up in all three places.
+
 ### Deployed-version marker on ping (added 2026-08-08)
 
 **Status: DEPLOYED 2026-08-08** (`sfd-backend-2026-08-08.gs.txt`).
