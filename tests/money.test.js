@@ -2,7 +2,14 @@
 // since it decides what every customer is actually charged.
 const { makeSandbox, suite } = require('./lib/sandbox');
 
-const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+// Nudged one minute INSIDE the boundary, deliberately. Exactly n days ago
+// is a coin flip: computeAccrued_ evaluates ceil((now - start)/1day) a few
+// milliseconds after this timestamp is built, so the quotient lands at
+// n.0000001 and ceil returns n+1. The assertion then silently becomes a
+// day-(n+1) test and fails by one day's rate, intermittently and with no
+// relation to whatever was actually changed. The minute keeps every
+// daysAgo(n) firmly on day n without moving any boundary being tested.
+const daysAgo = (n) => new Date(Date.now() - n * 86400000 + 60000).toISOString();
 const item = (o) => Object.assign({ item_id: 'SFD-0001', rental_price: '3', replacement_cost: '' }, o);
 
 module.exports = () => suite('money: computeAccrued_ / caps / grace', (t) => {

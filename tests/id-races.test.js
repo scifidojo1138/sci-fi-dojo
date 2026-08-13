@@ -67,11 +67,49 @@ module.exports = () => suite('id races: signup + quick-receive are atomic', (t) 
   {
     // A deleted Customers row must not have its id reissued while
     // Rentals history still references it.
+    // customer_token is present because a real Customers tab always has
+    // it -- the sandbox derives headers from the first row's keys, and
+    // nextCustomerId_ now propagates a header-guard failure rather than
+    // swallowing it, so a too-minimal fixture would read as a broken tab.
     const ctx = makeSandbox({
-      Customers: [{ customer_id: 'CUS-0001' }],
+      Customers: [{ customer_id: 'CUS-0001', customer_token: 'tok1' }],
       Rentals: [{ customer_id: 'CUS-0009', rental_id: 'RNT-1' }],
     });
     t.eq('id scan spans Customers AND Rentals', ctx.nextCustomerId_(), 'CUS-0010');
+  }
+  {
+    // The scan used to swallow ANY failure reading a tab and carry on with
+    // whatever it had. That re-buries the exact bug the header guard was
+    // added to surface: a Rentals tab that exists but cannot be read would
+    // silently reissue an id still referenced by rental history.
+    const broken = () => {
+      const ctx = makeSandbox({
+        Customers: [{ customer_id: 'CUS-0001', customer_token: 't' }],
+        Rentals: [{ customer_id: 'CUS-0009', rental_id: 'RNT-1' }],
+      });
+      ctx.__setHeaders('Rentals', ['customer_id']);  // rental_id header displaced
+      return ctx;
+    };
+    t.threw('an unreadable Rentals tab now throws instead of minting blind',
+      () => broken().nextCustomerId_(), 'rental_id');
+    // The old code returned CUS-0002 here: it saw only Customers and
+    // ignored CUS-0009 sitting in Rentals. That single call is not itself
+    // a collision, but it is the mechanism -- an id present only in
+    // rental history stops being counted, so the counter walks back over
+    // it and reissues it to somebody new.
+    let minted = null;
+    try { minted = broken().nextCustomerId_(); } catch(e) {}
+    t.eq('  ...and never returns an id minted from a partial scan', minted, null);
+  }
+  {
+    // A tab that genuinely does not exist is still fine to skip -- there
+    // are no ids in it to collide with, and Rentals is absent on a fresh
+    // install. Only "exists but unreadable" is fatal.
+    const ctx = makeSandbox({ Customers: [{ customer_id: 'CUS-0003', customer_token: 't' }] });
+    let id = null;
+    t.noThrow('a missing Rentals tab is skipped, not fatal',
+      () => { id = ctx.nextCustomerId_(); });
+    t.eq('  ...and the id still comes from Customers', id, 'CUS-0004');
   }
 
   // --- catalog ids -----------------------------------------------------

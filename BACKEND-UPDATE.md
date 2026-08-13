@@ -387,10 +387,11 @@ rotation, wrong status, and vault all shared one `Item not available`
 message, so the alert email never said which to go and look at. Each now
 names its own cause and still carries the item id.
 
-**Known adjacent issue, not fixed:** `nextCustomerId_` wraps its Rentals
-read in a bare `try/catch`, so a broken Rentals header would still
-silently degrade id minting rather than surfacing. Out of scope here;
-worth revisiting if it ever bites.
+**Follow-up, fixed in 2026-08-13c:** `nextCustomerId_` wrapped its Rentals
+read in a bare `try/catch`, which would have caught the new header guard
+and thrown the benefit away -- the scan would carry on with Customers
+alone, silently dropping any id that exists only in rental history. It now
+tolerates only a genuinely absent tab and rethrows everything else.
 
 ### disc_count on the staff catalog, for the label printer (added 2026-08-11)
 
