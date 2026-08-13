@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Only the two public, indexable pages belong here. /rent, /terms and
+  /member are noindex, and listing a noindex page in a sitemap just
+  earns a warning in Search Console.
+
+  lastmod is hand-maintained (there is no build step on this site). It is
+  a hint rather than a promise, so a stale value is harmless. Update it
+  when a page changes meaningfully and otherwise leave it alone.
+
+  Note for future edits: an XML comment may not contain a double hyphen
+  anywhere inside it, which makes the em-dash-free house style here a
+  hard requirement rather than a preference.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://scifidojo.com/</loc>
+    <lastmod>2026-08-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://scifidojo.com/collection</loc>
+    <lastmod>2026-08-11</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>

@@ -1,0 +1,14 @@
+# scifidojo.com
+#
+# Everything is crawlable on purpose. /rent, /terms and /member carry
+# their own <meta name="robots" content="noindex"> instead of being
+# blocked here -- deliberately, because the two are not interchangeable:
+# a page blocked in robots.txt cannot be fetched at all, so Google never
+# reads the noindex tag and may still list the bare URL if it finds a
+# link to it somewhere. Letting crawlers in is what makes the noindex
+# actually stick.
+
+User-agent: *
+Allow: /
+
+Sitemap: https://scifidojo.com/sitemap.xml

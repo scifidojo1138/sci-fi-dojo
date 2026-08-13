@@ -10,6 +10,10 @@
 <link rel="manifest" href="favicon-lp-site.webmanifest">
 <title>Sci-Fi Dojo — The Return of Movie Night</title>
 <meta name="description" content="Video rental in Belmar, NJ. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD. Inside Vintage on Ninth, 903 Main Street. Thursday-Sunday 12-5pm.">
+<!-- Points Google at the real domain. Without this the Netlify subdomain
+     this site also answers on can get indexed as duplicate content and
+     compete with scifidojo.com in search results. -->
+<link rel="canonical" href="https://scifidojo.com/">
 <!-- Link-preview card (added 2026-08-08), same set as /rent. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sci-Fi Dojo">
@@ -27,6 +31,53 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<!-- Structured data for local search (added 2026-08-11). Lets Google read
+     the address, hours and shop-in-shop relationship as data instead of
+     inferring them from prose, which is what feeds the map pack and the
+     knowledge panel. MovieRentalStore is a real schema.org type and an
+     exact fit.
+
+     Deliberately NO "geo" block: a guessed lat/long drops the map pin in
+     the wrong place, which is worse than no pin at all. Google geocodes
+     the postal address on its own.
+
+     Keep this in sync with the visible copy below -- structured data
+     that contradicts the page is treated as a spam signal. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MovieRentalStore",
+  "name": "Sci-Fi Dojo",
+  "description": "Video rental in Belmar, NJ. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD.",
+  "url": "https://scifidojo.com/",
+  "logo": "https://scifidojo.com/logo.png",
+  "image": "https://scifidojo.com/og-image.jpg",
+  "email": "scifidojo@aol.com",
+  "priceRange": "$",
+  "currenciesAccepted": "USD",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "903 Main Street",
+    "addressLocality": "Belmar",
+    "addressRegion": "NJ",
+    "postalCode": "07719",
+    "addressCountry": "US"
+  },
+  "containedInPlace": {
+    "@type": "Store",
+    "name": "Vintage On Ninth"
+  },
+  "openingHoursSpecification": [
+    {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Thursday", "Friday", "Saturday", "Sunday"],
+      "opens": "12:00",
+      "closes": "17:00"
+    }
+  ],
+  "sameAs": ["https://www.instagram.com/scifi_dojo"]
+}
+</script>
 <style>
 /* --cyan/--orange are sampled directly from logo.png (the real brand
    asset) -- #ff6b35 also matches the app's existing --accent2. Both are
