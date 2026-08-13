@@ -752,7 +752,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.13</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.13b</div>
     <div class="spacer"></div>
   </div>
 
@@ -11381,10 +11381,38 @@ function reportClientError(context, err, extra) {
         extra: extra || '',
         customer_id: (member && member.customer_id) || '',
         screen: screen,
+        // Sent as a string so the backend can tell a missing field from a
+        // genuine false. This is the fact that decides whether a network
+        // failure is worth acting on: offline means the phone lost its
+        // connection, online means the request left a connected device
+        // and something really did fail.
+        online: (typeof navigator.onLine === 'boolean') ? String(navigator.onLine) : '',
         user_agent: navigator.userAgent,
       }),
     }).catch(function() {});
   } catch(e) {}
+}
+
+// ----------------------------------------------------------------
+// Was the page backgrounded during a given stretch of time?
+//
+// iOS Safari kills in-flight fetches when the page is hidden or the
+// phone locks, which surfaces as a generic "Load failed" network error.
+// That is a customer putting their phone away, not a fault worth an
+// email, and it is the most common cause of the loadMember-stale alert.
+//
+// Testing document.hidden inside the catch block does NOT work: by the
+// time the request fails and the handler runs, the customer has usually
+// come back and it reads false again. So count transitions INTO hidden
+// and compare the count across the request instead.
+// ----------------------------------------------------------------
+var pageHiddenTicks = 0;
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) pageHiddenTicks++;
+});
+
+function backgroundedSince_(mark) {
+  return document.hidden || pageHiddenTicks !== mark;
 }
 
 // ================================================================
@@ -11635,6 +11663,11 @@ async function loadMember(tok) {
     renderStatus();
   }
 
+  // Marked before the try, not inside it, so the catch can never see it
+  // undefined -- that would compare unequal and silently suppress a real
+  // alert, which is the wrong direction to fail in.
+  var visMark = pageHiddenTicks;
+
   try {
     setAccountStatus('loading');
     setMsg('Account loading... please stand by.');
@@ -11713,14 +11746,16 @@ async function loadMember(tok) {
     } else if (memberFromCache) {
       // Connection failed but we have cached data -- keep the dashboard
       // usable and flag it as stale instead of dead-ending on an error.
-      reportClientError('loadMember-stale', e, 'served from cache');
+      if (!backgroundedSince_(visMark)) {
+        reportClientError('loadMember-stale', e, 'served from cache');
+      }
       memberStale = true;
       setAccountStatus('offline');
       renderStatus();
       loadCatalog(tok);
       loadUpdates(tok);
     } else {
-      reportClientError('loadMember', e, '');
+      if (!backgroundedSince_(visMark)) reportClientError('loadMember', e, '');
       setAccountStatus('offline');
       showError('Connection Interrupted',
         'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +

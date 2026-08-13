@@ -320,6 +320,32 @@ Otherwise no new setup step -- paste the backend and publish a new version.
   action already gets). The staff-terminal label-printer UI that calls
   this lives in the onboarding repo (handled separately).
 
+### Device-online line on error alerts (2026-08-13b)
+
+**Status: ready to paste** (`sfd-backend-2026-08-13b.gs.txt`). Contains
+everything in the 2026-08-13 file below, so paste this one instead.
+
+**Sheet:** no changes.
+
+`client_error` reports now carry `navigator.onLine` from the moment of
+failure, and the alert email renders it as a `Device online:` line:
+`yes`, `NO -- the phone had no connection, likely not a fault`, or
+`(unknown)`.
+
+That one fact is what decides whether an alert is worth acting on. A
+network error from a phone that had no signal is nothing to fix; the same
+error from a connected device means something really did fail.
+
+Sent as the string `'true'`/`'false'` rather than a boolean so a report
+from an older client that omits the field stays distinguishable from a
+genuine `false` -- reading a missing field as "offline" would be exactly
+the wrong conclusion, and a test pins that.
+
+Pairs with a rent.html change that suppresses these reports entirely when
+the page was backgrounded mid-fetch (iOS Safari kills in-flight requests
+when the phone locks). Deploy this after that ships, so the new field has
+somewhere to appear.
+
 ### Catalog integrity: blank status, header guard, error causes (2026-08-13)
 
 **Status: ready to paste** (`sfd-backend-2026-08-13.gs.txt`). This file
