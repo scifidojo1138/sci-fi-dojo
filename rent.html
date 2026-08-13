@@ -99,8 +99,15 @@ body::after{
 }
 .logo{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;color:var(--accent);letter-spacing:2px;text-shadow:var(--glow);}
 .logo span{color:var(--accent2);}
-.hdr-r{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-mid);display:flex;align-items:center;gap:6px;letter-spacing:.04em;}
-.live-dot{width:6px;height:6px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);animation:blink 2s ease-in-out infinite;}
+.hdr-r{font-family:'Share Tech Mono',monospace;font-size:12px;color:var(--text-mid);display:flex;align-items:center;gap:7px;letter-spacing:.05em;white-space:nowrap;}
+/* Dot semantics: BLINKING means working, SOLID means settled. The base
+   class used to blink green permanently, which reads as "busy" while
+   actually meaning "fine" -- backwards. Colour never carries the state on
+   its own; the label beside it always says the same thing in words. */
+.live-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--success);box-shadow:0 0 6px var(--success);}
+.live-dot.working{background:var(--warning);box-shadow:0 0 6px var(--warning);animation:blink 1s ease-in-out infinite;}
+.live-dot.online {background:var(--success);box-shadow:0 0 8px var(--success);}
+.live-dot.offline{background:var(--danger); box-shadow:0 0 6px var(--danger);}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
 
 /* BACK NAV */
@@ -633,7 +640,12 @@ select option{background:var(--panel2);color:var(--text);}
 <div class="page">
   <header class="header">
     <div class="logo">SCI-FI <span>DOJO</span></div>
-    <div class="hdr-r"><div class="live-dot"></div>Account</div>
+    <!-- Live connection readout, driven by setAccountStatus(). Starts in
+         the loading state because the app always opens by fetching; the
+         no-token signup path resets it to idle. -->
+    <div class="hdr-r" id="acctStatus" aria-live="polite">
+      <div class="live-dot working" id="acctDot"></div><span id="acctStatusText">Account: Loading</span>
+    </div>
   </header>
 
   <!-- LOADING -->
@@ -641,7 +653,10 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="loading-wrap">
       <div class="loading-logo">SCI-FI <span>DOJO</span></div>
       <div class="spin-lg"></div>
-      <div class="loading-msg">Loading your account...</div>
+      <!-- The id is what lets loadMember swap in "Finalizing your
+           rental..." / "Saving your card...". It was missing, so every
+           one of those setMsg() calls silently did nothing. -->
+      <div class="loading-msg" id="loadingMsg">Account loading... please stand by.</div>
     </div>
   </div>
 
@@ -11415,7 +11430,9 @@ var cardUpdatedReturn = false; // true when arriving back from Stripe Checkout (
   cardUpdatedReturn = p.get('card_updated') === '1';
 
   if (!token) {
-    // New customer: the signup screen IS the front door
+    // New customer: the signup screen IS the front door. No account
+    // exists yet, so the header must not claim to be loading one.
+    setAccountStatus('idle');
     showScreen('screen-signup');
     return;
   }
@@ -11613,7 +11630,8 @@ async function loadMember(tok) {
   }
 
   try {
-    setMsg('Loading your account...');
+    setAccountStatus('loading');
+    setMsg('Account loading... please stand by.');
     var res  = await fetchWithTimeout(BACKEND_URL + '?action=customer&key=' + encodeURIComponent(API_KEY) + '&token=' + encodeURIComponent(tok));
     var data = await res.json();
     if (!data.ok) throw new Error(data.error);
@@ -11653,6 +11671,10 @@ async function loadMember(tok) {
     memberStale     = false;
     lastMemberFetch = Date.now();
     writeMemberCache(member);
+    // Cold start == nothing was rendered from cache, i.e. the customer
+    // actually watched the loading screen. `cached` (not memberFromCache,
+    // which was just cleared above) is the honest test.
+    accountOnline_(!cached);
 
     // Render dashboard immediately -- don't wait for catalog
     catalogStatus = 'loading';
@@ -11677,6 +11699,7 @@ async function loadMember(tok) {
       // Token rejected -- cached data for it must not be reused
       clearMemberCache();
       member = null;
+      setAccountStatus('idle');
       showError('Account Link Invalid',
         'This link is not valid. Scan the QR code at the cabinet to create an account, or use the personal link from when you signed up.' +
         '<br><br>' +
@@ -11686,11 +11709,13 @@ async function loadMember(tok) {
       // usable and flag it as stale instead of dead-ending on an error.
       reportClientError('loadMember-stale', e, 'served from cache');
       memberStale = true;
+      setAccountStatus('offline');
       renderStatus();
       loadCatalog(tok);
       loadUpdates(tok);
     } else {
       reportClientError('loadMember', e, '');
+      setAccountStatus('offline');
       showError('Connection Interrupted',
         'Your account is fine. The server took too long to respond — this usually clears up on the first retry.' +
         '<br><br>' +
@@ -11786,8 +11811,8 @@ function setCatalogStatus(status) {
     }
   }
   // The status chip lives in the fixed top strip so it's visible without
-  // scrolling. An in-flight account update takes priority over it.
-  if (appBusyCount > 0) return;
+  // scrolling. It no longer has to yield to an in-flight account update:
+  // that moved to the header readout, so the two can't collide.
   var bar = document.getElementById('appStatusBar');
   if (!bar) return;
   if (status === 'ready') {
@@ -11805,24 +11830,72 @@ function retryCatalog() {
 }
 
 // ----------------------------------------------------------------
-// "Updating account..." chip in the top strip, shown while a fresh
-// account fetch is in flight (after a rental, a return, or a focus
+// Header account-status readout.
+//
+// Reports CONNECTION state only, never account health -- paused,
+// flagged and failed-card accounts have their own banners, and two
+// unrelated meanings in one indicator reads as neither. A paused
+// account whose fetch succeeded is legitimately "online" here.
+//
+// Division of labour: this owns account state, #appStatusBar owns
+// catalog state. They used to fight over the same strip.
+// ----------------------------------------------------------------
+var ACCT_STATES = {
+  idle:    ['',        'Account'],
+  loading: ['working', 'Account: Loading'],
+  syncing: ['working', 'Account: Syncing'],
+  granted: ['online',  'Access Granted'],
+  online:  ['online',  'Account: Online'],
+  offline: ['offline', 'Account: Offline'],
+};
+var acctGrantTimer = null;
+
+function setAccountStatus(state) {
+  var dot = document.getElementById('acctDot');
+  var txt = document.getElementById('acctStatusText');
+  if (!dot || !txt) return;
+  if (acctGrantTimer) { clearTimeout(acctGrantTimer); acctGrantTimer = null; }
+  var s = ACCT_STATES[state] || ACCT_STATES.idle;
+  dot.className = 'live-dot' + (s[0] ? ' ' + s[0] : '');
+  txt.textContent = s[1];
+  // ACCESS GRANTED is a single beat, not a resting state: it settles into
+  // ONLINE so the header always ends up reporting the steady truth rather
+  // than a stale moment of theatre.
+  if (state === 'granted') {
+    acctGrantTimer = setTimeout(function() { setAccountStatus('online'); }, 1800);
+  }
+}
+
+// The flourish plays once per tab session, and only on a cold start.
+// The app silently refreshes on tab focus and after every rental and
+// return -- replaying it each time turns cinematic into gimmicky by the
+// tenth viewing. sessionStorage (not localStorage) so a genuinely new
+// visit still gets it. Safari private mode throws on access, hence the
+// try/catch: a storage failure must never cost the customer the status.
+var ACCESS_GRANTED_KEY = 'sfd_access_granted_shown';
+
+function accountOnline_(coldStart) {
+  var first = false;
+  try {
+    if (coldStart && !sessionStorage.getItem(ACCESS_GRANTED_KEY)) {
+      sessionStorage.setItem(ACCESS_GRANTED_KEY, '1');
+      first = true;
+    }
+  } catch(e) {}
+  setAccountStatus(first ? 'granted' : 'online');
+}
+
+// ----------------------------------------------------------------
+// Account refresh in flight (after a rental, a return, or a focus
 // refresh). Counted so overlapping refreshes don't clear each other.
+// The chip itself now lives in the header, not the top strip.
 // ----------------------------------------------------------------
 var appBusyCount = 0;
 
 function appBusy(on) {
   appBusyCount += on ? 1 : -1;
   if (appBusyCount < 0) appBusyCount = 0;
-  var bar = document.getElementById('appStatusBar');
-  if (!bar) return;
-  if (appBusyCount > 0) {
-    bar.innerHTML = '<div class="catalog-status"><div class="catalog-dot loading"></div><span class="catalog-status-text">UPDATING ACCOUNT...</span></div>';
-  } else if (catalogStatus === 'ready') {
-    bar.innerHTML = '';
-  } else {
-    setCatalogStatus(catalogStatus); // restore the catalog chip (loading/failed)
-  }
+  setAccountStatus(appBusyCount > 0 ? 'syncing' : (memberStale ? 'offline' : 'online'));
 }
 
 // ================================================================
@@ -12335,8 +12408,13 @@ var rentSelection = null; // { item_id, title } pending payment
 async function goFirstRental() {
   if (member) { goRentFlow(); return; }
   showScreen('screen-loading');
+  // Deliberately NOT setting 'loading' here: signupWarm is a
+  // refreshAfterRent() that already drives the header through
+  // appBusy(), and if it resolved before this ran the await returns
+  // instantly and there would be nothing left to clear a 'loading'
+  // state -- the header would stick on it for the rest of the session.
   var msgEl = document.getElementById('loadingMsg');
-  if (msgEl) msgEl.textContent = 'Loading your account...';
+  if (msgEl) msgEl.textContent = 'Account loading... please stand by.';
   if (signupWarm) { try { await signupWarm; } catch(e) {} }
   if (member) { goRentFlow(); return; }
   loadMember(token); // warm-up failed: full loader (it has retry/error UI)
