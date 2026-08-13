@@ -578,8 +578,13 @@ select option{background:var(--panel2);color:var(--text);}
 /* APP STATUS STRIP -- pinned to the top of the viewport so loading and
    updating states are visible without scrolling (it used to live at the
    bottom of the dashboard where nobody saw it). */
+/* Anchored to the header, not the viewport: as an absolutely-positioned
+   child of the sticky .header, top:100% IS the header's bottom edge, so
+   the chip can never sit on top of the logo or the account readout and
+   there is no hardcoded header height to drift out of sync. Taken out of
+   flow, so the header's flex layout is unaffected. */
 #appStatusBar{
-  position:fixed;top:0;left:0;right:0;z-index:800;
+  position:absolute;top:100%;left:0;right:0;z-index:800;
   display:flex;justify-content:center;pointer-events:none;
 }
 #appStatusBar .catalog-status{
@@ -616,8 +621,6 @@ select option{background:var(--panel2);color:var(--text);}
 </head>
 <body>
 
-<!-- APP STATUS STRIP (fixed at the top of the viewport) -->
-<div id="appStatusBar" aria-live="polite"></div>
 
 <!-- CAMERA -->
 <div class="cam-overlay hidden" id="camOverlay" role="dialog" aria-modal="true" aria-label="QR code scanner">
@@ -646,6 +649,9 @@ select option{background:var(--panel2);color:var(--text);}
     <div class="hdr-r" id="acctStatus" aria-live="polite">
       <div class="live-dot working" id="acctDot"></div><span id="acctStatusText">Account: Loading</span>
     </div>
+    <!-- Catalog status. Lives inside the header so it hangs just below
+         it rather than floating over it. -->
+    <div id="appStatusBar" aria-live="polite"></div>
   </header>
 
   <!-- LOADING -->
@@ -11941,7 +11947,7 @@ function renderFeeds() {
       // is a direct child of #rewindSection, so without this it renders
       // flush to the viewport edge while the sibling .feed-cards are
       // inset by 16px. Same inline fix the Genre toggle already uses.
-      '<div class="note-toggle" style="margin:0 16px 4px;" id="noteToggleOlderUpdates" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsOlderUpdates" onclick="toggleNote(\'OlderUpdates\')">' +
+      '<div class="note-toggle" style="margin:0 20px 4px;" id="noteToggleOlderUpdates" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsOlderUpdates" onclick="toggleNote(\'OlderUpdates\')">' +
         '<span class="note-toggle-lbl">Show older posts (' + older.length + ')</span>' +
         '<span class="note-chevron" id="noteChevronOlderUpdates">+</span>' +
       '</div>' +
