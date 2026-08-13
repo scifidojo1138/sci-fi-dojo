@@ -320,9 +320,55 @@ Otherwise no new setup step -- paste the backend and publish a new version.
   action already gets). The staff-terminal label-printer UI that calls
   this lives in the onboarding repo (handled separately).
 
+### Catalog integrity: blank status, header guard, error causes (2026-08-13)
+
+**Status: ready to paste** (`sfd-backend-2026-08-13.gs.txt`). This file
+also contains the `disc_count` change below, so it supersedes
+`sfd-backend-2026-08-11.gs.txt` -- paste this one instead.
+
+**Sheet:** no changes.
+
+Prompted by a live failure during the first real rentals: a customer hit
+`Item not found: SFD-0934` at the cabinet on a row that existed. Three
+fixes, none of which depend on the others.
+
+**1. A blank `status` cell now means available.** `in_rotation` is what
+decides whether an item is rentable; a hand-added Catalog row routinely
+leaves `status` empty, and that used to make the row permanently
+unrentable. Worse, it still appeared in the app as browsable, because
+`getCatalog` filters on `in_rotation` and not on `status` -- so the
+customer got all the way to the pay button before anything objected. All
+status reads now go through one `itemStatus_()` helper (the rent check,
+the staff payload, `mapSheetItem`, the public `/collection` feed, and the
+Dashboard counts) so the rule cannot drift between them.
+
+**2. A missing key header now throws by name.** Columns are matched by
+header name, so a header cell that gets moved, renamed or overwritten
+turns every value in that column into `undefined` -- silently, and the
+damage surfaces far away wearing someone else's clothes. That is what
+produced "Item not found" for a row that was present: with the Catalog's
+`item_id` header displaced, EVERY lookup failed at once, which reads like
+one missing row rather than a broken column. `sheetToObjects` now checks
+a small `REQUIRED_HEADERS` map (Catalog `item_id`; Customers
+`customer_id`/`customer_token`; Rentals `rental_id`) and throws naming the
+tab, the column, and where to look. Key columns only, deliberately: it is
+not a schema validator, and listing merely-important columns risks
+failing reads that would have worked (Rentals `item_id` was tried and
+reverted for exactly that reason).
+
+**3. The three "cannot rent this" causes are told apart.** Out of
+rotation, wrong status, and vault all shared one `Item not available`
+message, so the alert email never said which to go and look at. Each now
+names its own cause and still carries the item id.
+
+**Known adjacent issue, not fixed:** `nextCustomerId_` wraps its Rentals
+read in a bare `try/catch`, so a broken Rentals header would still
+silently degrade id minting rather than surfacing. Out of scope here;
+worth revisiting if it ever bites.
+
 ### disc_count on the staff catalog, for the label printer (added 2026-08-11)
 
-**Status: ready to paste** (`sfd-backend-2026-08-11.gs.txt`).
+**Status: superseded by the 2026-08-13 file above, which includes it.**
 
 **Sheet:** no changes. `disc_count` is an existing Catalog column.
 

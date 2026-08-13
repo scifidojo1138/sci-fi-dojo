@@ -57,11 +57,32 @@ function makeSandbox(tabs) {
 
   const rowsOf = (tab) => (store[tab] = store[tab] || []);
 
+  // The genuine sheetToObjects, captured before the stub below replaces
+  // it. The stub short-circuits the real header mapping, so without this
+  // no suite could prove sheetToObjects still CALLS the required-header
+  // guard -- a mutation that deleted the call left every test green.
+  // Drive this one through the getSheet mock (with __setHeaders) to
+  // exercise the real production path end to end.
+  ctx.__realSheetToObjects = ctx.sheetToObjects;
+
   ctx.sheetToObjects = (tab) => {
     log.reads[tab] = (log.reads[tab] || 0) + 1;
     if (!log.lockHeld) log.readsWhileUnlocked[tab] = (log.readsWhileUnlocked[tab] || 0) + 1;
     if (!(tab in store)) throw new Error('Tab not found: ' + tab);
-    return rowsOf(tab);
+    const rows = rowsOf(tab);
+    // This stub returns the row objects directly instead of replaying the
+    // real header mapping, so the required-header guard would never run
+    // here. Call the REAL guard (and the real REQUIRED_HEADERS map) on the
+    // effective headers, so a suite is testing the backend's rule rather
+    // than a reimplementation of it. Mirrors sheetToObjects' own early
+    // return for an empty tab.
+    if (rows.length) {
+      const headers = store.__headers && store.__headers[tab]
+        ? store.__headers[tab]
+        : Object.keys(rows[0] || {});
+      ctx.assertRequiredHeaders_(tab, headers);
+    }
+    return rows;
   };
 
   // Counted separately from `reads`, because the REAL updateRowByKey_
