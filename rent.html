@@ -731,7 +731,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.09</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.13</div>
     <div class="spacer"></div>
   </div>
 
@@ -11863,7 +11863,12 @@ function renderFeeds() {
     renderUpdateCard(latest, String(latest.update_id) !== seen);
   if (older.length) {
     html +=
-      '<div class="note-toggle" id="noteToggleOlderUpdates" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsOlderUpdates" onclick="toggleNote(\'OlderUpdates\')">' +
+      // .note-toggle carries no horizontal padding of its own -- every
+      // other use of it sits inside a .card, which supplies one. Here it
+      // is a direct child of #rewindSection, so without this it renders
+      // flush to the viewport edge while the sibling .feed-cards are
+      // inset by 16px. Same inline fix the Genre toggle already uses.
+      '<div class="note-toggle" style="margin:0 16px 4px;" id="noteToggleOlderUpdates" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsOlderUpdates" onclick="toggleNote(\'OlderUpdates\')">' +
         '<span class="note-toggle-lbl">Show older posts (' + older.length + ')</span>' +
         '<span class="note-chevron" id="noteChevronOlderUpdates">+</span>' +
       '</div>' +
