@@ -393,6 +393,15 @@ and thrown the benefit away -- the scan would carry on with Customers
 alone, silently dropping any id that exists only in rental history. It now
 tolerates only a genuinely absent tab and rethrows everything else.
 
+**`doRentStart` too, in 2026-08-13d.** Its Rentals read fed both the
+mid-payment lock on a disc and the rental-limit check, so a bare catch
+leaving that list empty silently passed BOTH: a broken header would have
+allowed two customers to rent the same disc, and one customer to take out
+any number at once. Both sites now share one `readTabOrEmptyIfAbsent_()`
+helper. Reads that only display or count (feeds, Dashboard stats) keep
+their bare catches on purpose -- a section rendering empty for one request
+is not a correctness problem.
+
 ### disc_count on the staff catalog, for the label printer (added 2026-08-11)
 
 **Status: superseded by the 2026-08-13 file above, which includes it.**

@@ -115,6 +115,45 @@ module.exports = () => suite('catalog integrity: blank status, headers, error ca
       () => ctx.sheetToObjects('Catalog'));
   }
 
+  // --- an unreadable Rentals tab must not silently unlock renting -------
+  {
+    // doRentStart reads Rentals for two guards: the mid-payment lock on
+    // this disc, and the customer's rental limit. A bare catch left the
+    // list empty, which passes BOTH -- so a broken header would quietly
+    // allow two people to rent the same disc, and one customer to take
+    // out any number at once. Empty must mean "no rentals", never
+    // "could not tell".
+    const brokenRentals = () => {
+      const ctx = rentCtx([HAND_ADDED]);
+      ctx.__store.Rentals = [{ customer_id: 'CUS-0010', item_id: 'SFD-0934', status: 'active' }];
+      ctx.__setHeaders('Rentals', ['customer_id', 'item_id', 'status']); // rental_id displaced
+      return ctx;
+    };
+    t.threw('an unreadable Rentals tab stops the rental instead of allowing it',
+      () => brokenRentals().doRentStart({ token: 'cus_tok', item_id: 'SFD-0934' }), 'rental_id');
+    const ctx = brokenRentals();
+    try { ctx.doRentStart({ token: 'cus_tok', item_id: 'SFD-0934' }); } catch(e) {}
+    t.eq('  ...and no pending rental row is written', ctx.__store.Rentals.length, 1);
+  }
+  {
+    // The limit check specifically: this customer is at their limit of 1,
+    // and that fact lives in the tab that cannot be read.
+    const ctx = rentCtx([HAND_ADDED]);
+    ctx.__store.Rentals = [
+      { rental_id: 'RNT-1', customer_id: 'CUS-0010', item_id: 'SFD-0001', status: 'active' },
+    ];
+    t.threw('a customer at their limit is refused when Rentals IS readable',
+      () => ctx.doRentStart({ token: 'cus_tok', item_id: 'SFD-0934' }), 'limit');
+  }
+  {
+    // An absent tab stays tolerated: there are genuinely no rentals to
+    // conflict with, which is the state of a brand new install.
+    const ctx = rentCtx([HAND_ADDED]);
+    delete ctx.__store.Rentals;
+    t.noThrow('a missing Rentals tab does not block the first ever rental',
+      () => ctx.doRentStart({ token: 'cus_tok', item_id: 'SFD-0934' }));
+  }
+
   // --- 3. the three causes are told apart -------------------------------
   {
     const cases = [
