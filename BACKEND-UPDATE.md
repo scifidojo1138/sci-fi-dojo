@@ -346,6 +346,30 @@ the page was backgrounded mid-fetch (iOS Safari kills in-flight requests
 when the phone locks). Deploy this after that ships, so the new field has
 somewhere to appear.
 
+### Dashboard "Available" now means rentable (2026-08-14)
+
+**Status: ready to paste** (`sfd-backend-2026-08-14.gs.txt`). Contains
+every 2026-08-13 change too, so paste this one instead of any of them.
+
+**Sheet:** no changes. The Dashboard rebuilds itself on the next refresh.
+
+The CATALOG section's `Available` count filtered on `status` alone, so it
+counted every out-of-rotation row as well. On the live sheet that read
+804 when only 434 titles were genuinely rentable, printed directly under
+an `In rotation: 437` line it plainly contradicted.
+
+It is now the intersection of `in_rotation` and status, and the row is
+labelled **Available to rent** so the number says what it means.
+
+`Checked out` and `Return bin` are deliberately left alone: they describe
+where a physical disc actually is, and one pulled from rotation while a
+customer still has it is genuinely still out. Hiding it would be the
+worse of the two errors.
+
+Note this tab is a **daily snapshot**, not live formulas. To see the
+change immediately, run `refreshRentalStats` once from the Apps Script
+editor; otherwise the next daily trigger picks it up.
+
 ### Catalog integrity: blank status, header guard, error causes (2026-08-13)
 
 **Status: ready to paste** (`sfd-backend-2026-08-13.gs.txt`). This file
