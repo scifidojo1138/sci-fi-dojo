@@ -81,6 +81,7 @@
       "closes": "17:00"
     }
   ],
+  "hasMap": "https://maps.app.goo.gl/3rSL6R9sza6yX6Cw9",
   "sameAs": ["https://www.instagram.com/scifi_dojo"]
 }
 </script>
@@ -206,6 +207,14 @@ body {
 
 .details { margin-bottom: 40px; font-size: 14px; line-height: 1.9; color: var(--ink); }
 .details strong { font-weight: 700; }
+.map-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 2px;
+}
+.map-link:hover { text-decoration-color: var(--ink); }
 
 .btn {
   display: inline-block;
@@ -255,7 +264,7 @@ footer {
 
   <p class="details">
     Find us inside <strong>Vintage On Ninth</strong><br>
-    903 Main Street, Belmar, NJ<br>
+    <a class="map-link" href="https://maps.app.goo.gl/3rSL6R9sza6yX6Cw9" target="_blank" rel="noopener">903 Main Street, Belmar, NJ</a><br>
     Thursday, Friday &amp; Sunday, 12&ndash;5pm<br>
     Saturday, 11am&ndash;5pm
   </p>
@@ -264,8 +273,8 @@ footer {
 
   <p class="von-note">For additional hours &amp; events, check out <a href="https://www.instagram.com/vintageonninth/" target="_blank" rel="noopener">Vintage On Ninth on Instagram</a>.</p>
 
-  <!-- v2026.08.11 -->
-  <footer>v2026.08.11</footer>
+  <!-- v2026.08.14 -->
+  <footer>v2026.08.14</footer>
 </div>
 
 <script>
