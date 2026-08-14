@@ -60,6 +60,17 @@ h1 { font-size: 15px; letter-spacing: .18em; text-transform: uppercase; font-wei
    for a title should be able to act on it without another click. */
 .where { font-size: 13px; color: var(--ink); margin-top: 10px; line-height: 1.7; }
 .where strong { font-weight: 700; }
+/* Same treatment as index.html: the address is the link, underlined in
+   --orange for brand while the text stays --ink, since orange fails
+   contrast on white at this size. */
+.map-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 2px;
+}
+.map-link:hover { text-decoration-color: var(--ink); }
 
 /* Controls */
 .controls { margin: 0 auto 20px; max-width: 640px; }
@@ -118,7 +129,7 @@ footer a { color: var(--ink-mid); }
     <a href="/"><img class="logo-img" src="logo.png" alt="Sci-Fi Dojo"></a>
     <h1>The Collection</h1>
     <p class="sub">Visit the shop to rent any title below. Rentals from $3 plus tax, 7 days.</p>
-    <p class="where">Inside <strong>Vintage On Ninth</strong>, 903 Main Street, Belmar, NJ<br>
+    <p class="where">Inside <strong>Vintage On Ninth</strong>, <a class="map-link" href="https://maps.app.goo.gl/3rSL6R9sza6yX6Cw9" target="_blank" rel="noopener">903 Main Street, Belmar, NJ</a><br>
       Thursday, Friday &amp; Sunday, 12&ndash;5pm<br>
       Saturday, 11am&ndash;5pm</p>
   </header>
@@ -133,10 +144,10 @@ footer a { color: var(--ink-mid); }
   <div class="grid" id="grid"></div>
   <div class="msg" id="msg">Loading the collection...</div>
 
-  <!-- v2026.08.11 -->
+  <!-- v2026.08.14 -->
   <footer>
     <a href="/">Home</a> &middot; <a href="/rent">My Account</a> &middot; <a href="/terms">Terms</a><br>
-    v2026.08.11
+    v2026.08.14
   </footer>
 </div>
 
