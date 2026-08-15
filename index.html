@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="favicon-member-apple-touch-icon.png">
 <link rel="manifest" href="favicon-member-site.webmanifest">
 <title>Sci-Fi Dojo — The Return of Movie Night</title>
-<meta name="description" content="Video rental in Belmar, NJ. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD. Inside Vintage on Ninth, 903 Main Street. Thu, Fri, Sun 12-5pm. Sat 11am-5pm.">
+<meta name="description" content="Video rental in Belmar, NJ. Rentals from $3 plus tax for a full week. Sci-fi, cult and hidden gems on DVD, Blu-ray and 4K UHD. Thu-Sun, inside Vintage on Ninth.">
 <!-- Points Google at the real domain. Without this the Netlify subdomain
      this site also answers on can get indexed as duplicate content and
      compete with scifidojo.com in search results. -->
@@ -18,7 +18,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Sci-Fi Dojo">
 <meta property="og:title" content="Sci-Fi Dojo — The Return of Movie Night">
-<meta property="og:description" content="Video rental in Belmar, NJ. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD. Inside Vintage on Ninth, 903 Main Street. Thu, Fri, Sun 12-5pm. Sat 11am-5pm.">
+<meta property="og:description" content="Video rental in Belmar, NJ. Rentals from $3 plus tax for a full week. Sci-fi, cult and hidden gems on DVD, Blu-ray and 4K UHD. Thu-Sun, inside Vintage on Ninth.">
 <meta property="og:url" content="https://scifidojo.com/">
 <meta property="og:image" content="https://scifidojo.com/og-image.jpg">
 <meta property="og:image:width" content="1200">
@@ -26,7 +26,7 @@
 <meta property="og:image:alt" content="Sci-Fi Dojo — The Return of Movie Night">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Sci-Fi Dojo — The Return of Movie Night">
-<meta name="twitter:description" content="Video rental in Belmar, NJ. Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD. Inside Vintage on Ninth, 903 Main Street. Thu, Fri, Sun 12-5pm. Sat 11am-5pm.">
+<meta name="twitter:description" content="Video rental in Belmar, NJ. Rentals from $3 plus tax for a full week. Sci-fi, cult and hidden gems on DVD, Blu-ray and 4K UHD. Thu-Sun, inside Vintage on Ninth.">
 <meta name="twitter:image" content="https://scifidojo.com/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,7 +53,7 @@
   "logo": "https://scifidojo.com/logo.png",
   "image": "https://scifidojo.com/og-image.jpg",
   "email": "scifidojo@aol.com",
-  "priceRange": "$",
+  "priceRange": "$3-$5",
   "currenciesAccepted": "USD",
   "address": {
     "@type": "PostalAddress",
@@ -142,6 +142,11 @@ body {
   max-width: 400px;
   margin: 0 auto 20px;
 }
+/* The price is stated on the page on purpose: it is the one fact a
+   search engine had no crawlable source for, which let an AI summary
+   assert rentals were free. --ink rather than --ink-mid so it reads as
+   a statement rather than more supporting copy. */
+.desc strong { color: var(--ink); font-weight: 700; }
 
 .divider {
   width: 44px;
@@ -254,7 +259,8 @@ footer {
   <img class="logo-img" src="logo.png" alt="Sci-Fi Dojo — The Return of Movie Night">
 
   <div class="section-label">Video Rental</div>
-  <p class="desc">Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD.</p>
+  <p class="desc">Sci-fi, cult, and hidden gems on DVD, Blu-ray, and 4K UHD.<br>
+    <strong>Rentals start at $3 plus tax and run a full week.</strong></p>
 
   <a class="btn btn-collection" href="/collection">Browse the Collection</a>
 
