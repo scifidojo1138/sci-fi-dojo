@@ -11454,6 +11454,24 @@ window.onunhandledrejection = function(event) {
   reportClientError('unhandledrejection', event.reason, '');
 };
 
+// Declared HERE, above the init IIFE below, not next to setAccountStatus
+// several hundred lines down. `var` hoists the declaration but NOT the
+// assignment, so init's synchronous setAccountStatus('idle') on the
+// no-token path read `undefined` and threw -- which escaped init and
+// stopped showScreen('screen-signup') from ever running, stranding every
+// new customer on the loading screen. The token path only escaped it
+// because loadMember is deferred with setTimeout(...,0).
+// Keep these above init.
+var ACCT_STATES = {
+  idle:    ['',        'Account'],
+  loading: ['working', 'Account: Loading'],
+  syncing: ['working', 'Account: Syncing'],
+  granted: ['online',  'Access Granted'],
+  online:  ['online',  'Account: Online'],
+  offline: ['offline', 'Account: Offline'],
+};
+var acctGrantTimer = null;
+
 var rentedReturn = false;      // true when arriving back from Stripe Checkout (payment)
 var cardUpdatedReturn = false; // true when arriving back from Stripe Checkout (card update)
 
@@ -11466,8 +11484,11 @@ var cardUpdatedReturn = false; // true when arriving back from Stripe Checkout (
   if (!token) {
     // New customer: the signup screen IS the front door. No account
     // exists yet, so the header must not claim to be loading one.
-    setAccountStatus('idle');
+    // showScreen FIRST. Nothing cosmetic may sit between a new customer
+    // and the signup form -- if the line below ever throws again, they
+    // still get the screen.
     showScreen('screen-signup');
+    setAccountStatus('idle');
     return;
   }
 
@@ -11881,22 +11902,16 @@ function retryCatalog() {
 // Division of labour: this owns account state, #appStatusBar owns
 // catalog state. They used to fight over the same strip.
 // ----------------------------------------------------------------
-var ACCT_STATES = {
-  idle:    ['',        'Account'],
-  loading: ['working', 'Account: Loading'],
-  syncing: ['working', 'Account: Syncing'],
-  granted: ['online',  'Access Granted'],
-  online:  ['online',  'Account: Online'],
-  offline: ['offline', 'Account: Offline'],
-};
-var acctGrantTimer = null;
 
 function setAccountStatus(state) {
   var dot = document.getElementById('acctDot');
   var txt = document.getElementById('acctStatusText');
   if (!dot || !txt) return;
   if (acctGrantTimer) { clearTimeout(acctGrantTimer); acctGrantTimer = null; }
-  var s = ACCT_STATES[state] || ACCT_STATES.idle;
+  // Falls back rather than throwing: this readout is decoration, and
+  // it has already once taken the whole signup flow down with it.
+  var map = ACCT_STATES || {};
+  var s = map[state] || map.idle || ['', 'Account'];
   dot.className = 'live-dot' + (s[0] ? ' ' + s[0] : '');
   txt.textContent = s[1];
   // ACCESS GRANTED is a single beat, not a resting state: it settles into
