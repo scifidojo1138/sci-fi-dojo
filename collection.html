@@ -87,13 +87,6 @@ h1 { font-size: 15px; letter-spacing: .18em; text-transform: uppercase; font-wei
 }
 .chip[aria-pressed="true"] { background: var(--ink); color: var(--white); border-color: var(--ink); }
 .count { text-align: center; font-size: 12px; color: var(--ink-mid); margin-bottom: 20px; min-height: 18px; }
-.artless-toggle {
-  font-family: inherit; font-size: 12px; color: var(--ink-mid);
-  background: none; border: none; padding: 0; cursor: pointer;
-  text-decoration: underline; text-underline-offset: 3px;
-  text-decoration-color: var(--line);
-}
-.artless-toggle:hover { color: var(--ink); text-decoration-color: var(--ink); }
 
 /* Grid */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 20px 16px; }
@@ -162,12 +155,6 @@ footer a { color: var(--ink-mid); }
 (function () {
   var ENDPOINT = 'https://script.google.com/macros/s/AKfycby7PvoGckOSEuE_qBR0Rl12sudFnjnf5rT4rNu0kUSJ_lmFVvAbjBBo5DdlVfNZpnwjDQ/exec?action=public_catalog';
   var ALL = [], fmt = '', genre = '', q = '';
-  // Ids that have cover art, from covers/index.json (regenerate with
-  // `node covers/build-index.js` after adding covers). null means the
-  // list could not be loaded -- in which case everything is shown, so a
-  // missing or broken index can never hide the collection.
-  var HAS_ART = null;
-  var showArtless = false;
   var grid = document.getElementById('grid');
   var msg = document.getElementById('msg');
   var countEl = document.getElementById('count');
@@ -197,43 +184,15 @@ footer a { color: var(--ink-mid); }
       if (fmt && it.format !== fmt) return false;
       if (genre && !(it.genre || []).some(function (g) { return g === genre; })) return false;
       if (needle && it.title.toLowerCase().indexOf(needle) === -1) return false;
-      if (!showArtless && HAS_ART && !HAS_ART[it.id]) return false;
       return true;
     });
   }
 
-  // How many titles the artwork filter is currently holding back. Counted
-  // against the same search/format/genre filters, so it reflects what
-  // toggling would actually reveal rather than the whole library.
-  function artlessHidden() {
-    if (showArtless || !HAS_ART) return 0;
-    var was = showArtless;
-    showArtless = true;
-    var all = visible().length;
-    showArtless = was;
-    return all - visible().length;
-  }
-
   function render() {
     var items = visible();
-    var hidden = artlessHidden();
-    countEl.innerHTML = '';
-    if (items.length) {
-      countEl.appendChild(document.createTextNode(
-        items.length + (items.length === 1 ? ' title' : ' titles')));
-    }
-    if (hidden || showArtless) {
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'artless-toggle';
-      b.textContent = showArtless
-        ? 'hide titles without cover art'
-        : 'show ' + hidden + ' more without cover art';
-      b.setAttribute('aria-pressed', showArtless ? 'true' : 'false');
-      b.addEventListener('click', function () { showArtless = !showArtless; render(); });
-      if (items.length) countEl.appendChild(document.createTextNode(' \u00b7 '));
-      countEl.appendChild(b);
-    }
+    countEl.textContent = items.length
+      ? items.length + (items.length === 1 ? ' title' : ' titles')
+      : '';
     if (!items.length) {
       grid.innerHTML = '';
       msg.textContent = 'No titles match that. Try a different search or clear the filters.';
@@ -284,18 +243,6 @@ footer a { color: var(--ink-mid); }
 
   function load() {
     msg.textContent = 'Loading the collection...';
-    // Fire-and-forget: a failed or missing index leaves HAS_ART null and
-    // every title shows, which is the safe direction to fail in.
-    fetch('covers/index.json')
-      .then(function (r) { return r.json(); })
-      .then(function (ids) {
-        if (!Array.isArray(ids)) return;
-        var m = {};
-        ids.forEach(function (id) { m[id] = 1; });
-        HAS_ART = m;
-        if (ALL.length) render();
-      })
-      .catch(function () {});
     fetch(ENDPOINT)
       .then(function (r) { return r.json(); })
       .then(function (d) {
