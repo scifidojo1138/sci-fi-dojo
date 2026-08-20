@@ -346,6 +346,43 @@ the page was backgrounded mid-fetch (iOS Safari kills in-flight requests
 when the phone locks). Deploy this after that ships, so the new field has
 somewhere to appear.
 
+### Charge-failure reason + automated sweep access (2026-08-20)
+
+**Status: ready to paste** (`sfd-backend-2026-08-20.gs.txt`).
+
+**Sheet: ONE new column.** Add `last_failure` to the **Rentals** tab
+(any position, headers are matched by name). Leave every existing row
+blank; the backend writes it and you never type into it.
+
+If you skip the column nothing breaks -- the reason simply stays
+invisible, exactly as it is today.
+
+**Why.** When a charge failed, the only record was a Transactions row.
+That row carries `customer_id` and `item_id` but no `rental_id`, so a
+staff screen could not reliably tie a failure back to the rental it
+belongs to (a customer who rented the same disc twice is ambiguous). In
+practice the reason was only findable by digging through the sheet by
+hand -- which is how the first real expired-card failure went unexplained.
+
+Now `rental_payment_failed` also stamps `last_failure` on the rental as
+`YYYY-MM-DD: <Stripe's message>`, and `rental_billing` returns it, so the
+staff terminal can show *why* next to the RETRY button. A successful
+charge clears it, so a resolved failure never lingers next to a rental
+that has since been paid.
+
+**`rental_billing` now accepts `SERVER_KEY` as well as the staff PIN.**
+This is what lets the billing sweep run unattended on a schedule.
+
+Deliberately not the staff PIN in a Netlify env var: that couples an
+automated job to a human credential, so rotating the PIN silently breaks
+the sweep -- and worse, a stale PIN would fail on every run and trip
+`checkStaffPin_`'s **global** lockout, locking real staff out of the
+terminal. The key is checked first and short-circuits, so the scheduled
+job never touches the PIN counter at all.
+
+Pass it as `?action=rental_billing&server_key=...`. The staff terminal is
+unchanged and keeps using `&pin=`.
+
 ### Dashboard "Available" now means rentable (2026-08-14)
 
 **Status: ready to paste** (`sfd-backend-2026-08-14.gs.txt`). Contains
