@@ -752,7 +752,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.08.15</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.09.10</div>
     <div class="spacer"></div>
   </div>
 
@@ -11097,6 +11097,21 @@ var API_KEY = 'b6ada6b3bcc8199abc7761abcc07b345';
 // Netlify functions that handle all Stripe work (start-rental etc.)
 var RENTAL_FN_BASE = 'https://scifidojo-onboarding.netlify.app/.netlify/functions';
 
+// ---- Deployment identity --------------------------------------------
+// The values that change when this app is stood up for a different shop.
+// Nothing else in this file's JS should hardcode a shop name, support
+// address or terms URL -- if you find yourself typing one, add it here.
+//
+// NOT covered by this block: the <title>, meta description, Open Graph
+// tags, and the visible copy in the markup above. Those have to stay
+// literal in the served HTML, because search engines and link scrapers
+// read the document, not what JS produces afterwards -- templating them
+// would undo the indexing work. REBRAND.md lists them file by file.
+var SUPPORT_EMAIL  = 'scifidojo@aol.com';
+var BRAND_NAME     = 'Sci-Fi Dojo';
+var BRAND_WORDMARK = 'SCI-FI DOJO';                  // all-caps surfaces (ticket stub)
+var TERMS_URL      = 'https://scifidojo.com/terms';
+
 // ================================================================
 // Date helpers
 // ================================================================
@@ -11567,7 +11582,7 @@ async function submitSignup() {
   } catch(e) {
     reportClientError('submitSignup', e, '');
     btn.disabled = false; btn.textContent = 'CREATE ACCOUNT';
-    alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Signup failed') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Account Signup Help" style="color:inherit;">Email us</a> if you need a hand.');
+    alertEl.innerHTML = banner('err', '&#9888;', esc(e.message || 'Signup failed') + ' <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Account Signup Help" style="color:inherit;">Email us</a> if you need a hand.');
   }
 }
 
@@ -11763,7 +11778,7 @@ async function loadMember(tok) {
       showError('Account Link Invalid',
         'This link is not valid. Scan the QR code at the cabinet to create an account, or use the personal link from when you signed up.' +
         '<br><br>' +
-        'If this keeps happening, <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-AUTH" style="color:var(--accent);">email support</a>.');
+        'If this keeps happening, <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-AUTH" style="color:var(--accent);">email support</a>.');
     } else if (memberFromCache) {
       // Connection failed but we have cached data -- keep the dashboard
       // usable and flag it as stale instead of dead-ending on an error.
@@ -11783,7 +11798,7 @@ async function loadMember(tok) {
         '<br><br>' +
         '<a href="javascript:location.reload()" style="color:var(--accent);font-family:\'Share Tech Mono\',monospace;font-size:13px;letter-spacing:.08em;">TRY AGAIN</a>' +
         '<br><br>' +
-        'Still not loading? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-SYSTEM" style="color:var(--accent);">Email support</a>.');
+        'Still not loading? <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-SYSTEM" style="color:var(--accent);">Email support</a>.');
     }
   }
 }
@@ -12137,13 +12152,13 @@ function renderStatus() {
   if (finAge >= 0) {
     banners += banner('info', '&#8987;', 'Payment received. Your rental is finalizing and will appear here shortly. ' +
       '<a href="javascript:void(0)" onclick="refreshFromBanner()" style="color:inherit;">Tap to refresh</a>.' +
-      (finAge > 10 * 60000 ? ' Still not showing? <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-FINALIZE" style="color:inherit;">Email us</a> and we will sort it out.' : ''));
+      (finAge > 10 * 60000 ? ' Still not showing? <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-FINALIZE" style="color:inherit;">Email us</a> and we will sort it out.' : ''));
   }
   if (memberStale) {
     banners += banner('warn', '&#9888;', 'Showing saved account data — the server could not be reached. <a href="javascript:location.reload()" style="color:inherit;">Tap to refresh</a>.');
   }
   if (!member.active) {
-    banners += banner('err', '&#9888;', 'Account paused. New rentals are unavailable. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-INACTIVE" style="color:inherit;">Email us</a> to resolve.');
+    banners += banner('err', '&#9888;', 'Account paused. New rentals are unavailable. <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-INACTIVE" style="color:inherit;">Email us</a> to resolve.');
   }
   if (member.payment_status === 'failed') {
     if (cardUpdatedReturn) {
@@ -12308,7 +12323,7 @@ function renderRentalTicket(r) {
   el.innerHTML =
     '<div class="ticket">' +
       '<div class="ticket-shine"></div>' +
-      '<div class="ticket-brand">SCI-FI DOJO</div>' +
+      '<div class="ticket-brand">' + esc(BRAND_WORDMARK) + '</div>' +
       '<div class="ticket-admit">ADMIT ONE</div>' +
       cover +
       '<div class="ticket-label">NOW SHOWING</div>' +
@@ -12360,7 +12375,7 @@ function showRentalReceipt(rentalId) {
       'Account: ' + member.customer_id + '\n\n' +
       'Issue: [Tell us what is wrong -- e.g. disc will not play, disc missing from the case, disc cracked or damaged, wrong disc in the case]\n\n' +
       'Thank you';
-    reportEl.innerHTML = '<a class="feed-btn" style="width:100%;justify-content:center;" href="mailto:scifidojo@aol.com?subject=' +
+    reportEl.innerHTML = '<a class="feed-btn" style="width:100%;justify-content:center;" href="mailto:' + SUPPORT_EMAIL + '?subject=' +
       encodeURIComponent(subject) + '&body=' + encodeURIComponent(body) + '">REPORT AN ISSUE</a>';
   } else {
     reportEl.innerHTML = '';
@@ -12638,7 +12653,7 @@ async function submitRent() {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
     btn.disabled = false;
     btn.textContent = rentButtonLabel(rentSelection.base_cents, wasFree);
-    alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RENT">Email support</a>.');
+    alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-RENT">Email support</a>.');
   }
 }
 
@@ -12808,7 +12823,7 @@ async function submitReturn() {
   } catch(e) {
     reportClientError('submitReturn', e, returnSelected.join(','));
     btn.disabled = false; btn.textContent = 'LOG RETURN';
-    alertEl.innerHTML = banner('err', '&#9888;', 'Return failed: ' + esc(e.message || 'Unknown error') + '. <a href="mailto:scifidojo@aol.com?subject=SFD - Support - ERR-RETURN">Email support</a>.');
+    alertEl.innerHTML = banner('err', '&#9888;', 'Return failed: ' + esc(e.message || 'Unknown error') + '. <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-RETURN">Email support</a>.');
   }
 }
 
@@ -12971,7 +12986,7 @@ function goCode() {
   // Terms line reflects any live promo daily rate (its links are static
   // markup; only the hardcoded rate needs refreshing per member)
   document.getElementById('rentTermsLine').innerHTML =
-    'By paying, you agree to the <a href="https://scifidojo.com/terms" target="_blank">SFD Rental Terms</a>. ' +
+    'By paying, you agree to the <a href=" + TERMS_URL + " target="_blank">SFD Rental Terms</a>. ' +
     'The base price covers 7 days, then a ' + dayRateStr() + '/day extended rental fee applies until the disc is returned or the maximum total charge (base price included) is reached. NJ sales tax is added to every charge.';
   document.getElementById('checkoutSubmitBtn').disabled = true;
   document.getElementById('checkoutSubmitBtn').textContent = 'PAY & RENT';
@@ -13651,7 +13666,7 @@ function goAccount() {
   document.getElementById('accountCardLink').style.display =
     (member.has_card && !member.comp) ? '' : 'none';
 
-  var base = 'mailto:scifidojo@aol.com';
+  var base = 'mailto:' + SUPPORT_EMAIL;
 
   changeLink.href = base +
     '?subject=' + encodeURIComponent('SFD Account - Update My Contact Info') +
