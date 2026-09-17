@@ -752,7 +752,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.09.10</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.09.17</div>
     <div class="spacer"></div>
   </div>
 
@@ -12590,6 +12590,94 @@ function formatTags(item) {
   return fmtTag + colTag;
 }
 
+// A failed rental has to read as "you still have an unrented disc in your
+// hand," not as an account-admin notice. Learned from a live incident
+// (2026-09-17): a customer rented one disc on a promo credit, was declined
+// on a second a minute later, and walked out with BOTH -- believing the
+// second had gone through. The old banner said "Rental failed:" plus the
+// server's prose, which was "Your saved card was declined. Email us to
+// update it." Two things wrong with that. Email is a dead end at an
+// unstaffed cabinet, and her card needed nothing: a prepaid Visa via Apple
+// Pay, valid to 2031, both address checks passed, declined only for
+// insufficient funds (network code 51). Stripe's own advice for that code is
+// "try a different payment method, or retry later."
+//
+// So: lead with what happened and that no money moved, then the reason,
+// then what to do with the disc. UPDATE CARD appears ONLY when the decline
+// actually implicates the card.
+//
+// Codes that genuinely mean "this card will not work as-is". A whitelist on
+// purpose: an unknown or missing reason must never send someone to replace a
+// card that works. `decline_code` rides along once start-rental.js passes it
+// through; until then it is absent and this correctly stays neutral.
+// Codes that genuinely mean "this card will not work as-is". A whitelist on
+// purpose: an unknown or missing reason must never send someone to replace a
+// card that works.
+var CARD_PROBLEM_DECLINES = [
+  'expired_card', 'incorrect_cvc', 'invalid_cvc', 'incorrect_number',
+  'invalid_number', 'invalid_expiry_month', 'invalid_expiry_year',
+  'card_not_supported', 'lost_card', 'stolen_card', 'pickup_card',
+  'restricted_card', 'authentication_required', 'revocation_of_authorization',
+];
+
+// Our wording for the reasons we recognise, so the customer never reads the
+// server's prose when we can do better. The live incident's message was
+// "Your saved card was declined. Email scifidojo@aol.com to update it." --
+// wrong on both counts for a prepaid card with an empty balance, and the
+// email is a dead end at an unstaffed cabinet.
+//
+// lost_card / stolen_card / pickup_card deliberately get the same generic
+// line as a plain decline: Stripe advises not surfacing those reasons to the
+// person holding the card.
+var DECLINE_REASONS = {
+  insufficient_funds:   'That card was declined for insufficient funds.',
+  expired_card:         'That card has expired.',
+  incorrect_cvc:        'The security code on that card was not accepted.',
+  invalid_cvc:          'The security code on that card was not accepted.',
+  incorrect_number:     'That card number was not accepted.',
+  invalid_number:       'That card number was not accepted.',
+  card_not_supported:   'That card cannot be used for this purchase.',
+  authentication_required: 'That card needs to be re-verified with your bank.',
+  lost_card:            'That card was declined by the bank.',
+  stolen_card:          'That card was declined by the bank.',
+  pickup_card:          'That card was declined by the bank.',
+  restricted_card:      'That card was declined by the bank.',
+  generic_decline:      'That card was declined by the bank.',
+  try_again_later:      'That card was declined. It may work if you try again shortly.',
+  processing_error:     'Something went wrong processing that card.',
+};
+
+function rentFailureHtml_(err) {
+  var code = String((err && (err.decline_code || err.declineCode)) || '')
+               .toLowerCase().trim();
+  var known       = DECLINE_REASONS[code];
+  var cardProblem = CARD_PROBLEM_DECLINES.indexOf(code) !== -1;
+
+  // Stated as fact, not reassurance: the live decline reported a net of
+  // $0.00, and a customer who believes they paid is the failure mode.
+  var html = '<strong>This rental did not go through.</strong> You have not been charged.'
+           + '<br>' + esc(known || String((err && err.message) || 'Unknown error'));
+
+  // Only suggest a payment remedy when we actually know it was a payment
+  // problem. Without a decline code this could be anything -- an item
+  // already checked out, a rental limit -- and "try another card" would be
+  // nonsense advice for those.
+  html += '<br>' + (cardProblem
+    ? 'Put the disc back on the shelf, or update your card and try again.'
+    : code
+      ? 'Put the disc back on the shelf, or try again with another card.'
+      : 'Put the disc back on the shelf, or try again.');
+
+  if (cardProblem) {
+    html += '<br><a href="javascript:void(0)" role="button" onclick="goUpdateCard(this)"'
+          + ' style="color:inherit;font-weight:700;">UPDATE CARD</a>';
+  }
+  // Email stays reachable but last and small -- never the instruction.
+  html += '<br><a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-RENT"'
+        + ' style="font-size:12px;">Still stuck? Email support</a>.';
+  return html;
+}
+
 async function submitRent() {
   var alertEl = document.getElementById('checkoutAlert');
   alertEl.innerHTML = '';
@@ -12653,7 +12741,7 @@ async function submitRent() {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
     btn.disabled = false;
     btn.textContent = rentButtonLabel(rentSelection.base_cents, wasFree);
-    alertEl.innerHTML = banner('err', '&#9888;', 'Rental failed: ' + esc(e.message || 'Unknown error') + ' <a href="mailto:' + SUPPORT_EMAIL + '?subject=SFD - Support - ERR-RENT">Email support</a>.');
+    alertEl.innerHTML = banner('err', '&#9888;', rentFailureHtml_(e));
   }
 }
 
