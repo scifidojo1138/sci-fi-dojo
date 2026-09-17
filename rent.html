@@ -12610,9 +12610,6 @@ function formatTags(item) {
 // purpose: an unknown or missing reason must never send someone to replace a
 // card that works. `decline_code` rides along once start-rental.js passes it
 // through; until then it is absent and this correctly stays neutral.
-// Codes that genuinely mean "this card will not work as-is". A whitelist on
-// purpose: an unknown or missing reason must never send someone to replace a
-// card that works.
 var CARD_PROBLEM_DECLINES = [
   'expired_card', 'incorrect_cvc', 'invalid_cvc', 'incorrect_number',
   'invalid_number', 'invalid_expiry_month', 'invalid_expiry_year',
