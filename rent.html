@@ -12615,6 +12615,12 @@ var CARD_PROBLEM_DECLINES = [
   'invalid_number', 'invalid_expiry_month', 'invalid_expiry_year',
   'card_not_supported', 'lost_card', 'stolen_card', 'pickup_card',
   'restricted_card', 'authentication_required', 'revocation_of_authorization',
+  // Not a Stripe code. start-rental.js sends this when the customer exists
+  // but has no usable payment method to charge -- the shape of the Link
+  // wallet bug, where paymentMethods.list({type:'card'}) comes back empty
+  // for a customer who plainly has a card. Without it this lands in the
+  // neutral branch and invites a retry into the identical failure forever.
+  'no_payment_method',
 ];
 
 // Our wording for the reasons we recognise, so the customer never reads the
@@ -12642,6 +12648,7 @@ var DECLINE_REASONS = {
   generic_decline:      'That card was declined by the bank.',
   try_again_later:      'That card was declined. It may work if you try again shortly.',
   processing_error:     'Something went wrong processing that card.',
+  no_payment_method:    'There is no usable card on your account.',
 };
 
 function rentFailureHtml_(err) {

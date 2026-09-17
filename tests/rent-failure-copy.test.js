@@ -56,6 +56,25 @@ module.exports = () => suite('rent.html: failed-rental copy', (t) => {
     });
   }
 
+  // --- the customer has no usable card at all ---------------------------
+  {
+    // Not a Stripe code -- start-rental.js sends it when the payment-method
+    // resolver comes back empty (the Link wallet bug's shape). Left in the
+    // neutral branch it would read "or try again", which is a retry into
+    // the identical failure, forever, at a cabinet with nobody to ask.
+    const h = H({ message: 'We could not charge your card. Please contact staff.',
+                  decline_code: 'no_payment_method' });
+    const s = text(h);
+    t.ok('no_payment_method says there is no usable card', /no usable card/.test(s));
+    t.ok('  ...and offers the one remedy that works unattended',
+      h.indexOf('>UPDATE CARD<') !== -1);
+    t.ok('  ...pointing at the setup-mode flow', /onclick="goUpdateCard\(this\)"/.test(h));
+    t.ok('  ...and never tells the customer to find staff',
+      s.toLowerCase().indexOf('staff') === -1);
+    t.ok('  ...the server prose is replaced, not appended',
+      s.indexOf('could not charge your card') === -1);
+  }
+
   // --- do not diagnose a payment problem we cannot see ------------------
   {
     // Today start-rental.js sends no decline_code, and plenty of failures
