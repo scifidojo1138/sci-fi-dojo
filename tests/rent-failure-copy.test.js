@@ -86,6 +86,46 @@ module.exports = () => suite('rent.html: failed-rental copy', (t) => {
     t.ok('  ...and the real reason still shows', /checked_out/.test(text(h)));
   }
 
+  // --- the one failure where the customer HAS paid ----------------------
+  {
+    // start-rental.js charges, then records. When only the record fails,
+    // Stripe already took the money. The standard lede would state the
+    // opposite as fact -- the same false-statement-about-money mistake the
+    // whole function exists to prevent, just pointed the other way.
+    const h = H({ message: 'Charged but could not confirm. Contact staff with rental RNT-0042',
+                  decline_code: 'charged_not_confirmed' });
+    const s = text(h);
+    t.ok('says the payment went through', /payment went through/.test(s));
+    t.ok('  ...and NEVER claims no money moved', !/have not been charged/.test(s));
+    t.ok('  ...and does not tell them to put back a disc they paid for',
+      !/back on the shelf/.test(s));
+    t.ok('  ...and offers no card remedy', h.indexOf('>UPDATE CARD<') === -1);
+    t.ok('  ...and never sends them to find staff', s.toLowerCase().indexOf('staff') === -1);
+    t.ok('  ...but does reach us by email', /mailto:/.test(h));
+  }
+  {
+    // The reference is optional: start-rental.js may or may not send it.
+    const withId = H({ message: 'x', decline_code: 'charged_not_confirmed', rental_id: 'RNT-0042' });
+    t.ok('a rental_id is shown when sent', /RNT-0042/.test(text(withId)));
+    t.ok('  ...and rides the mailto subject', /subject=[^"]*RNT-0042/.test(withId));
+
+    const noId = H({ message: 'x', decline_code: 'charged_not_confirmed' });
+    t.ok('no rental_id still renders cleanly', /payment went through/.test(text(noId)));
+    t.ok('  ...with no empty Reference line', !/Reference:/.test(text(noId)));
+
+    const nasty = H({ decline_code: 'charged_not_confirmed', rental_id: '<img src=x>' });
+    t.ok('the reference is escaped', nasty.indexOf('<img') === -1);
+  }
+
+  // --- the agreed contract's fallback prose -----------------------------
+  {
+    // start-rental.js owns the wording for codes we do not map. It must
+    // survive to the screen intact, or its careful copy is pointless.
+    const h = text(H({ message: 'That card was declined.', decline_code: 'call_issuer' }));
+    t.ok('an unmapped code shows the server prose verbatim', /That card was declined\./.test(h));
+    t.ok('  ...and still says what to do with the disc', /back on the shelf/.test(h));
+  }
+
   // --- fraud codes stay generic ----------------------------------------
   {
     // Stripe advises not telling the person holding the card that it is
