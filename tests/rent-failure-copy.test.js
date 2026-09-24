@@ -117,6 +117,57 @@ module.exports = () => suite('rent.html: failed-rental copy', (t) => {
     t.ok('the reference is escaped', nasty.indexOf('<img') === -1);
   }
 
+  // --- nobody knows whether the money moved -----------------------------
+  {
+    // start-rental.js could not reach Stripe to reconcile. This is the
+    // residue after it checks metadata.rental_id: succeeded becomes a
+    // success, no-match becomes the neutral branch, and only "could not
+    // ask" lands here. Claiming EITHER state would be a guess about money.
+    const h = H({ message: 'We could not confirm whether that payment went through.',
+                  decline_code: 'payment_status_unknown', rental_id: 'RNT-0043' });
+    const s = text(h);
+    t.ok('never claims they were not charged', !/have not been charged/.test(s));
+    // Must match the CLAIM, not the phrase: this copy legitimately
+    // contains "payment went through" inside "could not confirm whether
+    // that payment went through". The first version of this assertion
+    // failed for that reason -- the assertion was wrong, not the code.
+    t.ok('never claims they were charged either', !/Your payment went through/.test(s));
+    t.ok('says plainly that it is unknown', /could not confirm whether/.test(s));
+    // Load-bearing: the idempotency key is base-<rental_id>, so a retry
+    // that mints a new rental id is a second charge, not a safe replay.
+    t.ok('tells them NOT to retry', /do not try again/i.test(s));
+    t.ok('  ...and says why', /charge you twice/.test(s));
+    t.ok('the disc stays on the shelf', /[Ll]eave the disc/.test(s));
+    t.ok('offers no card remedy', h.indexOf('>UPDATE CARD<') === -1);
+    t.ok('carries the reference', /RNT-0043/.test(s));
+    t.ok('  ...and puts it in the mailto subject', /subject=[^"]*RNT-0043/.test(h));
+    t.ok('never sends them to find staff', s.toLowerCase().indexOf('staff') === -1);
+  }
+  {
+    // The two reconciliation codes must not be confusable with each other.
+    const unknown = text(H({ decline_code: 'payment_status_unknown' }));
+    const charged = text(H({ decline_code: 'charged_not_confirmed' }));
+    t.ok('the charged case does NOT tell them to stop', !/do not try again/i.test(charged));
+    t.ok('the unknown case does NOT tell them to take the disc', !/[Tt]ake your disc/.test(unknown));
+    t.ok('neither renders an empty Reference line',
+      !/Reference:/.test(unknown) && !/Reference:/.test(charged));
+  }
+
+  // --- a rental_id can ride any failure, not just those two -------------
+  {
+    // A comp or free-credit confirm that fails sends a rental_id with NO
+    // decline code. It used to be dropped, since only the charged branch
+    // read it.
+    const h = H({ message: 'Could not confirm the rental.', rental_id: 'RNT-0044' });
+    const s = text(h);
+    t.ok('the neutral branch still shows the reference', /RNT-0044/.test(s));
+    t.ok('  ...and stays neutral about payment', /or try again\./.test(s));
+    t.ok('  ...with no card remedy', h.indexOf('>UPDATE CARD<') === -1);
+
+    const nasty = H({ rental_id: '<img src=x>' });
+    t.ok('  ...escaped there too', nasty.indexOf('<img') === -1);
+  }
+
   // --- the agreed contract's fallback prose -----------------------------
   {
     // start-rental.js owns the wording for codes we do not map. It must
