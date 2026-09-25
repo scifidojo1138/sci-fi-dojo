@@ -9,16 +9,20 @@ const files = fs.readdirSync(__dirname)
   .filter((f) => f.endsWith('.test.js'))
   .sort();
 
-let total = 0; const failed = [];
-files.forEach((f) => {
-  const result = require(path.join(__dirname, f))();
-  total += result.pass;
-  result.failures.forEach((label) => failed.push(f + ': ' + label));
-});
+(async () => {
+  let total = 0; const failed = [];
+  for (const f of files) {
+    // A suite may be async (driving an async function through the browser
+    // stub). Sync suites return a plain object and await passes it through.
+    const result = await require(path.join(__dirname, f))();
+    total += result.pass;
+    result.failures.forEach((label) => failed.push(f + ': ' + label));
+  }
 
-console.log('\n' + '='.repeat(60));
-console.log(`${files.length} suites, ${total} assertions, ${failed.length} failed`);
-if (failed.length) {
-  failed.forEach((f) => console.log('  FAIL ' + f));
-  process.exit(1);
-}
+  console.log('\n' + '='.repeat(60));
+  console.log(`${files.length} suites, ${total} assertions, ${failed.length} failed`);
+  if (failed.length) {
+    failed.forEach((f) => console.log('  FAIL ' + f));
+    process.exit(1);
+  }
+})();

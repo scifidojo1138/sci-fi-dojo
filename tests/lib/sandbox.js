@@ -205,7 +205,12 @@ function suite(name, fn) {
     },
   };
   console.log('\n' + name);
-  fn(t);
+  // An async suite returns a promise; hand back a promise for the result
+  // so the runner can await it. Sync suites are unchanged.
+  const done = fn(t);
+  if (done && typeof done.then === 'function') {
+    return done.then(() => ({ name, pass, failures }));
+  }
   return { name, pass, failures };
 }
 
