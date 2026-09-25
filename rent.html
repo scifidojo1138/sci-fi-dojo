@@ -11108,6 +11108,13 @@ var RENTAL_FN_BASE = 'https://scifidojo-onboarding.netlify.app/.netlify/function
 // read the document, not what JS produces afterwards -- templating them
 // would undo the indexing work. REBRAND.md lists them file by file.
 var SUPPORT_EMAIL  = 'scifidojo@aol.com';
+// Text line for the money-uncertainty cases only -- see supportSmsHtml_.
+// Two forms on purpose: the E.164 one for the sms: href, the readable one
+// shown as the link label so the number is still usable if the handset
+// does nothing with the link (sms: with a prefilled body is exactly the
+// sort of thing that degrades quietly across platforms).
+var SUPPORT_SMS         = '+17326559424';
+var SUPPORT_SMS_DISPLAY = '732-655-9424';
 var BRAND_NAME     = 'Sci-Fi Dojo';
 var BRAND_WORDMARK = 'SCI-FI DOJO';                  // all-caps surfaces (ticket stub)
 var TERMS_URL      = 'https://scifidojo.com/terms';
@@ -12685,6 +12692,27 @@ function rentalRef_(err) {
   return String((err && err.rental_id) || '').trim();
 }
 
+// A text line, offered ONLY where the customer is stuck with real money
+// uncertainty at an unstaffed cabinet: they paid and it did not record,
+// or nobody knows whether they paid. An ordinary decline does not get
+// this -- that customer just uses another card, and putting a personal
+// number on every failure is how it stops being answerable.
+//
+// Deliberately promises no response time. The shop is closed Monday to
+// Wednesday, and a text at 4:55 on Sunday that goes unanswered until
+// Thursday is worse than a plain "email us and we will fix it".
+//
+// The `?&body=` form is the one that behaves on both iOS and Android;
+// plain `?body=` is correct per RFC but has a history of being ignored.
+function supportSmsHtml_(ref) {
+  if (!SUPPORT_SMS) return '';
+  var who  = (typeof member !== 'undefined' && member && member.member_id)
+               ? String(member.member_id) : '';
+  var body = 'SFD: ' + (ref || 'rental problem') + (who ? ' (' + who + ')' : '');
+  return '<br><a href="sms:' + SUPPORT_SMS + '?&body=' + encodeURIComponent(body)
+       + '" style="color:inherit;font-weight:700;">TEXT NATE: ' + SUPPORT_SMS_DISPLAY + '</a>';
+}
+
 function rentChargedNotConfirmedHtml_(err) {
   var rid  = rentalRef_(err);
   var subj = 'SFD - Rental not recorded' + (rid ? ' - ' + rid : '');
@@ -12692,8 +12720,9 @@ function rentChargedNotConfirmedHtml_(err) {
   return '<strong>Your payment went through.</strong> The rental did not finish recording.'
        + '<br>Take your disc and enjoy the movie. Your payment is on file and we will fix the record.'
        + rentalRefHtml_(rid)
+       + supportSmsHtml_(rid ? 'rental not recorded ' + rid : 'rental not recorded')
        + '<br><a href="mailto:' + SUPPORT_EMAIL + '?subject=' + encodeURIComponent(subj)
-       + '" style="color:inherit;font-weight:700;">EMAIL US SO WE CAN FIX IT</a>';
+       + '" style="font-size:12px;">Or email us</a>.';
 }
 
 function rentPaymentUnknownHtml_(err) {
@@ -12708,10 +12737,11 @@ function rentPaymentUnknownHtml_(err) {
   // but a disc walking on an unconfirmed payment is the original incident.
   return '<strong>We could not confirm whether that payment went through.</strong>'
        + '<br>Please do not try again. A second attempt could charge you twice.'
-       + '<br>Leave the disc on the shelf and email us with this reference. We will check and put it right.'
+       + '<br>Leave the disc on the shelf. Send us this reference and we will check it and put it right.'
        + rentalRefHtml_(rid)
+       + supportSmsHtml_(rid ? 'payment not confirmed ' + rid : 'payment not confirmed')
        + '<br><a href="mailto:' + SUPPORT_EMAIL + '?subject=' + encodeURIComponent(subj)
-       + '" style="color:inherit;font-weight:700;">EMAIL US</a>';
+       + '" style="font-size:12px;">Or email us</a>.';
 }
 
 function rentFailureHtml_(err) {
