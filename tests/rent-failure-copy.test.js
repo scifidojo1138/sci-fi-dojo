@@ -168,6 +168,46 @@ module.exports = () => suite('rent.html: failed-rental copy', (t) => {
     t.ok('  ...escaped there too', nasty.indexOf('<img') === -1);
   }
 
+  // --- the text line, and where it must NOT appear ----------------------
+  {
+    // Offered only where the customer is stuck with real money
+    // uncertainty at an unstaffed cabinet. A personal number on every
+    // failure is how it stops being answerable.
+    ctx.member = { member_id: 'CUS-0015' };
+    const charged = H({ decline_code: 'charged_not_confirmed', rental_id: 'RNT-0042' });
+    const unknown = H({ decline_code: 'payment_status_unknown', rental_id: 'RNT-0043' });
+
+    t.ok('the charged case offers the number', /TEXT NATE: 732-655-9424/.test(text(charged)));
+    t.ok('the unknown case offers the number', /TEXT NATE: 732-655-9424/.test(text(unknown)));
+    t.ok('  ...as a real sms: link', /href="sms:\+17326559424\?&body=/.test(unknown));
+    t.ok('  ...prefilled with the reference', /RNT-0043/.test(decodeURIComponent(unknown)));
+    t.ok('  ...and who is texting', /CUS-0015/.test(decodeURIComponent(unknown)));
+    // The readable number is the fallback if the handset ignores sms:.
+    t.ok('  ...with the number visible, not just linked',
+      text(unknown).indexOf('732-655-9424') !== -1);
+    t.ok('email is still there, just secondary', /[Oo]r email us/.test(text(unknown)));
+    // Promising a reply would be a lie Monday through Wednesday.
+    t.ok('promises no response time',
+      !/(right away|straight away|immediately|within)/i.test(text(unknown)));
+  }
+  {
+    // An ordinary decline does not get it -- that customer uses another
+    // card. Nor does no_payment_method, which has a self-service remedy.
+    ['insufficient_funds', 'expired_card', 'no_payment_method', '', undefined].forEach((code) => {
+      const h = text(H({ message: 'x', decline_code: code, rental_id: 'RNT-1' }));
+      t.ok(`${JSON.stringify(code)} does NOT offer the number`, h.indexOf('732-655-9424') === -1);
+    });
+    ctx.member = null;
+  }
+  {
+    // Null-safe: these render on screens where no account is loaded.
+    ctx.member = null;
+    t.noThrow('no member does not throw',
+      () => H({ decline_code: 'payment_status_unknown' }));
+    t.ok('  ...and still offers the number',
+      /732-655-9424/.test(text(H({ decline_code: 'payment_status_unknown' }))));
+  }
+
   // --- the agreed contract's fallback prose -----------------------------
   {
     // start-rental.js owns the wording for codes we do not map. It must
