@@ -19,7 +19,16 @@ const doc={hidden:false,getElementById:el,querySelector:(s)=>s==='.screen.active
     {id:shown[shown.length-1]||''}:null,
   querySelectorAll:()=>[],addEventListener(){},createElement:()=>el('tmp'),body:el('body'),
   documentElement:el('html')};
-const ctx={console,document:doc,setTimeout:()=>0,clearTimeout(){},setInterval:()=>0,
+// Timers are inert by default, exactly as before -- these tests run the
+// page's load path and a firing timer would start loadMember during it.
+// A suite that needs to drive an async function turns them on AFTER load
+// via ctx.__timers(true); callbacks then run on the microtask queue, so
+// an `await new Promise(r => setTimeout(r, 2500))` resolves immediately
+// instead of hanging the test for two and a half seconds.
+let timersOn=false;
+const ctx={console,document:doc,
+  setTimeout:(f)=>{ if(timersOn && typeof f==='function') Promise.resolve().then(f); return 0; },
+  clearTimeout(){},setInterval:()=>0,
   URLSearchParams,location:{search:search||'',pathname:'/rent',href:'x'},history:{replaceState(){}},
   localStorage:{getItem:()=>null,setItem(){},removeItem(){}},
   sessionStorage:{getItem:()=>null,setItem(){}},
@@ -27,6 +36,7 @@ const ctx={console,document:doc,setTimeout:()=>0,clearTimeout(){},setInterval:()
   AbortController:function(){this.signal={};this.abort=()=>{}},
   matchMedia:()=>({matches:false,addEventListener(){}}),Promise,JSON,Math,Date,
   encodeURIComponent,decodeURIComponent,parseInt,parseFloat,isNaN,String,Number,Object,Array,RegExp,Error};
+ctx.__timers=(on)=>{timersOn=!!on;};
 ctx.scrollTo=()=>{}; ctx.requestAnimationFrame=(f)=>f&&0; ctx.window=ctx; ctx.globalThis=ctx;
 vm.createContext(ctx);
 

@@ -752,7 +752,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.09.24</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.09.25</div>
     <div class="spacer"></div>
   </div>
 
@@ -11147,10 +11147,19 @@ function esc(s) {
 // existing catch blocks, which already render retry UI.
 // ================================================================
 var FETCH_TIMEOUT_MS = 20000;
+// The rent call gets its own, longer budget. It is the only request that
+// makes TWO Apps Script round trips around a live card charge
+// (rent_start, then Stripe, then rent_confirm), and Apps Script cold
+// starts run several seconds on their own. On 2026-09-25 that sequence
+// ran past 20s on a real rental: the charge succeeded at 2:05:42 and the
+// phone aborted at 2:05:54. Twenty seconds was never a sensible budget
+// for this one call. A longer spinner is the cost, and submitRent's
+// abort branch makes a slow success recoverable either way.
+var RENT_TIMEOUT_MS = 45000;
 
-function fetchWithTimeout(url, opts) {
+function fetchWithTimeout(url, opts, timeoutMs) {
   var controller = new AbortController();
-  var timer = setTimeout(function() { controller.abort(); }, FETCH_TIMEOUT_MS);
+  var timer = setTimeout(function() { controller.abort(); }, timeoutMs || FETCH_TIMEOUT_MS);
   opts = opts || {};
   opts.signal = controller.signal;
   return fetch(url, opts).finally(function() { clearTimeout(timer); });
@@ -12769,7 +12778,7 @@ async function submitRent() {
     var res  = await fetchWithTimeout(RENTAL_FN_BASE + '/start-rental', {
       method: 'POST',
       body: JSON.stringify({ token: token, item_id: rentSelection.item_id }),
-    });
+    }, RENT_TIMEOUT_MS);
     var data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Could not start the rental');
 
@@ -12784,30 +12793,75 @@ async function submitRent() {
     // Saved card charged instantly, or a free/comp rental confirmed
     // directly -- refresh the account and celebrate.
     await refreshAfterRent();
-    var rentSuccessRows = [
-      { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
-      { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' plus tax (covers 7 days)' },
-      { k: 'KEEP IT LONGER', v: member.comp ? 'Still no charge' : extendedFeeText_(0, rentSelection.cap_cents) },
-    ];
-    if (SHOW_CABINET_CODES) rentSuccessRows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' });
-    showSuccess('co', 'Enjoy the Movie!',
-      member.comp ? 'Logged and ready. Grab your disc from the shelf.' :
-      wasFree     ? 'Your promo credit covered this one. Grab your disc from the shelf.' :
-                    'Paid and ready. Grab your disc from the shelf.',
-      rentSuccessRows);
-    // Ticket stub: refreshAfterRent() above already pulled the fresh
-    // account, so the just-confirmed rental is in all_open -- find it by
-    // the returned rental_id (fallback: a synthetic row, so the ticket
-    // still renders if the refresh raced the sheet write).
-    var freshR = (member.all_open || []).find(function(x) { return String(x.rental_id) === String(data.rental_id); }) ||
-      { rental_id: data.rental_id, item_id: rentSelection.item_id, title: rentSelection.title, start_date: new Date().toISOString() };
-    renderRentalTicket(freshR);
+    celebrateRent_(data.rental_id, wasFree);
   } catch(e) {
     reportClientError('submitRent', e, rentSelection ? rentSelection.item_id : '');
+
+    // A timeout is not a failure, it is an UNKNOWN -- and it is the only
+    // failure where the request is known to have left the phone while the
+    // outcome is not known at all. start-rental charges the card and then
+    // records the rental, so an abort can land anywhere in that sequence,
+    // including after the money moved. That is not hypothetical: on
+    // 2026-09-25 the charge succeeded at 2:05:42, this catch ran at
+    // 2:05:54, and the customer was told "you have not been charged"
+    // while Stripe emailed her a receipt a minute later.
+    //
+    // So do not guess. Look. Whether the rental landed is knowable in a
+    // few seconds, and the reconcile costs nothing when it did not.
+    if (e && e.name === 'AbortError' && rentSelection) {
+      btn.textContent = 'CHECKING YOUR RENTAL...';
+      var landed = await findOpenRentalForItem_(rentSelection.item_id);
+      if (landed) { celebrateRent_(landed.rental_id, wasFree); return; }
+    }
+
     btn.disabled = false;
     btn.textContent = rentButtonLabel(rentSelection.base_cents, wasFree);
-    alertEl.innerHTML = banner('err', '&#9888;', rentFailureHtml_(e));
+    // Only an abort that reconciled to nothing is genuinely unknown.
+    // Everything else has a real answer and keeps its own copy.
+    alertEl.innerHTML = banner('err', '&#9888;',
+      (e && e.name === 'AbortError') ? rentPaymentUnknownHtml_(e) : rentFailureHtml_(e));
   }
+}
+
+// The success screen, shared by the normal path and by an abort that
+// turned out to have worked.
+function celebrateRent_(rentalId, wasFree) {
+  var rentSuccessRows = [
+    { k: 'ITEM', v: rentSelection.title + ' (' + rentSelection.item_id + ')' },
+    { k: 'CHARGED', v: member.comp ? 'No charge (staff account)' : wasFree ? 'Free (promo credit)' : money(rentSelection.base_cents) + ' plus tax (covers 7 days)' },
+    { k: 'KEEP IT LONGER', v: member.comp ? 'Still no charge' : extendedFeeText_(0, rentSelection.cap_cents) },
+  ];
+  if (SHOW_CABINET_CODES) rentSuccessRows.push({ k: 'CABINET CODE', v: member.cabinet_code || 'See the Rent screen' });
+  showSuccess('co', 'Enjoy the Movie!',
+    member.comp ? 'Logged and ready. Grab your disc from the shelf.' :
+    wasFree     ? 'Your promo credit covered this one. Grab your disc from the shelf.' :
+                  'Paid and ready. Grab your disc from the shelf.',
+    rentSuccessRows);
+  // Ticket stub: the caller has already refreshed, so the confirmed
+  // rental is in all_open -- find it by id (fallback: a synthetic row,
+  // so the ticket still renders if the refresh raced the sheet write).
+  var freshR = (member.all_open || []).find(function(x) { return String(x.rental_id) === String(rentalId); }) ||
+    { rental_id: rentalId, item_id: rentSelection.item_id, title: rentSelection.title, start_date: new Date().toISOString() };
+  renderRentalTicket(freshR);
+}
+
+// Did the rental land despite the abort? Polls the account the same way
+// the back-from-Stripe webhook lag already does: the server may still
+// have been finishing rent_confirm when the phone gave up, so one
+// immediate look is not enough. An open rental against this item can
+// only have come from this attempt -- rent_start refuses an item the
+// customer already holds -- so a hit is unambiguous.
+async function findOpenRentalForItem_(itemId, tries) {
+  var n = tries || 4;
+  for (var i = 0; i < n; i++) {
+    await refreshAfterRent();
+    var hit = ((member && member.all_open) || []).find(function(r) {
+      return String(r.item_id).trim() === String(itemId).trim();
+    });
+    if (hit) return hit;
+    if (i < n - 1) await new Promise(function(r) { setTimeout(r, 2500); });
+  }
+  return null;
 }
 
 // Fetch the fresh account state after a money action (rental, return),
