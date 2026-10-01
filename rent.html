@@ -752,7 +752,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.09.25</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.10.01</div>
     <div class="spacer"></div>
   </div>
 
@@ -11160,8 +11160,10 @@ var FETCH_TIMEOUT_MS = 20000;
 // starts run several seconds on their own. On 2026-09-25 that sequence
 // ran past 20s on a real rental: the charge succeeded at 2:05:42 and the
 // phone aborted at 2:05:54. Twenty seconds was never a sensible budget
-// for this one call. A longer spinner is the cost, and submitRent's
-// abort branch makes a slow success recoverable either way.
+// for this one call. Note this is LONGER than the function's own limit,
+// so in practice the server is killed first and the phone gets a 502 --
+// readRentalResponse_ treats that as an unknown and reconciles, the same
+// as an abort. Neither side timing out first is safe on its own.
 var RENT_TIMEOUT_MS = 45000;
 
 function fetchWithTimeout(url, opts, timeoutMs) {
@@ -12805,12 +12807,20 @@ async function submitRent() {
     // Stripe Checkout URL (first rental, or a free rental with no card on
     // file yet) or charges/confirms directly (saved card, comp, or a free
     // rental that already has a card).
-    var res  = await fetchWithTimeout(RENTAL_FN_BASE + '/start-rental', {
-      method: 'POST',
-      body: JSON.stringify({ token: token, item_id: rentSelection.item_id }),
-    }, RENT_TIMEOUT_MS);
-    var data = await res.json();
-    if (!data.ok) throw new Error(data.error || 'Could not start the rental');
+    var res;
+    try {
+      res = await fetchWithTimeout(RENTAL_FN_BASE + '/start-rental', {
+        method: 'POST',
+        body: JSON.stringify({ token: token, item_id: rentSelection.item_id }),
+      }, RENT_TIMEOUT_MS);
+    } catch (netErr) {
+      // No response at all: the phone gave up, or the network dropped.
+      // The request may or may not have reached the server, so the money
+      // state is unknown rather than failed.
+      throw outcomeUnknownError_(netErr && netErr.message);
+    }
+    var data = await readRentalResponse_(res);
+    if (!data.ok) throw rentalFailure_(data);
 
     if (data.url) {
       // First rental (or a free rental collecting its first card): hand
@@ -12838,7 +12848,8 @@ async function submitRent() {
     //
     // So do not guess. Look. Whether the rental landed is knowable in a
     // few seconds, and the reconcile costs nothing when it did not.
-    if (e && e.name === 'AbortError' && rentSelection) {
+    var unknown = !!(e && (e.outcomeUnknown === true || e.name === 'AbortError'));
+    if (unknown && rentSelection) {
       btn.textContent = 'CHECKING YOUR RENTAL...';
       var landed = await findOpenRentalForItem_(rentSelection.item_id);
       if (landed) { celebrateRent_(landed.rental_id, wasFree); return; }
@@ -12846,10 +12857,11 @@ async function submitRent() {
 
     btn.disabled = false;
     btn.textContent = rentButtonLabel(rentSelection.base_cents, wasFree);
-    // Only an abort that reconciled to nothing is genuinely unknown.
-    // Everything else has a real answer and keeps its own copy.
+    // Only an unknown outcome that reconciled to nothing stays unknown.
+    // A completed refusal from our own function has a real answer and
+    // keeps its own copy, decline code and all.
     alertEl.innerHTML = banner('err', '&#9888;',
-      (e && e.name === 'AbortError') ? rentPaymentUnknownHtml_(e) : rentFailureHtml_(e));
+      unknown ? rentPaymentUnknownHtml_(e) : rentFailureHtml_(e));
   }
 }
 
@@ -12881,6 +12893,49 @@ function celebrateRent_(rentalId, wasFree) {
 // immediate look is not enough. An open rental against this item can
 // only have come from this attempt -- rent_start refuses an item the
 // customer already holds -- so a hit is unambiguous.
+// start-rental's contract: every answer it gives is JSON with a boolean
+// `ok`. That is the ONLY shape that counts as an answer from our own
+// code. Anything else -- a Netlify gateway page, a Lambda "task timed
+// out" body, a truncated reply -- means the function was killed or never
+// finished, which is precisely when a charge may already have gone
+// through. So it is an UNKNOWN, never a failure.
+//
+// This matters because the server usually loses the race, not the phone:
+// RENT_TIMEOUT_MS is longer than the function's own limit, so a slow
+// Stripe call gets the function killed and the phone receives a 502 --
+// not an abort. Before this, a 502 fell into the ordinary failure copy
+// and told the customer "You have not been charged".
+async function readRentalResponse_(res) {
+  var data = null;
+  try { data = await res.json(); } catch (e) { data = null; }
+  if (!data || typeof data.ok !== 'boolean') {
+    throw outcomeUnknownError_('The rental service did not finish (HTTP ' +
+      ((res && res.status) || '?') + ').');
+  }
+  return data;
+}
+
+function outcomeUnknownError_(detail) {
+  var e = new Error(detail || 'The rental request did not complete.');
+  e.outcomeUnknown = true;
+  return e;
+}
+
+// A real, completed refusal from start-rental. Carries the structured
+// fields through to rentFailureHtml_ -- which is the whole point of the
+// decline contract. The previous one-liner, `new Error(data.error)`,
+// rebuilt the error from the message alone and silently dropped
+// decline_code and rental_id, so NONE of the coded branches ever reached
+// the screen: a customer who had paid read "You have not been charged",
+// and no_payment_method never showed its UPDATE CARD button. Every test
+// called rentFailureHtml_ directly and so never saw the gap.
+function rentalFailure_(data) {
+  var e = new Error(data.error || 'Could not start the rental');
+  if (data.decline_code) e.decline_code = data.decline_code;
+  if (data.rental_id)    e.rental_id    = data.rental_id;
+  return e;
+}
+
 async function findOpenRentalForItem_(itemId, tries) {
   var n = tries || 4;
   for (var i = 0; i < n; i++) {

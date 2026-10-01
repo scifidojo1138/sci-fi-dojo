@@ -44,7 +44,20 @@ function rig(opts) {
                                title: '28 Days Later', start_date: new Date().toISOString() }];
     }
   };
-  ctx.fetchWithTimeout = () => Promise.reject(opts.error || abortError());
+  // Either the request fails outright (opts.error / default abort), or it
+  // comes back with a body. opts.body === 'html' models a gateway error
+  // page, where res.json() throws.
+  if ('body' in opts) {
+    ctx.fetchWithTimeout = () => Promise.resolve({
+      ok: (opts.status || 200) < 400,
+      status: opts.status || 200,
+      json: () => opts.body === 'html'
+        ? Promise.reject(new SyntaxError('Unexpected token < in JSON at position 0'))
+        : Promise.resolve(opts.body),
+    });
+  } else {
+    ctx.fetchWithTimeout = () => Promise.reject(opts.error || abortError());
+  }
   return page;
 }
 
@@ -100,18 +113,86 @@ module.exports = () => suite('rent.html: a phone that gives up mid-rental', asyn
     t.ok('the button is usable again', page.els.checkoutSubmitBtn.disabled === false);
   }
 
-  // --- everything that is NOT an abort is untouched ---------------------
+  // --- a completed refusal from our own function is untouched ------------
   {
     // A real server answer has a real answer. It must keep its own copy
-    // and must NOT be reconciled or softened into "unknown".
+    // and must NOT be reconciled or softened into "unknown". It arrives
+    // as a response, not a rejection -- an earlier version of this test
+    // modeled it as a rejected fetch, which is not how it ever happens.
     const page = rig({ landsOnRefresh: 0,
-                       error: new Error('Item is checked_out, not available: SFD-0567') });
+                       body: { ok: false, error: 'Item is checked_out, not available: SFD-0567' } });
     await page.ctx.submitRent();
     const s = alertText(page);
     t.ok('keeps the ordinary failure copy', /did not go through/.test(s));
     t.ok('  ...including the real reason', /checked_out/.test(s));
     t.ok('  ...and does NOT reconcile', page.refreshes === 0);
     t.ok('  ...nor claim the payment is unknown', !/could not confirm whether/.test(s));
+  }
+
+  // --- the server dies first: the race that actually happens -------------
+  {
+    // RENT_TIMEOUT_MS outlasts the function's own limit, so a slow Stripe
+    // call gets the FUNCTION killed and the phone receives a 502 -- never
+    // an abort. That is the realistic timeout, and it used to land in the
+    // ordinary failure copy: "You have not been charged".
+    const page = rig({ landsOnRefresh: 2, status: 502, body: 'html' });
+    await page.ctx.submitRent();
+    t.ok('a 502 gateway page reconciles', page.refreshes >= 1);
+    t.ok('  ...and finds the rental that landed', !!page.success);
+    t.ok('  ...without ever claiming no charge', !/have not been charged/.test(alertText(page)));
+  }
+  {
+    const page = rig({ landsOnRefresh: 0, status: 502, body: 'html' });
+    await page.ctx.submitRent();
+    const s = alertText(page);
+    t.ok('a 502 that never landed reads as unconfirmed', /could not confirm whether/.test(s));
+    t.ok('  ...not as a failure', !/have not been charged/.test(s));
+    // The HTML body used to surface the JSON parser's own error.
+    t.ok('  ...and never shows parser prose', !/Unexpected token/.test(s));
+  }
+  {
+    // Valid JSON, but not our shape: a Lambda timeout body.
+    const page = rig({ landsOnRefresh: 0, status: 502,
+                       body: { errorType: 'Sandbox.Timedout', errorMessage: 'Task timed out after 10.01 seconds' } });
+    await page.ctx.submitRent();
+    t.ok('JSON that is not our {ok} shape is unknown too', page.refreshes >= 1);
+    t.ok('  ...and reads as unconfirmed', /could not confirm whether/.test(alertText(page)));
+  }
+  {
+    // No response at all -- the request may or may not have arrived.
+    const page = rig({ landsOnRefresh: 1, error: new TypeError('Load failed') });
+    await page.ctx.submitRent();
+    t.ok('a dropped network request reconciles as well', page.refreshes >= 1 && !!page.success);
+  }
+
+  // --- the decline contract, end to end -----------------------------------
+  {
+    // The bug this change exists for: submitRent rebuilt the error from
+    // the message alone, so decline_code and rental_id never reached
+    // rentFailureHtml_. Every coded branch was unreachable in production.
+    // These drive a real response through the real submitRent.
+    const page = rig({ landsOnRefresh: 0,
+      body: { ok: false, error: 'Charged but could not confirm.',
+              decline_code: 'charged_not_confirmed', rental_id: 'RNT-0042' } });
+    await page.ctx.submitRent();
+    const s = alertText(page);
+    t.ok('charged_not_confirmed reaches the screen', /Your payment went through/.test(s));
+    t.ok('  ...never "not charged" to someone who paid', !/have not been charged/.test(s));
+    t.ok('  ...with its reference', /RNT-0042/.test(s));
+    t.ok('  ...and it does NOT reconcile -- the server already knows', page.refreshes === 0);
+  }
+  {
+    const page = rig({ landsOnRefresh: 0,
+      body: { ok: false, error: 'No usable card.', decline_code: 'no_payment_method' } });
+    await page.ctx.submitRent();
+    t.ok('no_payment_method gets its UPDATE CARD button',
+      page.els.checkoutAlert.innerHTML.indexOf('>UPDATE CARD<') !== -1);
+  }
+  {
+    const page = rig({ landsOnRefresh: 0,
+      body: { ok: false, error: 'That card was declined.', decline_code: 'insufficient_funds' } });
+    await page.ctx.submitRent();
+    t.ok('a Stripe decline gets our own wording', /insufficient funds/.test(alertText(page)));
   }
 
   // --- the failure is still reported ------------------------------------
