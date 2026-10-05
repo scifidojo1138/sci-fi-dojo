@@ -752,7 +752,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.10.01</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.10.03</div>
     <div class="spacer"></div>
   </div>
 
@@ -12540,7 +12540,7 @@ function lookupItem(code) {
   }
 
   var item       = result.item;
-  var freeCredit = !member.comp && (member.free_rental_credits || 0) > 0;
+  var freeCredit = freeCreditReady_();
   var baseCents  = freeCredit ? 0 : Math.round((parseFloat(item.rental_price) > 0 ? parseFloat(item.rental_price) : 3) * 100);
   var baseWasCents = (!freeCredit && item.rental_price_was > 0) ? Math.round(parseFloat(item.rental_price_was) * 100) : 0;
   var dayRateHtml = dayRatePromoActive()
@@ -13174,9 +13174,26 @@ function goRentals() {
 // already-scanned item below it).
 function renderPromoSection() {
   document.getElementById('promoCodeCard').style.display = member.promo_redeemed ? 'none' : '';
-  document.getElementById('freeCreditBanner').innerHTML = (member.free_rental_credits > 0)
-    ? banner('ok', '&#127881;', '<strong>Your next rental is free!</strong> Pick a disc below. The extended rental fee still applies if you keep it past 7 days.')
-    : '';
+  var html = '';
+  if (freeCreditReady_()) {
+    html = banner('ok', '&#127881;', '<strong>Your next rental is free!</strong> Pick a disc below. The extended rental fee still applies if you keep it past 7 days.');
+  } else if (!member.comp && member.free_rental_credits > 0) {
+    // A rent-one-get-one credit still waiting on its paid rental. Must not
+    // say "free" about THIS rental: it is charged in full.
+    html = banner('ok', '&#127881;', '<strong>Rent one, get one free.</strong> Rent a disc today and your next rental is on us.');
+  }
+  document.getElementById('freeCreditBanner').innerHTML = html;
+}
+
+// Whether the NEXT rental is actually free. free_rental_credits alone is
+// not enough since 2026-10-03: a rent-one-get-one credit is banked at
+// redemption but only applies after a paid rental, and the backend says
+// which via free_rental_ready. Read as "!== false" so a backend that
+// predates the field behaves exactly as before (every credit was usable
+// then), which makes it safe to ship this file first.
+function freeCreditReady_() {
+  return !!member && !member.comp && (member.free_rental_credits || 0) > 0 &&
+    member.free_rental_ready !== false;
 }
 
 // First-visit walkthrough key/gate: shown only for an account that has
