@@ -35,7 +35,7 @@ module.exports = () => suite('catalog: quick-receive, label printer, staff paylo
 
   // --- add_catalog_item: replacement_cost is required -------------------
   {
-    const ctx = withPin(makeSandbox({ Catalog: [], Transactions: [] }));
+    const ctx = withPin(makeSandbox({ Catalog: [], Retail: [], Transactions: [] }));
     t.threw('a missing replacement_cost is rejected',
       () => ctx.doAddCatalogItem({ staff_pin: PIN, title: 'Dune', format: '4K UHD' }), 'replacement_cost');
     t.threw('blank is rejected',

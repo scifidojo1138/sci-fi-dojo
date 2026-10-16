@@ -114,7 +114,7 @@ module.exports = () => suite('id races: signup + quick-receive are atomic', (t) 
 
   // --- catalog ids -----------------------------------------------------
   {
-    const ctx = makeSandbox({ Catalog: [{ item_id: 'SFD-0005' }], Transactions: [] });
+    const ctx = makeSandbox({ Catalog: [{ item_id: 'SFD-0005' }], Retail: [], Transactions: [] });
     ctx.getSettingValue = (k) => (k === 'staff_pin' ? '1234' : '');
     const events = [];
     const scan = ctx.nextCatalogItemId_;
@@ -128,6 +128,64 @@ module.exports = () => suite('id races: signup + quick-receive are atomic', (t) 
     t.eq('each append was flushed', ctx.__log.flushes, 2);
     t.eq('nothing appended outside the lock', ctx.__log.appendsWhileUnlocked, 0);
   }
+
+  // --- catalog ids vs the Retail tab (2026-10-16) ---------------------
+  // A labelled disc moves to Retail KEEPING its SFD id, so Catalog alone
+  // is no longer the high-water mark. Each case is a way a printed
+  // number could be issued twice.
+  const mintCtx = (tabs) => {
+    const ctx = makeSandbox(Object.assign({ Transactions: [] }, tabs));
+    ctx.getSettingValue = (k) => (k === 'staff_pin' ? '1234' : '');
+    return ctx;
+  };
+  const block = (fn) => {
+    try { fn(); } catch (e) { t.ok('case threw unexpectedly: ' + e.message, false); }
+  };
+  block(() => {
+    // The top number was retailed: Catalog's own max is now lower.
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-1196' }], Retail: [{ item_id: 'SFD-1197' }] });
+    t.eq('an SFD id that moved to Retail is never reissued', ctx.nextCatalogItemId_(), 'SFD-1198');
+  });
+  block(() => {
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-0010' }],
+      Retail: [{ item_id: 'RTL-0141' }, { item_id: 'RTL-9999' }] });
+    t.eq('RTL ids are their own series and do not push SFD numbers up', ctx.nextCatalogItemId_(), 'SFD-0011');
+  });
+  block(() => {
+    // Deleted from Catalog (the migration deleted 29 rows) but still in history.
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-0010' }], Retail: [],
+      Rentals: [{ rental_id: 'RNT-1', item_id: 'SFD-0050' }] });
+    t.eq('an id surviving only in rental history is never reissued', ctx.nextCatalogItemId_(), 'SFD-0051');
+  });
+  block(() => {
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-0001' }, { item_id: 'SFD-0009' }], Retail: [] });
+    t.eq('gaps below the max are never filled', ctx.nextCatalogItemId_(), 'SFD-0010');
+  });
+  block(() => {
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-0010' }], Retail: [] });
+    t.eq('no Rentals tab is tolerated, as before', ctx.nextCatalogItemId_(), 'SFD-0011');
+  });
+  block(() => {
+    // Renamed or deleted Retail tab: skipping it would quietly reissue.
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-0010' }] });
+    t.threw('a missing Retail tab refuses to mint, by name', () => ctx.nextCatalogItemId_(), '"Retail" tab was not found');
+    t.threw('  ...so adding a disc fails instead of guessing',
+      () => ctx.doAddCatalogItem({ staff_pin: '1234', title: 'A', format: 'DVD', replacement_cost: 12 }), 'Retail');
+    t.eq('  ...and no row was written', ctx.__store.Catalog.length, 1);
+  });
+  block(() => {
+    // Displaced item_id header on Retail must fail loudly, not hide its ids.
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-0010' }], Retail: [{ item_id: 'SFD-0500', title: 'X' }] });
+    ctx.__setHeaders('Retail', ['title']);
+    t.threw('a displaced Retail item_id header stops the mint', () => ctx.nextCatalogItemId_(), 'item_id');
+  });
+  block(() => {
+    const ctx = mintCtx({ Catalog: [{ item_id: 'SFD-0010' }], Retail: [{ item_id: 'SFD-0500' }] });
+    const res = ctx.doAddCatalogItem({ staff_pin: '1234', title: 'A', format: 'DVD', replacement_cost: 12 });
+    t.eq('quick-receive end to end skips past a retailed id', res.item_id, 'SFD-0501');
+    t.ok('  ...and writes the new row to Catalog, never Retail',
+      ctx.__store.Catalog.some((r) => r.item_id === 'SFD-0501') && ctx.__store.Retail.length === 1);
+  });
 });
 
 // checkStaffPin_ is stubbed true by these tests via getSettingValue('') --
