@@ -9,7 +9,11 @@ const { makeSandbox, suite } = require('./lib/sandbox');
 // day-(n+1) test and fails by one day's rate, intermittently and with no
 // relation to whatever was actually changed. The minute keeps every
 // daysAgo(n) firmly on day n without moving any boundary being tested.
-const daysAgo = (n) => new Date(Date.now() - n * 86400000 + 60000).toISOString();
+// One clock read for the whole file. Two separate Date.now() calls for a
+// rental's start and return could straddle a millisecond and push an
+// exact 2-day span to ceil 3 -- an intermittent failure seen 2026-11-01.
+const NOW = Date.now();
+const daysAgo = (n) => new Date(NOW - n * 86400000 + 60000).toISOString();
 const item = (o) => Object.assign({ item_id: 'SFD-0001', rental_price: '3', replacement_cost: '' }, o);
 
 module.exports = () => suite('money: computeAccrued_ / caps / grace', (t) => {
