@@ -295,6 +295,7 @@ select option{background:var(--panel2);color:var(--text);}
 .ri-tag-out    {color:var(--accent);  border-color:rgba(0,212,255,.3);  background:rgba(0,212,255,.06);}
 .ri-tag-pending{color:var(--warning); border-color:rgba(255,204,0,.3);  background:rgba(255,204,0,.06);}
 .ri-tag-vault  {color:var(--vault);   border-color:rgba(192,132,252,.3);background:rgba(192,132,252,.06);}
+.ri-tag-new    {color:var(--accent2); border-color:rgba(255,107,53,.35);background:rgba(255,107,53,.08);}
 
 /* BROWSE EXPAND — tap a title for cover art + rental details.
    The cover image element only exists while a row is open, so nothing
@@ -752,7 +753,7 @@ select option{background:var(--panel2);color:var(--text);}
          Rewind posts going forward. -->
     <div id="rewindSection"></div>
     <!-- Version: update to the current date whenever this file is edited -->
-    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.10.03</div>
+    <div style="text-align:center;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text-dim);opacity:.4;padding-bottom:8px;letter-spacing:.1em;">v2026.11.26</div>
     <div class="spacer"></div>
   </div>
 
@@ -907,6 +908,10 @@ select option{background:var(--panel2);color:var(--text);}
       <button class="filter-btn active" id="filter-all"       aria-pressed="true"  onclick="setBrowseFilter('all')">All</button>
       <button class="filter-btn"        id="filter-available" aria-pressed="false" onclick="setBrowseFilter('available')">Available Only</button>
       <button class="filter-btn"        id="filter-starred"   aria-pressed="false" onclick="setBrowseFilter('starred')">&#9733; Starred</button>
+    </div>
+    <div class="browse-filters">
+      <button class="filter-btn active" id="sort-az"  aria-pressed="true"  onclick="setBrowseSort('az')">A&ndash;Z</button>
+      <button class="filter-btn"        id="sort-new" aria-pressed="false" onclick="setBrowseSort('new')">Newest</button>
     </div>
     <div class="note-toggle" id="noteToggleGenre" role="button" tabindex="0" aria-expanded="false" aria-controls="noteFieldsGenre" onclick="toggleNote('Genre')" style="margin:0 16px 4px;">
       <span class="note-toggle-lbl">Filter by Genre</span>
@@ -13605,6 +13610,27 @@ function submitCamManual() {
 
 var browseFilter = 'all';
 var browseGenreFilter = ''; // '' = All Genres
+var browseSort = 'az';      // 'az' | 'new'
+
+// New arrivals (added 2026-11-26). `added` is the shop-local YYYY-MM-DD
+// the disc reached the shelf, sent by the backend (itemAddedDay_); blank
+// when unknown. Compared as date strings, never parsed into a Date: a
+// bare YYYY-MM-DD parses as UTC midnight, which would flip the NEW tag a
+// day early every evening west of Greenwich.
+var NEW_ARRIVAL_DAYS = 30;
+function newArrivalCutoff_() {
+  var d = new Date(Date.now() - NEW_ARRIVAL_DAYS * 86400000);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function isNewArrival_(it, cutoff) {
+  return !!it.added && it.added >= cutoff;
+}
+function setBrowseSort(s) {
+  browseSort = s;
+  setToggleBtn('sort-az',  s === 'az');
+  setToggleBtn('sort-new', s === 'new');
+  renderBrowseList();
+}
 
 async function goBrowse() {
   browseFilter = 'all';
@@ -13613,6 +13639,9 @@ async function goBrowse() {
   setToggleBtn('filter-all',       true);
   setToggleBtn('filter-available', false);
   setToggleBtn('filter-starred',   false);
+  browseSort = 'az';
+  setToggleBtn('sort-az',  true);
+  setToggleBtn('sort-new', false);
   showScreen('screen-browse');
 
   // If catalog failed, retry now
@@ -13724,8 +13753,20 @@ function renderBrowseList() {
     });
   }
 
-  // Sort: starred first, then available, then alpha by sort_title (falls back to title)
-  items.sort(function(a, b) {
+  // Newest: arrival date, newest first; same day breaks by the higher SFD
+  // number (minted later), then title. Undated discs go last. Deliberately
+  // ignores starred/available, which would scatter the new arrivals.
+  var cutoff = newArrivalCutoff_();
+  var idNum = function(it) { return parseInt(String(it.item_id || '').replace(/\D/g, ''), 10) || 0; };
+  if (browseSort === 'new') items.sort(function(a, b) {
+    var aa = a.added || '', bb = b.added || '';
+    if (aa !== bb) return aa > bb ? -1 : 1;
+    var n = idNum(b) - idNum(a);
+    if (n) return n;
+    return (a.sort_title || a.title || '').toLowerCase().localeCompare((b.sort_title || b.title || '').toLowerCase());
+  });
+  // A-Z: starred first, then available, then alpha by sort_title (falls back to title)
+  else items.sort(function(a, b) {
     var aStarred = starredSet.has(a.item_id);
     var bStarred = starredSet.has(b.item_id);
     if (aStarred && !bStarred) return -1;
@@ -13745,6 +13786,7 @@ function renderBrowseList() {
   list.innerHTML = items.map(function(it) {
     var statusTag = getBrowseStatusTag(it);
     var vaultTag  = it.collection === 'vault' ? '<span class="ri-tag ri-tag-vault">VAULT</span>' : '';
+    var newTag    = isNewArrival_(it, cutoff) ? '<span class="ri-tag ri-tag-new">NEW</span>' : '';
     var action    = getBrowseAction(it, starredSet);
     var titleStr  = esc(it.title) + (it.year    ? ' (' + esc(it.year) + ')' : '');
     var metaStr   = esc(it.item_id) + ' &middot; ' + esc(it.format) + (it.edition ? ' &middot; ' + esc(it.edition) : '');
@@ -13754,7 +13796,7 @@ function renderBrowseList() {
       '<div class="ri-info" role="button" tabindex="0" aria-expanded="' + (open ? 'true' : 'false') + '" data-id="' + esc(it.item_id) + '" onclick="toggleBrowseInfo(this.dataset.id)">' +
         '<div class="ri-title">' + titleStr + '</div>' +
         '<div class="ri-meta">' + metaStr + '</div>' +
-        '<div class="ri-tags">' + statusTag + vaultTag + '</div>' +
+        '<div class="ri-tags">' + newTag + statusTag + vaultTag + '</div>' +
       '</div>' +
       '<span class="browse-chevron" aria-hidden="true" data-id="' + esc(it.item_id) + '" onclick="toggleBrowseInfo(this.dataset.id)">+</span>' +
       action +

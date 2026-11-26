@@ -5,19 +5,30 @@
 // (a top-level IIFE dereferencing a `var` assigned further down the
 // file), not to be a real DOM.
 const fs=require('fs'), vm=require('vm');
-function loadPage(path, search) {
+function loadPage(path, search, opts) {
+opts = opts || {};
 const re=/<script(?![^>]*src=)[^>]*>([\s\S]*?)<\/script>/g;
 const html=fs.readFileSync(path,'utf8');
 let m, blocks=[]; while((m=re.exec(html))) blocks.push(m[1]);
 
 const shown=[]; const els={};
-const el=(id)=>els[id]||(els[id]={id,className:'',textContent:'',innerHTML:'',style:{},
+// Elements keep their children, attributes and listeners so a suite can
+// find a button the page built and click it (el.__click()).
+// Setting innerHTML clears children, as in a real DOM, so a page that
+// rebuilds a row of buttons does not accumulate the old ones.
+const mk=(id)=>{ const e={id,className:'',textContent:'',_html:'',style:{},children:[],_attrs:{},_on:{},
+  get innerHTML(){return this._html}, set innerHTML(v){this._html=v; this.children=[];},
   classList:{_s:new Set(),add(c){this._s.add(c)},remove(c){this._s.delete(c)},
-  contains(c){return this._s.has(c)}},focus(){},addEventListener(){},querySelectorAll:()=>[],
-  querySelector:()=>null,remove(){},appendChild(){},setAttribute(){},getAttribute:()=>null});
+  toggle(c,on){ if(on===undefined) on=!this._s.has(c); on?this._s.add(c):this._s.delete(c); return on; },
+  contains(c){return this._s.has(c)}},focus(){},
+  addEventListener(t,f){this._on[t]=f},__click(){ if(this._on.click) this._on.click({}); },
+  querySelectorAll:()=>[],querySelector:()=>null,remove(){},
+  appendChild(c){this.children.push(c); return c;},
+  setAttribute(k,v){this._attrs[k]=String(v)},getAttribute(k){return k in this._attrs?this._attrs[k]:null}}; return e; };
+const el=(id)=>els[id]||(els[id]=mk(id));
 const doc={hidden:false,getElementById:el,querySelector:(s)=>s==='.screen.active'?
     {id:shown[shown.length-1]||''}:null,
-  querySelectorAll:()=>[],addEventListener(){},createElement:()=>el('tmp'),body:el('body'),
+  querySelectorAll:()=>[],addEventListener(){},createElement:()=>mk(''),body:el('body'),
   documentElement:el('html')};
 // Timers are inert by default, exactly as before -- these tests run the
 // page's load path and a firing timer would start loadMember during it.
@@ -32,7 +43,7 @@ const ctx={console,document:doc,
   URLSearchParams,location:{search:search||'',pathname:'/rent',href:'x'},history:{replaceState(){}},
   localStorage:{getItem:()=>null,setItem(){},removeItem(){}},
   sessionStorage:{getItem:()=>null,setItem(){}},
-  navigator:{userAgent:'test',onLine:true},fetch:()=>new Promise(()=>{}),
+  navigator:{userAgent:'test',onLine:true},fetch:opts.fetch||(()=>new Promise(()=>{})),
   AbortController:function(){this.signal={};this.abort=()=>{}},
   matchMedia:()=>({matches:false,addEventListener(){}}),Promise,JSON,Math,Date,
   encodeURIComponent,decodeURIComponent,parseInt,parseFloat,isNaN,String,Number,Object,Array,RegExp,Error};

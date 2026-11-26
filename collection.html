@@ -111,6 +111,13 @@ h1 { font-size: 15px; letter-spacing: .18em; text-transform: uppercase; font-wei
   position: absolute; left: 6px; top: 6px; background: rgba(20,24,31,.88); color: #fff;
   font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
 }
+/* Top-right, opposite "Out". Ink on orange, not white on orange: white
+   text fails contrast on --orange at this size. */
+.new {
+  position: absolute; right: 6px; top: 6px; background: var(--orange); color: var(--ink);
+  font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px;
+  font-weight: 700;
+}
 .t { font-size: 13px; line-height: 1.3; }
 .m { font-size: 11px; color: var(--ink-mid); margin-top: 3px; }
 
@@ -138,23 +145,33 @@ footer a { color: var(--ink-mid); }
     <input id="q" type="search" placeholder="Search by title..." autocomplete="off" aria-label="Search the collection">
     <div class="filters" id="formatFilters"></div>
     <div class="filters" id="genreFilters"></div>
+    <div class="filters" id="sortChips" role="group" aria-label="Sort"></div>
   </div>
 
   <p class="count" id="count" role="status" aria-live="polite"></p>
   <div class="grid" id="grid"></div>
   <div class="msg" id="msg">Loading the collection...</div>
 
-  <!-- v2026.08.16 -->
+  <!-- v2026.11.26 -->
   <footer>
     <a href="/">Home</a> &middot; <a href="/rent">My Account</a> &middot; <a href="/terms">Terms</a><br>
-    v2026.08.16
+    v2026.11.26
   </footer>
 </div>
 
 <script>
 (function () {
   var ENDPOINT = 'https://script.google.com/macros/s/AKfycby7PvoGckOSEuE_qBR0Rl12sudFnjnf5rT4rNu0kUSJ_lmFVvAbjBBo5DdlVfNZpnwjDQ/exec?action=public_catalog';
-  var ALL = [], fmt = '', genre = '', q = '';
+  var ALL = [], fmt = '', genre = '', q = '', sort = 'az';
+  // New arrivals: `added` is the shop-local YYYY-MM-DD a disc reached the
+  // shelf (omitted when unknown). Compared as strings, never parsed into a
+  // Date, which would read a bare date as UTC midnight and flip a day early.
+  var NEW_DAYS = 30;
+  function newCutoff() {
+    var d = new Date(Date.now() - NEW_DAYS * 86400000);
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function idNum(it) { return parseInt(String(it.id || '').replace(/\D/g, ''), 10) || 0; }
   var grid = document.getElementById('grid');
   var msg = document.getElementById('msg');
   var countEl = document.getElementById('count');
@@ -190,6 +207,14 @@ footer a { color: var(--ink-mid); }
 
   function render() {
     var items = visible();
+    var cutoff = newCutoff();
+    // ALL is kept in A-Z order; Newest re-sorts a copy. Same-day arrivals
+    // break by the higher SFD number (minted later); undated discs go last.
+    if (sort === 'new') items = items.slice().sort(function (a, b) {
+      var aa = a.added || '', bb = b.added || '';
+      if (aa !== bb) return aa > bb ? -1 : 1;
+      return idNum(b) - idNum(a);
+    });
     countEl.textContent = items.length
       ? items.length + (items.length === 1 ? ' title' : ' titles')
       : '';
@@ -210,6 +235,7 @@ footer a { color: var(--ink-mid); }
           '<img src="covers/' + encodeURIComponent(it.id) + '.jpg" alt="" loading="lazy" ' +
                'onerror="this.remove()">' +
           (it.avail ? '' : '<span class="out">Out</span>') +
+          (it.added && it.added >= cutoff ? '<span class="new">New</span>' : '') +
         '</div>' +
         '<div class="t">' + esc(it.title) + '</div>' +
         (meta ? '<div class="m">' + meta + '</div>' : '') +
@@ -232,6 +258,21 @@ footer a { color: var(--ink-mid); }
     }).sort();
     chips(document.getElementById('genreFilters'), common,
       genre, function (v) { genre = v; buildFilters(); render(); }, 'All genres');
+    buildSort();
+  }
+
+  function buildSort() {
+    var el = document.getElementById('sortChips');
+    el.innerHTML = '';
+    [['az', 'A\u2013Z'], ['new', 'Newest']].forEach(function (o) {
+      var b = document.createElement('button');
+      b.className = 'chip';
+      b.type = 'button';
+      b.textContent = o[1];
+      b.setAttribute('aria-pressed', sort === o[0] ? 'true' : 'false');
+      b.addEventListener('click', function () { sort = o[0]; buildSort(); render(); });
+      el.appendChild(b);
+    });
   }
 
   var timer = null;
